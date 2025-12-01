@@ -176,7 +176,6 @@ const StockManagement = () => {
   const [stockItems, setStockItems] = useState([]);
   const hasFetchedRef = useRef(false);
 
-  // ❌ REMOVED: Stock Synchronization Functions and testStockSync function
 
   const getCsrfToken = async () => {
     await fetch("http://localhost:8000/sanctum/csrf-cookie", {

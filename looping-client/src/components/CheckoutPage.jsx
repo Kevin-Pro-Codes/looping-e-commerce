@@ -36,6 +36,158 @@ const CsrfTokenManager = {
   }
 };
 
+// ✅ Color Utility Functions
+const getEnglishColorName = (colorValue) => {
+  if (!colorValue || colorValue === 'undefined') return 'Not specified';
+  
+  // Convert to lowercase and trim
+  const color = colorValue.toString().toLowerCase().trim();
+  
+  // Map of color values to Portuguese names
+  const colorMap = {
+    // Hex codes
+    '#000000': 'Preto',
+    '#000': 'Preto',
+    '#fff': 'Branco',
+    '#ffffff': 'Branco',
+    '#1e90ff': 'Azul',
+    '#ff69b4': 'Rosa',
+    '#ff0000': 'Vermelho',
+    '#00ff00': 'Verde',
+    '#0000ff': 'Azul Escuro',
+    '#ffff00': 'Amarelo',
+    '#ffa500': 'Laranja',
+    '#800080': 'Roxo',
+    '#808080': 'Cinza',
+    '#964b00': 'Marrom',
+    '#a52a2a': 'Marrom',
+    '#c0c0c0': 'Prata',
+    '#ffd700': 'Dourado',
+    '#008080': 'Verde-água',
+    '#4b0082': 'Anil',
+    '#ee82ee': 'Violeta',
+    '#ffc0cb': 'Rosa Claro',
+    '#87ceeb': 'Azul Celeste',
+    '#32cd32': 'Verde Lima',
+    '#ff4500': 'Vermelho Alaranjado',
+    '#da70d6': 'Orquídea',
+    '#f0e68c': 'Cáqui',
+    '#d2691e': 'Chocolate',
+    
+    // Portuguese color names (keep as is)
+    'preto': 'Preto',
+    'branco': 'Branco',
+    'azul': 'Azul',
+    'rosa': 'Rosa',
+    'vermelho': 'Vermelho',
+    'verde': 'Verde',
+    'amarelo': 'Amarelo',
+    'laranja': 'Laranja',
+    'roxo': 'Roxo',
+    'cinza': 'Cinza',
+    'marrom': 'Marrom',
+    'prata': 'Prata',
+    'dourado': 'Dourado',
+    'bege': 'Bege',
+    'vinho': 'Vinho',
+    'lilás': 'Lilás',
+    'turquesa': 'Turquesa',
+    'coral': 'Coral',
+    
+    // English color names (translate to Portuguese)
+    'black': 'Preto',
+    'white': 'Branco',
+    'blue': 'Azul',
+    'pink': 'Rosa',
+    'red': 'Vermelho',
+    'green': 'Verde',
+    'yellow': 'Amarelo',
+    'orange': 'Laranja',
+    'purple': 'Roxo',
+    'gray': 'Cinza',
+    'grey': 'Cinza',
+    'brown': 'Marrom',
+    'silver': 'Prata',
+    'gold': 'Dourado',
+    'teal': 'Verde-água',
+    'indigo': 'Anil',
+    'violet': 'Violeta',
+    'light pink': 'Rosa Claro',
+    'sky blue': 'Azul Celeste',
+    'lime green': 'Verde Lima',
+    'orange red': 'Vermelho Alaranjado',
+    'orchid': 'Orquídea',
+    'khaki': 'Cáqui',
+    'chocolate': 'Chocolate',
+    'beige': 'Bege',
+    'burgundy': 'Vinho',
+    'lilac': 'Lilás',
+    'turquoise': 'Turquesa',
+    'coral': 'Coral',
+  };
+  
+  // Check for exact match first
+  if (colorMap[color]) {
+    return colorMap[color];
+  }
+  
+  // Remove # for hex code matching
+  const cleanColor = color.replace('#', '');
+  if (colorMap[`#${cleanColor}`]) {
+    return colorMap[`#${cleanColor}`];
+  }
+  
+  // Check for partial matches
+  for (const [key, value] of Object.entries(colorMap)) {
+    if (color.includes(key) || key.includes(color)) {
+      return value;
+    }
+  }
+  
+  // If it's a valid hex code, keep it as hex
+  if (/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(colorValue)) {
+    return colorValue.toUpperCase();
+  }
+  
+  // Capitalize first letter for unknown colors
+  return color.charAt(0).toUpperCase() + color.slice(1);
+};
+
+const getColorForSwatch = (colorName) => {
+  const colorMap = {
+    'Preto': '#000000',
+    'Branco': '#FFFFFF',
+    'Azul': '#1E90FF',
+    'Rosa': '#FF69B4',
+    'Vermelho': '#FF0000',
+    'Verde': '#00FF00',
+    'Amarelo': '#FFFF00',
+    'Laranja': '#FFA500',
+    'Roxo': '#800080',
+    'Cinza': '#808080',
+    'Marrom': '#964B00',
+    'Prata': '#C0C0C0',
+    'Dourado': '#FFD700',
+    'Verde-água': '#008080',
+    'Anil': '#4B0082',
+    'Violeta': '#EE82EE',
+    'Rosa Claro': '#FFC0CB',
+    'Azul Celeste': '#87CEEB',
+    'Verde Lima': '#32CD32',
+    'Vermelho Alaranjado': '#FF4500',
+    'Orquídea': '#DA70D6',
+    'Cáqui': '#F0E68C',
+    'Chocolate': '#D2691E',
+    'Bege': '#F5F5DC',
+    'Vinho': '#800020',
+    'Lilás': '#C8A2C8',
+    'Turquesa': '#40E0D0',
+    'Coral': '#FF7F50',
+  };
+  
+  return colorMap[colorName] || '#ccc';
+};
+
 // ✅ SIMPLIFIED Backend API Service
 const OrderAPI = {
   createOrder: async (orderData) => {
@@ -163,14 +315,14 @@ const CustomerStep = ({
   return (
     <div className="bg-white p-6 rounded-lg shadow-md" style={{ fontFamily: 'Calibri, sans-serif' }}>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold">Dados Pessoais</h2>
+        <h2 className="text-xl font-semibold">Personal Data</h2>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500">Passo 1 de 4</span>
+          <span className="text-sm text-gray-500">Step 1 of 4</span>
           <button 
             onClick={fetchUserProfile}
             className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200 transition-colors"
           >
-            Recarregar
+            Reload
           </button>
         </div>
       </div>
@@ -178,19 +330,19 @@ const CustomerStep = ({
       {!isProfileLoaded ? (
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando seus dados...</p>
+          <p className="text-gray-600">Loading your data...</p>
         </div>
       ) : (
         <>
           {customerData.name && (
             <div className="mb-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-3">Dados do Perfil Carregados</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-3">Profile Data Loaded</h3>
               <div className="border-2 border-green-500 bg-green-50 rounded-lg p-4 transition-all">
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="space-y-2">
                       <div className="flex items-center">
-                        <span className="font-medium text-gray-700 w-19">Nome:</span>
+                        <span className="font-medium text-gray-700 w-19">Name:</span>
                         <span className="text-green-900 font-semibold -ml-6">{customerData.name}</span>
                       </div>
                       <div className="flex items-center">
@@ -198,7 +350,7 @@ const CustomerStep = ({
                         <span className="text-green-900 font-semibold -ml-7">{customerData.email}</span>
                       </div>
                       <div className="flex items-center">
-                        <span className="font-medium text-gray-700 w-19">Telefone:</span>
+                        <span className="font-medium text-gray-700 w-19">Phone:</span>
                         <span className="text-green-900 font-semibold -ml-3">{customerData.phone}</span>
                       </div>
                       <div className="flex items-center">
@@ -207,7 +359,7 @@ const CustomerStep = ({
                       </div>
                     </div>
                     <p className="text-sm text-green-700 mt-3">
-                      Seus dados foram carregados automaticamente. Você pode editá-los abaixo se necessário.
+                      Your data was loaded automatically. You can edit them below if needed.
                     </p>
                   </div>
                   <div className="w-6 h-6 rounded-full border-2 border-green-500 bg-green-500 flex items-center justify-center ml-4 flex-shrink-0">
@@ -221,14 +373,14 @@ const CustomerStep = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nome Completo *
+                Full Name *
               </label>
               <input
                 type="text"
                 value={customerData.name}
                 onChange={(e) => setCustomerData(prev => ({...prev, name: e.target.value}))}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
-                placeholder="Seu nome completo"
+                placeholder="Your full name"
               />
             </div>
             
@@ -241,13 +393,13 @@ const CustomerStep = ({
                 value={customerData.email}
                 onChange={(e) => setCustomerData(prev => ({...prev, email: e.target.value}))}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
-                placeholder="seu@email.com"
+                placeholder="your@email.com"
               />
             </div>
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Telefone *
+                Phone *
               </label>
               <input
                 type="tel"
@@ -278,7 +430,7 @@ const CustomerStep = ({
               disabled={!customerData.name || !customerData.email || !customerData.phone || !customerData.cpf}
               className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white py-3 px-8 rounded-lg font-semibold transition-colors"
             >
-              Continuar para Entrega
+              Continue to Delivery
             </button>
           </div>
         </>
@@ -338,13 +490,13 @@ const CepInput = ({
     <div className="bg-white p-4 rounded-lg border border-gray-200 mb-6">
       <div className="flex items-center gap-2 mb-3">
         <FiMapPin className="text-blue-600" size={20} />
-        <h3 className="text-lg font-semibold text-gray-800">Calcular Frete</h3>
+        <h3 className="text-lg font-semibold text-gray-800">Calculate Shipping</h3>
       </div>
       
       <div className="flex gap-3">
         <div className="flex-1">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Digite seu CEP
+            Enter your ZIP Code
           </label>
           <div className="relative">
             <input
@@ -364,12 +516,12 @@ const CepInput = ({
           </div>
           
           {showError && (
-            <p className="text-red-500 text-xs mt-1">CEP deve ter 8 dígitos</p>
+            <p className="text-red-500 text-xs mt-1">ZIP Code must have 8 digits</p>
           )}
           
           {cep && cep.replace(/\D/g, '').length > 0 && cep.replace(/\D/g, '').length < 8 && !showError && (
             <p className="text-gray-500 text-xs mt-1">
-              Digite mais {getMissingDigits()} dígito{getMissingDigits() !== 1 ? 's' : ''}
+              Enter {getMissingDigits()} more digit{getMissingDigits() !== 1 ? 's' : ''}
             </p>
           )}
         </div>
@@ -380,7 +532,7 @@ const CepInput = ({
           <div className="flex items-center gap-2">
             <FiCheck className="text-green-600" size={16} />
             <span className="text-green-800 text-sm font-medium">
-              CEP {shippingData.cep} válido
+              ZIP Code {shippingData.cep} valid
             </span>
           </div>
           {shippingData.city && shippingData.state && (
@@ -429,10 +581,10 @@ const ShippingStep = ({
           cep: data.cep || cleanCEP
         }));
       } else {
-        console.log('CEP não encontrado');
+        console.log('ZIP Code not found');
       }
     } catch (error) {
-      console.error('Erro ao buscar CEP:', error);
+      console.error('Error fetching ZIP Code:', error);
     } finally {
       setCepLoading(false);
     }
@@ -453,23 +605,23 @@ const ShippingStep = ({
   const shippingOptions = [
     {
       id: 'economy',
-      name: 'Entrega Econômica',
-      company: 'Transportadora',
+      name: 'Economy Delivery',
+      company: 'Carrier',
       price: 15.90,
       delivery_time: '5-8',
       delivery_range: { min: 5, max: 8 },
-      custom_delivery_time: '5 a 8 dias úteis',
-      description: 'Entrega econômica'
+      custom_delivery_time: '5 to 8 business days',
+      description: 'Economy delivery'
     },
     {
       id: 'express',
-      name: 'Entrega Expressa',
-      company: 'Transportadora',
+      name: 'Express Delivery',
+      company: 'Carrier',
       price: 29.90,
       delivery_time: '2-3',
       delivery_range: { min: 2, max: 3 },
-      custom_delivery_time: '2 a 3 dias úteis',
-      description: 'Entrega rápida'
+      custom_delivery_time: '2 to 3 business days',
+      description: 'Fast delivery'
     }
   ];
 
@@ -479,14 +631,14 @@ const ShippingStep = ({
   return (
     <div className="bg-white p-6 rounded-lg shadow-md" style={{ fontFamily: 'Calibri, sans-serif' }}>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold">Endereço de Entrega</h2>
+        <h2 className="text-xl font-semibold">Delivery Address</h2>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500">Passo 2 de 4</span>
+          <span className="text-sm text-gray-500">Step 2 of 4</span>
           <button 
             onClick={fetchUserAddresses}
             className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200 transition-colors"
           >
-            Recarregar
+            Reload
           </button>
         </div>
       </div>
@@ -501,47 +653,47 @@ const ShippingStep = ({
       
       {userAddresses.length > 0 && selectedAddressId && (
         <div className="mb-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-3">Endereços Carregados</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-3">Addresses Loaded</h3>
           <div className="border-2 border-green-500 bg-green-50 rounded-lg p-4 transition-all">
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
                 <div className="space-y-2">
                   <div className="flex items-center">
-                    <span className="font-medium text-gray-700 w-20">Rua:</span>
+                    <span className="font-medium text-gray-700 w-20">Street:</span>
                     <span className="text-green-900 font-semibold -ml-11">{shippingData.street}</span>
                   </div>
                   
                   <div className="flex items-center">
-                    <span className="font-medium text-gray-700 w-20">Número:</span>
+                    <span className="font-medium text-gray-700 w-20">Number:</span>
                     <span className="text-green-900 font-semibold -ml-4">{shippingData.number}</span>
                   </div>
 
                   <div className="flex items-center">
-                    <span className="font-medium text-gray-700 w-20">Complemento:</span>
+                    <span className="font-medium text-gray-700 w-20">Complement:</span>
                     <span className="text-green-900 font-semibold ml-6">
-                      {shippingData.complement || <span className="text-gray-400 italic">Nenhum</span>}
+                      {shippingData.complement || <span className="text-gray-400 italic">None</span>}
                     </span>
                   </div>
 
                   <div className="flex items-center">
-                    <span className="font-medium text-gray-700 w-19">Bairro:</span>
+                    <span className="font-medium text-gray-700 w-19">Neighborhood:</span>
                     <span className="text-green-900 font-semibold -ml-6">{shippingData.hood}</span>
                   </div>
                   <div className="flex items-center">
-                    <span className="font-medium text-gray-700 w-20">Cidade:</span>
+                    <span className="font-medium text-gray-700 w-20">City:</span>
                     <span className="text-green-900 font-semibold -ml-6">{shippingData.city}</span>
                   </div>
                   <div className="flex items-center">
-                    <span className="font-medium text-gray-700 w-20">Estado:</span>
+                    <span className="font-medium text-gray-700 w-20">State:</span>
                     <span className="text-green-900 font-semibold -ml-6">{shippingData.state}</span>
                   </div>
                   <div className="flex items-center">
-                    <span className="font-medium text-gray-700 w-20">CEP:</span>
+                    <span className="font-medium text-gray-700 w-20">ZIP Code:</span>
                     <span className="text-green-900 font-semibold -ml-11">{shippingData.cep}</span>
                   </div>
                 </div>
                 <p className="text-sm text-green-700 mt-3">
-                  Seu endereço foi carregado automaticamente. Você pode selecionar outro abaixo ou editar manualmente.
+                  Your address was loaded automatically. You can select another below or edit manually.
                 </p>
               </div>
               <div className="w-6 h-6 rounded-full border-2 border-green-500 bg-green-500 flex items-center justify-center ml-4 flex-shrink-0">
@@ -555,7 +707,7 @@ const ShippingStep = ({
       {userAddresses.length === 0 && (
         <div className="mb-6 p-4 bg-gray-50 rounded-lg">
           <p className="text-gray-600 text-center">
-            Nenhum endereço salvo encontrado. Preencha seus dados de entrega abaixo.
+            No saved addresses found. Fill in your delivery details below.
           </p>
         </div>
       )}
@@ -563,20 +715,20 @@ const ShippingStep = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Rua *
+            Street *
           </label>
           <input
             type="text"
             value={shippingData.street}
             onChange={(e) => setShippingData(prev => ({...prev, street: e.target.value}))}
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
-            placeholder="Nome da Rua"
+            placeholder="Street Name"
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Número *
+            Number *
           </label>
           <input
             type="text"
@@ -589,53 +741,53 @@ const ShippingStep = ({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Complemento
+            Complement
           </label>
           <input
             type="text"
             value={shippingData.complement}
             onChange={(e) => setShippingData(prev => ({...prev, complement: e.target.value}))}
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
-            placeholder="Apartmento, bloco, etc."
+            placeholder="Apartment, block, etc."
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Bairro *
+            Neighborhood *
           </label>
           <input
             type="text"
             value={shippingData.hood}
             onChange={(e) => setShippingData(prev => ({...prev, hood: e.target.value}))}
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
-            placeholder="Bairro"
+            placeholder="Neighborhood"
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Cidade *
+            City *
           </label>
           <input
             type="text"
             value={shippingData.city}
             onChange={(e) => setShippingData(prev => ({...prev, city: e.target.value}))}
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
-            placeholder="Cidade"
+            placeholder="City"
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Estado *
+            State *
           </label>
           <select
             value={shippingData.state}
             onChange={(e) => setShippingData(prev => ({...prev, state: e.target.value}))}
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
           >
-            <option value="">Selecione</option>
+            <option value="">Select</option>
             <option value="AC">Acre</option>
             <option value="AL">Alagoas</option>
             <option value="AP">Amapá</option>
@@ -669,7 +821,7 @@ const ShippingStep = ({
 
       {/* Shipping Options */}
       <div className="mt-6">
-        <h3 className="text-lg font-semibold text-black mb-4">Opções de Entrega</h3>
+        <h3 className="text-lg font-semibold text-black mb-4">Delivery Options</h3>
         
         <div className="space-y-3">
           {shippingOptions.map((shipping) => (
@@ -720,12 +872,12 @@ const ShippingStep = ({
                   </div>
                   {shipping.id === 'economy' && (
                     <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
-                      Mais econômico
+                      Most economical
                     </span>
                   )}
                   {shipping.id === 'express' && (
                     <span className="text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded">
-                      Mais rápido
+                      Fastest
                     </span>
                   )}
                 </div>
@@ -741,7 +893,7 @@ const ShippingStep = ({
           className="flex items-center text-gray-600 hover:text-gray-800 py-3 px-6 rounded-lg border border-gray-300 hover:border-gray-400 transition-colors"
         >
           <FiArrowLeft className="mr-2" />
-          Voltar para Dados Pessoais
+          Back to Personal Data
         </button>
         <button
           onClick={nextStep}
@@ -754,13 +906,13 @@ const ShippingStep = ({
         >
           {selectedShipping ? (
             <>
-              Continuar para Pagamento
+              Continue to Payment
               <span className="ml-2 text-sm font-normal">
-                (+ R$ {selectedShipping.price.toFixed(2)} frete)
+                (+ R$ {selectedShipping.price.toFixed(2)} shipping)
               </span>
             </>
           ) : (
-            'Selecione o frete'
+            'Select shipping'
           )}
         </button>
       </div>
@@ -781,8 +933,8 @@ const PaymentStep = ({
 }) => (
   <div className="bg-white p-6 rounded-lg shadow-md" style={{ fontFamily: 'Calibri, sans-serif' }}>
     <div className="flex items-center justify-between mb-4">
-      <h2 className="text-xl font-semibold text-black">Método de Pagamento</h2>
-      <span className="text-sm text-gray-500">Passo 3 de 4</span>
+      <h2 className="text-xl font-semibold text-black">Payment Method</h2>
+      <span className="text-sm text-gray-500">Step 3 of 4</span>
     </div>
     
     <div className="space-y-4">
@@ -799,12 +951,12 @@ const PaymentStep = ({
             <SiPix size={24} className="text-green-600" />
             <div>
               <span className="font-semibold text-black">PIX</span>
-              <p className="text-sm text-gray-600">Pagamento instantâneo</p>
+              <p className="text-sm text-gray-600">Instant payment</p>
             </div>
           </div>
           {paymentMethod === 'pix' && (
             <div className="text-green-600 font-semibold">
-              5% de desconto
+              5% discount
             </div>
           )}
         </div>
@@ -821,8 +973,8 @@ const PaymentStep = ({
           </div>
           <FiFileText size={20} className="text-gray-600" />
           <div>
-            <span className="font-semibold text-black">Boleto Bancário</span>
-            <p className="text-sm text-gray-600">Vencimento em 3 dias úteis</p>
+            <span className="font-semibold text-black">Bank Slip</span>
+            <p className="text-sm text-gray-600">Due in 3 business days</p>
           </div>
         </div>
       </div>
@@ -838,8 +990,8 @@ const PaymentStep = ({
           </div>
           <FiCreditCard size={20} className="text-gray-600" />
           <div>
-            <span className="font-semibold text-black">Cartão de Crédito</span>
-            <p className="text-sm text-gray-600">Parcelamento em até 12x</p>
+            <span className="font-semibold text-black">Credit Card</span>
+            <p className="text-sm text-gray-600">Installments up to 12x</p>
           </div>
         </div>
       </div>
@@ -855,8 +1007,8 @@ const PaymentStep = ({
           </div>
           <FiDollarSign size={20} className="text-gray-600" />
           <div>
-            <span className="font-semibold text-black">Cartão de Débito</span>
-            <p className="text-sm text-gray-600">Pagamento à vista</p>
+            <span className="font-semibold text-black">Debit Card</span>
+            <p className="text-sm text-gray-600">Payment in full</p>
           </div>
         </div>
       </div>
@@ -864,7 +1016,7 @@ const PaymentStep = ({
 
     {paymentMethod === 'credit' && (
       <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-        <h3 className="font-semibold mb-4 text-black">Dados do Cartão</h3>
+        <h3 className="font-semibold mb-4 text-black">Card Details</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
             <input
@@ -872,7 +1024,7 @@ const PaymentStep = ({
               value={cardData.number}
               onChange={(e) => setCardData(prev => ({...prev, number: e.target.value}))}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
-              placeholder="Número do Cartão"
+              placeholder="Card Number"
             />
           </div>
           
@@ -882,7 +1034,7 @@ const PaymentStep = ({
               value={cardData.name}
               onChange={(e) => setCardData(prev => ({...prev, name: e.target.value}))}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
-              placeholder="Nome no Cartão"
+              placeholder="Name on Card"
             />
           </div>
 
@@ -892,7 +1044,7 @@ const PaymentStep = ({
               value={cardData.expiry}
               onChange={(e) => setCardData(prev => ({...prev, expiry: e.target.value}))}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
-              placeholder="Validade (MM/AA)"
+              placeholder="Expiry (MM/YY)"
             />
           </div>
 
@@ -914,7 +1066,7 @@ const PaymentStep = ({
             >
               {[1,2,3,4,5,6,7,8,9,10,11,12].map(num => (
                 <option key={num} value={num}>
-                  {num}x de R$ {(calculateTotal() / num).toFixed(2)} sem juros
+                  {num}x of R$ {(calculateTotal() / num).toFixed(2)} no interest
                 </option>
               ))}
             </select>
@@ -929,18 +1081,18 @@ const PaymentStep = ({
         className="flex items-center text-gray-600 hover:text-gray-800 py-3 px-6 rounded-lg border border-gray-300 hover:border-gray-400 transition-colors"
       >
         <FiArrowLeft className="mr-2" />
-        Voltar para Entrega
+        Back to Delivery
       </button>
       <button
         onClick={processCheckout}
         disabled={loading}
         className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white py-3 px-8 rounded-lg font-semibold transition-colors flex items-center"
       >
-        {loading ? 'Processando...' : (
+        {loading ? 'Processing...' : (
           <>
             <FiLock className="mr-2" />
-            {paymentMethod === 'pix' ? 'Gerar PIX' : 
-             paymentMethod === 'boleto' ? 'Gerar Boleto' : 'Finalizar Pedido'}
+            {paymentMethod === 'pix' ? 'Generate PIX' : 
+             paymentMethod === 'boleto' ? 'Generate Bank Slip' : 'Complete Order'}
           </>
         )}
       </button>
@@ -948,7 +1100,6 @@ const PaymentStep = ({
   </div>
 );
 
-// ✅ PixStep Component
 // ✅ PixStep Component - FIXED
 const PixStep = ({ pixData, copyPixCode, goToStep }) => {
   const [timeLeft, setTimeLeft] = useState(30 * 60);
@@ -996,8 +1147,8 @@ const PixStep = ({ pixData, copyPixCode, goToStep }) => {
   };
 
   const handleContinue = () => {
-    const orderNumber = pixData.backendOrderNumber || 'seu pedido';
-    alert(`✅ Pagamento PIX confirmado com sucesso! Pedido #${orderNumber} finalizado.`);
+    const orderNumber = pixData.backendOrderNumber || 'your order';
+    alert(`✅ PIX payment confirmed successfully! Order #${orderNumber} completed.`);
     window.location.href = '/';
   };
 
@@ -1010,14 +1161,14 @@ const PixStep = ({ pixData, copyPixCode, goToStep }) => {
         <SiPix size={32} className="text-green-600" />
       </div>
       
-      <h2 className="text-2xl font-bold mb-2 text-black">Pagamento via PIX</h2>
-      <p className="text-gray-600 mb-6">Escaneie o QR Code ou copie o código para pagar</p>
+      <h2 className="text-2xl font-bold mb-2 text-black">Payment via PIX</h2>
+      <p className="text-gray-600 mb-6">Scan the QR Code or copy the code to pay</p>
       
       {isMock && (
         <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 mb-4">
           <div className="flex items-center justify-center space-x-2">
-            <span className="text-purple-700 font-semibold">🧪 MODO DE TESTE</span>
-            <span className="text-purple-600 text-sm">Pagamento automático em 10 segundos</span>
+            <span className="text-purple-700 font-semibold">🧪 TEST MODE</span>
+            <span className="text-purple-600 text-sm">Automatic payment in 10 seconds</span>
           </div>
         </div>
       )}
@@ -1028,44 +1179,44 @@ const PixStep = ({ pixData, copyPixCode, goToStep }) => {
             <div className="bg-green-50 border border-green-200 rounded-lg p-6">
               <div className="flex items-center justify-center space-x-2 mb-4">
                 <FiCheck size={24} className="text-green-600" />
-                <span className="text-green-800 text-xl font-bold">Pagamento Confirmado!</span>
+                <span className="text-green-800 text-xl font-bold">Payment Confirmed!</span>
               </div>
               <p className="text-green-700 mb-4">
-                Seu pedido <strong>#{pixData.backendOrderNumber}</strong> foi confirmado.<br />
-                Valor: <strong>R$ {amount.toFixed(2)}</strong>
+                Your order <strong>#{pixData.backendOrderNumber}</strong> was confirmed.<br />
+                Amount: <strong>R$ {amount.toFixed(2)}</strong>
               </p>
               <button
                 onClick={handleContinue}
                 className="bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg font-semibold transition-colors"
               >
-                Continuar <FiArrowRight className="ml-1" />
+                Continue <FiArrowRight className="ml-1" />
               </button>
             </div>
           ) : (
             <>
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <div className="flex items-center justify-center space-x-2">
-                  <span className="text-yellow-800 font-semibold">Tempo restante:</span>
+                  <span className="text-yellow-800 font-semibold">Time remaining:</span>
                   <span className={`text-lg font-bold ${timeLeft < 300 ? 'text-red-600' : 'text-yellow-700'}`}>
                     {formatTime(timeLeft)}
                   </span>
                 </div>
                 {timeLeft < 300 && (
                   <p className="text-red-600 text-sm text-center mt-2">
-                    ⚠️ O código expira em breve!
+                    ⚠️ Code expires soon!
                   </p>
                 )}
               </div>
               
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-                <p className="text-sm text-green-700 mb-1">Valor a pagar</p>
+                <p className="text-sm text-green-700 mb-1">Amount to pay</p>
                 <p className="text-2xl font-bold text-green-800">
                   R$ {amount.toFixed(2)}
                 </p>
               </div>
 
               <div className="text-center">
-                <p className="text-sm text-gray-600 mb-3">Escaneie com seu app bancário</p>
+                <p className="text-sm text-gray-600 mb-3">Scan with your banking app</p>
                 <div className="bg-white p-4 rounded-lg border-2 border-dashed border-green-300 inline-block">
                   <img 
                     src={pixData.pixQrCode} 
@@ -1080,7 +1231,7 @@ const PixStep = ({ pixData, copyPixCode, goToStep }) => {
               
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-sm text-gray-600 mb-2 text-center">
-                  Ou copie o código PIX e cole no seu app bancário
+                  Or copy the PIX code and paste in your banking app
                 </p>
                 <div className="flex items-center justify-between bg-white p-3 rounded border">
                   <code className="text-sm font-mono break-all flex-1 text-left text-black text-xs">
@@ -1089,7 +1240,7 @@ const PixStep = ({ pixData, copyPixCode, goToStep }) => {
                   <button
                     onClick={copyPixCode}
                     className="ml-2 p-2 text-gray-600 hover:text-gray-800 flex-shrink-0"
-                    title="Copiar código PIX"
+                    title="Copy PIX code"
                   >
                     <FiCopy size={18} />
                   </button>
@@ -1097,12 +1248,12 @@ const PixStep = ({ pixData, copyPixCode, goToStep }) => {
               </div>
               
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-semibold text-blue-800 mb-2">Como pagar:</h4>
+                <h4 className="font-semibold text-blue-800 mb-2">How to pay:</h4>
                 <ul className="text-sm text-blue-700 space-y-1">
-                  <li>• <strong>Opção 1:</strong> Abra seu app bancário, escolha "Pagar com PIX" e escaneie o QR Code</li>
-                  <li>• <strong>Opção 2:</strong> Copie o código acima e cole no campo "Código PIX" do seu banco</li>
+                  <li>• <strong>Option 1:</strong> Open your banking app, choose "Pay with PIX" and scan the QR Code</li>
+                  <li>• <strong>Option 2:</strong> Copy the code above and paste in the "PIX Code" field of your bank</li>
                   {isMock && (
-                    <li>• <strong>🧪 Modo Teste:</strong> Pagamento será confirmado automaticamente</li>
+                    <li>• <strong>🧪 Test Mode:</strong> Payment will be confirmed automatically</li>
                   )}
                 </ul>
               </div>
@@ -1113,11 +1264,11 @@ const PixStep = ({ pixData, copyPixCode, goToStep }) => {
                   className="flex items-center text-gray-600 hover:text-gray-800 py-2 px-4 rounded-lg border border-gray-300 hover:border-gray-400 transition-colors"
                 >
                   <FiArrowLeft className="mr-2" />
-                  Alterar Método de Pagamento
+                  Change Payment Method
                 </button>
                 <div className="text-center">
                   <p className="text-sm text-gray-500 mb-2">
-                    {isMock ? 'Confirmando pagamento automaticamente...' : 'Aguardando confirmação do pagamento...'}
+                    {isMock ? 'Confirming payment automatically...' : 'Waiting for payment confirmation...'}
                   </p>
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600 mx-auto"></div>
                 </div>
@@ -1128,17 +1279,14 @@ const PixStep = ({ pixData, copyPixCode, goToStep }) => {
       ) : (
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-black">Gerando código PIX...</p>
+          <p className="text-black">Generating PIX code...</p>
         </div>
       )}
     </div>
- 
-      
-   
   );
 };
 
-// ✅ OrderSummary Component - UPDATED with Color and Size
+// ✅ OrderSummary Component - UPDATED with Portuguese Color Names
 const OrderSummary = ({ 
   cartItems, 
   couponCode, 
@@ -1155,28 +1303,8 @@ const OrderSummary = ({
   isUsingSelectedItems,
   navigate
 }) => {
-  const getColorName = (colorValue) => {
-    if (!colorValue) return 'Não especificada';
-    
-    const colorMap = {
-      '#000000': 'Preto',
-      '#FFFFFF': 'Branco', 
-      '#1E90FF': 'Azul',
-      '#FF0000': 'Vermelho',
-      '#00FF00': 'Verde',
-      '#FFFF00': 'Amarelo',
-      '#FF69B4': 'Rosa',
-      '#808080': 'Cinza',
-      '#FFA500': 'Laranja',
-      '#800080': 'Roxo',
-      '#964B00': 'Marrom',
-      // Add more mappings as needed
-    };
-    
-    return colorMap[colorValue] || colorValue;
-  };
   
-  // ✅ UPDATED getProductDetails function with color mapping
+  // ✅ UPDATED getProductDetails function with Portuguese color mapping
   const getProductDetails = (item) => {
     const product = item.product || {};
     
@@ -1190,9 +1318,9 @@ const OrderSummary = ({
                 (item.options && (item.options.size || item.options.tamanho)) ||
                 item.attributes?.size ||
                 item.metadata?.size ||
-                null;
+                'Not specified';
     
-    // Extract color with multiple fallbacks AND map to name  
+    // Extract raw color and convert to Portuguese name  
     const rawColor = item.color || 
                    item.selectedColor || 
                    item.variant_color ||
@@ -1204,17 +1332,17 @@ const OrderSummary = ({
                    item.metadata?.color ||
                    null;
   
-    // Convert hex code to color name
-    const color = getColorName(rawColor);
+    // Convert to Portuguese color name
+    const color = getEnglishColorName(rawColor);
   
     return {
-      name: product.title || product.name || item.product_name || `Produto ${item.product_id || ''}`,
+      name: product.title || product.name || item.product_name || `Product ${item.product_id || ''}`,
       price: product.price || item.price || 0,
       image: product.image || product.image_url || item.image || product.images?.[0] || null,
       quantity: item.quantity || 1,
       size: size,
       color: color,
-      rawColor: rawColor, // Keep original for the color swatch
+      rawColor: rawColor, // Keep original for color swatch
       variant_id: item.variant_id || item.product_variant?.id || null,
       sku: product.sku || item.sku || null
     };
@@ -1223,19 +1351,19 @@ const OrderSummary = ({
   return (
     <div className="bg-white p-6 rounded-lg shadow-md sticky top-24" style={{ fontFamily: 'Calibri, sans-serif' }}>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold text-black">Resumo do Pedido</h2>
+        <h2 className="text-xl font-semibold text-black">Order Summary</h2>
         <div className="flex items-center gap-2">
           {isUsingSelectedItems && (
             <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-              {cartItems.length} {cartItems.length === 1 ? 'selecionado' : 'selecionados'}
+              {cartItems.length} {cartItems.length === 1 ? 'selected' : 'selected'}
             </span>
           )}
           <button 
             onClick={() => navigate('/cart')}
             className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200 transition-colors"
-            title="Alterar itens selecionados"
+            title="Change selected items"
           >
-            Alterar Itens
+            Change Items
           </button>
         </div>
       </div>
@@ -1245,98 +1373,87 @@ const OrderSummary = ({
           <div className="flex items-center gap-2">
             <FiCheck className="text-green-600" size={16} />
             <span className="text-green-800 text-sm font-medium">
-              {cartItems.length} {cartItems.length === 1 ? 'item selecionado' : 'itens selecionados'} do carrinho
+              {cartItems.length} {cartItems.length === 1 ? 'item selected' : 'items selected'} from cart
             </span>
           </div>
         </div>
       )}
       
       <div className="space-y-3 mb-4 max-h-80 overflow-y-auto">
-  {cartItems.map((item, index) => {
-    const product = getProductDetails(item);
-    const itemTotal = product.price * product.quantity;
+        {cartItems.map((item, index) => {
+          const product = getProductDetails(item);
+          const itemTotal = product.price * product.quantity;
 
-    return (
-      <div key={item.id || index} className="flex items-start space-x-4 pb-3 border-b border-gray-100 last:border-b-0">
-        <div className="w-35 h-35 bg-white rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-gray-100 shadow-lg">
-          {product.image ? (
-            <div className="w-full h-full flex items-center justify-center p-0">
-              <img 
-                src={product.image} 
-                alt={product.name}
-                className="w-full h-full object-contain"
-                style={{ 
-                  imageRendering: 'auto',
-                  transform: 'translateZ(0)'
-                }}
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.nextSibling.style.display = 'flex';
-                }}
-              />
-            </div>
-          ) : (
-            <span className="text-gray-500 text-xs text-center">Sem imagem</span>
-          )}
-        </div>
-        
-        <div className="flex-1 min-w-0">
-          <p className="font-medium text-gray-900 text-sm leading-tight mb-1">{product.name}</p>
-          
-          {(product.size || product.color) && (
-            <div className="flex flex-wrap gap-2 mb-2">
-              {product.size && product.size !== 'Não especificado' && (
-                <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                  Tamanho: {product.size}
-                </span>
-              )}
-              {product.color && product.color !== 'Não especificada' && (
-                <div className="flex items-center gap-1">
-                  <div 
-                    className="w-3 h-3 rounded-full border border-gray-300 shadow-sm"
-                    style={{ 
-                      backgroundColor: product.color.startsWith('#') ? product.color : 
-                        product.color === 'Preto' ? '#000000' :
-                        product.color === 'Branco' ? '#FFFFFF' :
-                        product.color === 'Azul' ? '#1E90FF' :
-                        product.color === 'Vermelho' ? '#FF0000' :
-                        product.color === 'Verde' ? '#00FF00' :
-                        product.color === 'Amarelo' ? '#FFFF00' :
-                        product.color === 'Rosa' ? '#FF69B4' :
-                        product.color === 'Cinza' ? '#808080' :
-                        product.color === 'Laranja' ? '#FFA500' :
-                        product.color === 'Roxo' ? '#800080' :
-                        product.color === 'Marrom' ? '#964B00' : '#ccc',
-                      borderColor: (product.color === 'Branco' || product.color === '#FFFFFF') ? '#ccc' : 'transparent'
-                    }}
-                    title={product.color}
-                  ></div>
-                  <span className="text-xs text-gray-600">Cor: {product.color}</span>
+          return (
+            <div key={item.id || index} className="flex items-start space-x-4 pb-3 border-b border-gray-100 last:border-b-0">
+              <div className="w-35 h-35 bg-white rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-gray-100 shadow-lg">
+                {product.image ? (
+                  <div className="w-full h-full flex items-center justify-center p-0">
+                    <img 
+                      src={product.image} 
+                      alt={product.name}
+                      className="w-full h-full object-contain"
+                      style={{ 
+                        imageRendering: 'auto',
+                        transform: 'translateZ(0)'
+                      }}
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <span className="text-gray-500 text-xs text-center">No image</span>
+                )}
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-gray-900 text-sm leading-tight mb-1">{product.name}</p>
+                
+                {(product.size || product.color) && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {product.size && product.size !== 'Not specified' && (
+                      <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                        Size: {product.size}
+                      </span>
+                    )}
+                    {product.color && product.color !== 'Not specified' && (
+                      <div className="flex items-center gap-1">
+                        <div 
+                          className="w-3 h-3 rounded-full border border-gray-300 shadow-sm"
+                          style={{ 
+                            backgroundColor: getColorForSwatch(product.color),
+                            borderColor: (product.color === 'Branco' || product.color === '#FFFFFF') ? '#ccc' : 'transparent'
+                          }}
+                          title={product.color}
+                        ></div>
+                        <span className="text-xs text-gray-600">Color: {product.color}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Qty: {product.quantity}</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      R$ {product.price.toFixed(2)} each
+                    </p>
+                  </div>
+                  <p className="font-semibold text-gray-900 text-sm">
+                    R$ {itemTotal.toFixed(2)}
+                  </p>
                 </div>
-              )}
+              </div>
             </div>
-          )}
-          
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Qtd: {product.quantity}</p>
-              <p className="text-sm font-semibold text-gray-900">
-                R$ {product.price.toFixed(2)} cada
-              </p>
-            </div>
-            <p className="font-semibold text-gray-900 text-sm">
-              R$ {itemTotal.toFixed(2)}
-            </p>
-          </div>
-        </div>
+          );
+        })}
       </div>
-    );
-  })}
-</div>
 
       <div className="border-t pt-4 mb-4">
         <div className="flex justify-between items-center mb-2">
-          <span className="text-sm text-gray-600">Itens no carrinho:</span>
+          <span className="text-sm text-gray-600">Items in cart:</span>
           <span className="font-semibold text-black">{cartItems.length}</span>
         </div>
       </div>
@@ -1347,14 +1464,14 @@ const OrderSummary = ({
             type="text"
             value={couponCode}
             onChange={(e) => setCouponCode(e.target.value)}
-            placeholder="Cupom de desconto"
+            placeholder="Discount coupon"
             className="flex-1 p-2 border border-gray-300 rounded-lg text-sm text-black"
           />
           <button
             onClick={applyCoupon}
             className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 rounded-lg text-sm font-medium"
           >
-            Aplicar
+            Apply
           </button>
         </div>
       </div>
@@ -1368,7 +1485,7 @@ const OrderSummary = ({
         {selectedShipping ? (
           <div className="flex justify-between text-black">
             <span>
-              Frete {selectedShipping.name}
+              Shipping {selectedShipping.name}
               {selectedShipping.custom_delivery_time && (
                 <span className="text-xs text-gray-500 block">
                   {selectedShipping.custom_delivery_time}
@@ -1379,14 +1496,14 @@ const OrderSummary = ({
           </div>
         ) : (
           <div className="flex justify-between text-black">
-            <span>Frete</span>
-            <span className="text-gray-500">A calcular</span>
+            <span>Shipping</span>
+            <span className="text-gray-500">To calculate</span>
           </div>
         )}
         
         {discount > 0 && (
           <div className="flex justify-between text-green-600">
-            <span>Desconto</span>
+            <span>Discount</span>
             <span>- R$ {discount.toFixed(2)}</span>
           </div>
         )}
@@ -1402,34 +1519,34 @@ const OrderSummary = ({
         <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
           <div className="flex items-center text-green-700">
             <SiPix className="mr-2" />
-            <span className="font-semibold">5% de desconto no PIX</span>
+            <span className="font-semibold">5% discount on PIX</span>
           </div>
           <p className="text-green-600 text-sm mt-1">
-            Economize R$ {(calculateTotal() * 0.05).toFixed(2)}
+            Save R$ {(calculateTotal() * 0.05).toFixed(2)}
           </p>
         </div>
       )}
 
       <div className="mt-6 pt-4 border-t border-gray-200">
-        <p className="text-sm font-medium text-gray-700 mb-2">Navegação Rápida:</p>
+        <p className="text-sm font-medium text-gray-700 mb-2">Quick Navigation:</p>
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => goToStep(1)}
             className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded"
           >
-            Dados Pessoais
+            Personal Data
           </button>
           <button
             onClick={() => goToStep(2)}
             className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded"
           >
-            Entrega
+            Delivery
           </button>
           <button
             onClick={() => goToStep(3)}
             className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded"
           >
-            Pagamento
+            Payment
           </button>
           {currentStep === 4 && (
             <button
@@ -1585,144 +1702,143 @@ const CheckoutPage = () => {
     return `00020126580014br.gov.bcb.pix0136${randomId}520400005303986540${formattedAmount}5802BR5913LOJA EXEMPLO6008SAO PAULO62070503***6304${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
   };
 
- // ✅ Enhanced PIX Processing in React Component
-// ✅ Enhanced PIX Processing
-const processPixPayment = async (orderId, orderData) => {
-  try {
-    const csrfToken = await CsrfTokenManager.getCsrfToken();
-    
-    console.log('🔄 Generating PIX payment for order:', orderId);
-    
-    const response = await fetch('http://localhost:8000/api/pix/generate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-XSRF-TOKEN': csrfToken,
-      },
-      credentials: 'include',
-      body: JSON.stringify({
-        order_id: orderId,
-        amount: orderData.total,
-        payer_name: orderData.customer_name,
-        payer_cpf: orderData.customer_cpf,
-      })
-    });
-
-    const result = await response.json();
-    
-    if (!response.ok) {
-      console.error('❌ PIX API Error:', result);
-      throw new Error(result.message || `HTTP ${response.status}`);
-    }
-    
-    if (!result.success) {
-      throw new Error(result.message || 'PIX generation failed');
-    }
-    
-    console.log('✅ PIX generated successfully:', result.data);
-    return result.data;
-    
-  } catch (error) {
-    console.error('❌ PIX Generation Error:', error);
-    throw error;
-  }
-};
-
-// ✅ Enhanced Checkout Process
-const processCheckout = async () => {
-
-  setLoading(true);
-
-  try {
-    const orderPayload = generateOrderJSON();
-    console.log('%c ORDER PAYLOAD → /api/orders ', 'background:#006400;color:#fff;font-weight:bold;', orderPayload);
-
-    // 1. Create order in database
-    const backendResult = await saveOrderToBackend(orderPayload);
-    
-    if (!backendResult.success) {
-      throw new Error(backendResult.message || 'Failed to save order');
-    }
-
-    console.log('✅ Order created in database:', backendResult.data);
-    const orderId = backendResult.data.order_id;
-    const orderNumber = backendResult.data.order_number;
-
-    // 2. Handle PIX payment
-    if (paymentMethod === 'pix') {
-      const pixResult = await processPixPayment(orderId, orderPayload);
-      
-      setPixData({
-        pixQrCode: pixResult.pix_qr_code,
-        pixCode: pixResult.pix_code,
-        amount: pixResult.amount,
-        backendOrderId: orderId,
-        backendOrderNumber: orderNumber,
-        transactionId: pixResult.transaction_id,
-        expiresAt: pixResult.expires_at
-      });
-
-      setCurrentStep(4);
-      
-      // Start polling for payment status
-      startPaymentStatusPolling(orderId);
-
-    } else {
-      // Handle other payment methods
-      await OrderAPI.updateOrderStatus(orderId, 'processing', 'paid');
-      alert(`Pedido #${orderNumber} criado com sucesso!`);
-      await clearCart();
-      window.location.href = '/';
-    }
-
-  } catch (error) {
-    console.error('Checkout error:', error);
-    alert('Erro no checkout: ' + error.message);
-  } finally {
-    setLoading(false);
-  }
-};
-
-// ✅ Payment Status Polling
-const startPaymentStatusPolling = (orderId) => {
-  const pollInterval = setInterval(async () => {
+  // ✅ Enhanced PIX Processing
+  const processPixPayment = async (orderId, orderData) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/pix/status/${orderId}`, {
-        credentials: 'include',
-      });
+      const csrfToken = await CsrfTokenManager.getCsrfToken();
       
-      if (response.ok) {
-        const result = await response.json();
-        
-        if (result.success && result.data.status === 'paid') {
-          clearInterval(pollInterval);
-          
-          // Update order status to paid
-          await OrderAPI.updateOrderStatus(orderId, 'processing', 'paid');
-          
-          // Update UI to show success
-          setPixData(prev => ({
-            ...prev,
-            paymentStatus: 'success'
-          }));
-          
-          console.log('💰 PIX Payment Complete - Database updated');
-        } else if (result.data.status === 'expired') {
-          clearInterval(pollInterval);
-          alert('PIX payment expired. Please try again.');
-        }
-      }
-    } catch (error) {
-      console.error('Error checking payment status:', error);
-    }
-  }, 5000); // Check every 5 seconds
+      console.log('🔄 Generating PIX payment for order:', orderId);
+      
+      const response = await fetch('http://localhost:8000/api/pix/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-XSRF-TOKEN': csrfToken,
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          order_id: orderId,
+          amount: orderData.total,
+          payer_name: orderData.customer_name,
+          payer_cpf: orderData.customer_cpf,
+        })
+      });
 
-  // Stop polling after 30 minutes
-  setTimeout(() => {
-    clearInterval(pollInterval);
-  }, 30 * 60 * 1000);
-};
+      const result = await response.json();
+      
+      if (!response.ok) {
+        console.error('❌ PIX API Error:', result);
+        throw new Error(result.message || `HTTP ${response.status}`);
+      }
+      
+      if (!result.success) {
+        throw new Error(result.message || 'PIX generation failed');
+      }
+      
+      console.log('✅ PIX generated successfully:', result.data);
+      return result.data;
+      
+    } catch (error) {
+      console.error('❌ PIX Generation Error:', error);
+      throw error;
+    }
+  };
+
+  // ✅ Enhanced Checkout Process
+  const processCheckout = async () => {
+
+    setLoading(true);
+
+    try {
+      const orderPayload = generateOrderJSON();
+      console.log('%c ORDER PAYLOAD → /api/orders ', 'background:#006400;color:#fff;font-weight:bold;', orderPayload);
+
+      // 1. Create order in database
+      const backendResult = await saveOrderToBackend(orderPayload);
+      
+      if (!backendResult.success) {
+        throw new Error(backendResult.message || 'Failed to save order');
+      }
+
+      console.log('✅ Order created in database:', backendResult.data);
+      const orderId = backendResult.data.order_id;
+      const orderNumber = backendResult.data.order_number;
+
+      // 2. Handle PIX payment
+      if (paymentMethod === 'pix') {
+        const pixResult = await processPixPayment(orderId, orderPayload);
+        
+        setPixData({
+          pixQrCode: pixResult.pix_qr_code,
+          pixCode: pixResult.pix_code,
+          amount: pixResult.amount,
+          backendOrderId: orderId,
+          backendOrderNumber: orderNumber,
+          transactionId: pixResult.transaction_id,
+          expiresAt: pixResult.expires_at
+        });
+
+        setCurrentStep(4);
+        
+        // Start polling for payment status
+        startPaymentStatusPolling(orderId);
+
+      } else {
+        // Handle other payment methods
+        await OrderAPI.updateOrderStatus(orderId, 'processing', 'paid');
+        alert(`Order #${orderNumber} created successfully!`);
+        await clearCart();
+        window.location.href = '/';
+      }
+
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('Checkout error: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ Payment Status Polling
+  const startPaymentStatusPolling = (orderId) => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`http://localhost:8000/api/pix/status/${orderId}`, {
+          credentials: 'include',
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          
+          if (result.success && result.data.status === 'paid') {
+            clearInterval(pollInterval);
+            
+            // Update order status to paid
+            await OrderAPI.updateOrderStatus(orderId, 'processing', 'paid');
+            
+            // Update UI to show success
+            setPixData(prev => ({
+              ...prev,
+              paymentStatus: 'success'
+            }));
+            
+            console.log('💰 PIX Payment Complete - Database updated');
+          } else if (result.data.status === 'expired') {
+            clearInterval(pollInterval);
+            alert('PIX payment expired. Please try again.');
+          }
+        }
+      } catch (error) {
+        console.error('Error checking payment status:', error);
+      }
+    }, 5000); // Check every 5 seconds
+
+    // Stop polling after 30 minutes
+    setTimeout(() => {
+      clearInterval(pollInterval);
+    }, 30 * 60 * 1000);
+  };
 
   const clearCart = async () => {
     try {
@@ -1773,95 +1889,99 @@ const startPaymentStatusPolling = (orderId) => {
   };
   
 
- // ✅ UPDATED generateOrderJSON with Color and Size
-const generateOrderJSON = () => {
-  const subtotal      = calculateSubtotal();
-  const shippingCost  = calculateShipping();
-  const rawTotal      = subtotal + shippingCost - discount;
-  const total         = paymentMethod === 'pix' ? rawTotal * 0.95 : rawTotal;
-  const discountAmt   = paymentMethod === 'pix' ? rawTotal * 0.05 : discount;
+  // ✅ UPDATED generateOrderJSON with Portuguese Color Names
+  const generateOrderJSON = () => {
+    const subtotal      = calculateSubtotal();
+    const shippingCost  = calculateShipping();
+    const rawTotal      = subtotal + shippingCost - discount;
+    const total         = paymentMethod === 'pix' ? rawTotal * 0.95 : rawTotal;
+    const discountAmt   = paymentMethod === 'pix' ? rawTotal * 0.05 : discount;
 
-  const items = cartItems.map(item => {
-    const product = item.product || {};
-    const price   = Number(product.price || item.price || 0);
-    const qty     = Number(item.quantity || 1);
+    const items = cartItems.map(item => {
+      const product = item.product || {};
+      const price   = Number(product.price || item.price || 0);
+      const qty     = Number(item.quantity || 1);
 
-    // Extract size and color with same logic as OrderSummary
-    const size = item.size || 
-                item.selectedSize || 
-                item.variant_size ||
-                item.product_variant?.size ||
-                item.variant?.size ||
-                product.size ||
-                (item.options && (item.options.size || item.options.tamanho)) ||
-                item.attributes?.size ||
-                item.metadata?.size ||
-                'Não especificado';
-    
-    const color = item.color || 
-                 item.selectedColor || 
-                 item.variant_color ||
-                 item.product_variant?.color ||
-                 item.variant?.color ||
-                 product.color ||
-                 (item.options && (item.options.color || item.options.cor)) ||
-                 item.attributes?.color ||
-                 item.metadata?.color ||
-                 'Não especificada';
+      // Extract size
+      const size = item.size || 
+                  item.selectedSize || 
+                  item.variant_size ||
+                  item.product_variant?.size ||
+                  item.variant?.size ||
+                  product.size ||
+                  (item.options && (item.options.size || item.options.tamanho)) ||
+                  item.attributes?.size ||
+                  item.metadata?.size ||
+                  'Not specified';
+      
+      // Extract raw color and convert to Portuguese name
+      const rawColor = item.color || 
+                     item.selectedColor || 
+                     item.variant_color ||
+                     item.product_variant?.color ||
+                     item.variant?.color ||
+                     product.color ||
+                     (item.options && (item.options.color || item.options.cor)) ||
+                     item.attributes?.color ||
+                     item.metadata?.color ||
+                     null;
+      
+      const color = getEnglishColorName(rawColor);
 
-    return {
-      product_id:   item.product_id || product.id || null,
-      product_name: product.title || product.name || `Produto ${item.product_id || ''}`,
-      quantity:     qty,
-      price:        price,
-      total:        price * qty,
-      // ✅ CRITICAL: Include color and size for admin panel
-      size: size,
-      color: color,
-      // ✅ CRITICAL: Include image for admin panel
-      image: product.image || product.image_url || item.image || null,
-      variant_id: item.variant_id || item.product_variant?.id || null,
-      sku: product.sku || item.sku || null
+      return {
+        product_id:   item.product_id || product.id || null,
+        product_name: product.title || product.name || `Product ${item.product_id || ''}`,
+        quantity:     qty,
+        price:        price,
+        total:        price * qty,
+        // ✅ CRITICAL: Include color and size for admin panel (now in Portuguese)
+        size: size,
+        color: color,
+        // Also save the original color value if needed
+        original_color: rawColor,
+        image: product.image || product.image_url || item.image || null,
+        variant_id: item.variant_id || item.product_variant?.id || null,
+        sku: product.sku || item.sku || null
+      };
+    });
+
+    const payload = {
+      customer_name:  (customerData.name   ?? '').toString().trim(),
+      customer_email: (customerData.email  ?? '').toString().trim(),
+      customer_phone: (customerData.phone  ?? '').toString().trim(),
+      customer_cpf:   (customerData.cpf    ?? '').toString().trim(),
+
+      subtotal:      Number(subtotal.toFixed(2)),
+      shipping:      Number(shippingCost.toFixed(2)),
+      discount:      Number(discountAmt.toFixed(2)),
+      total:         Number(total.toFixed(2)),
+
+      payment_method: paymentMethod,
+      payment_status: 'pending',
+      status:         'pending',
+
+      shipping_street:        (shippingData.street        ?? '').toString().trim(),
+      shipping_number:        (shippingData.number        ?? '').toString().trim(),
+      shipping_complement:    (shippingData.complement    ?? null),
+      shipping_neighborhood:  (shippingData.hood          ?? '').toString().trim(),
+      shipping_city:          (shippingData.city          ?? '').toString().trim(),
+      shipping_state:         (shippingData.state         ?? '').toString().trim(),
+      shipping_zip_code:      (shippingData.cep?.replace(/\D/g, '') ?? '').toString(),
+
+      items: items,
+
+      metadata: {
+        is_mock: true,
+        coupon_applied: discount > 0 ? couponCode : null,
+        platform: 'web',
+        timestamp: new Date().toISOString(),
+        selected_items_only: isUsingSelectedItems()
+      }
     };
-  });
 
-  const payload = {
-    customer_name:  (customerData.name   ?? '').toString().trim(),
-    customer_email: (customerData.email  ?? '').toString().trim(),
-    customer_phone: (customerData.phone  ?? '').toString().trim(),
-    customer_cpf:   (customerData.cpf    ?? '').toString().trim(),
-
-    subtotal:      Number(subtotal.toFixed(2)),
-    shipping:      Number(shippingCost.toFixed(2)),
-    discount:      Number(discountAmt.toFixed(2)),
-    total:         Number(total.toFixed(2)),
-
-    payment_method: paymentMethod,
-    payment_status: 'pending',
-    status:         'pending',
-
-    shipping_street:        (shippingData.street        ?? '').toString().trim(),
-    shipping_number:        (shippingData.number        ?? '').toString().trim(),
-    shipping_complement:    (shippingData.complement    ?? null),
-    shipping_neighborhood:  (shippingData.hood          ?? '').toString().trim(),
-    shipping_city:          (shippingData.city          ?? '').toString().trim(),
-    shipping_state:         (shippingData.state         ?? '').toString().trim(),
-    shipping_zip_code:      (shippingData.cep?.replace(/\D/g, '') ?? '').toString(),
-
-    items: items,
-
-    metadata: {
-      is_mock: true,
-      coupon_applied: discount > 0 ? couponCode : null,
-      platform: 'web',
-      timestamp: new Date().toISOString(),
-      selected_items_only: isUsingSelectedItems()
-    }
+    console.log('%c ORDER PAYLOAD → /api/infos ', 'background:#006400;color:#fff;', payload);
+    return payload;
   };
-
-  console.log('%c ORDER PAYLOAD → /api/infos ', 'background:#006400;color:#fff;', payload);
-  return payload;
-};
 
   const fetchUserProfile = async () => {
     try {
@@ -2010,16 +2130,16 @@ const generateOrderJSON = () => {
   const applyCoupon = () => {
     if (couponCode === 'DESCONTO10') {
       setDiscount(calculateSubtotal() * 0.1);
-      alert('Cupom aplicado! 10% de desconto.');
+      alert('Coupon applied! 10% discount.');
     } else {
-      alert('Cupom inválido');
+      alert('Invalid coupon');
     }
   };
 
   const copyPixCode = () => {
     if (pixData) {
       navigator.clipboard.writeText(pixData.pixCode);
-      alert('Código PIX copiado!');
+      alert('PIX code copied!');
     }
   };
 
@@ -2032,28 +2152,25 @@ const generateOrderJSON = () => {
             <FiShoppingCart size={32} className="text-gray-400" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            {isUsingSelectedItems() ? 'Itens Não Encontrados' : 'Carrinho Vazio'}
+            {isUsingSelectedItems() ? 'Items Not Found' : 'Empty Cart'}
           </h2>
           <p className="text-gray-600 mb-6">
             {isUsingSelectedItems() 
-              ? "Os itens selecionados não estão mais disponíveis. Por favor, volte ao carrinho e selecione os itens novamente."
-              : "Seu carrinho está vazio. Adicione produtos antes de finalizar a compra."
+              ? "The selected items are no longer available. Please return to the cart and select items again."
+              : "Your cart is empty. Add products before completing the purchase."
             }
           </p>
           <button
             onClick={() => navigate('/cart')}
             className="bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg font-semibold transition-colors"
           >
-            Voltar para Carrinho
+            Back to Cart
           </button>
         </div>
       </div>
     );
   }
 
-
-
-  
   return (
     <div className="min-h-screen bg-gray-50 pt-20" style={{ fontFamily: 'Calibri, sans-serif' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
