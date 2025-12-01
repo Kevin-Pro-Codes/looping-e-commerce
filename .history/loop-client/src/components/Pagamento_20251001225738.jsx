@@ -1,0 +1,104 @@
+import React from "react";
+import { FiShield, FiCreditCard, FiDollarSign, FiLock } from "react-icons/fi";
+import {
+  FaPaypal,
+  FaCcVisa,
+  FaCcMastercard,
+  FaCcAmex,
+  FaApplePay,
+  FaGooglePay,
+} from "react-icons/fa";
+import sslImg from "../assets/ssl.png";
+
+const Pagamento = () => {
+  return (
+    <section className="w-full font-sans">
+      {/* Black bar on top */}
+      <div className="w-full h-1 bg-black mb-6" />
+
+      {/* Main white section */}
+      <div className="bg-white w-full px-6 md:px-24 py-12">
+        {/* Título */}
+        <h2
+          className="text-5xl font-bold text-center mb-12 text-red-600"
+          style={{
+            fontFamily: "Calibri, sans-serif",
+            WebkitTextStroke: "1px black",
+            textStroke: "1px black",
+          }}
+        >
+          Faça uma compra segura!
+        </h2>
+
+        {/* Selos de segurança */}
+        <div className="flex flex-col md:flex-row items-center justify-center gap-10 mb-12 text-center">
+          <div className="flex flex-col items-center gap-2">
+            <FiShield size={40} className="text-green-600" />
+            <p className="text-xl font-semibold">Compra 100% segura</p>
+          </div>
+          <div className="flex flex-col items-center gap-2">
+            <FiDollarSign size={40} className="text-yellow-500" />
+            <p className="text-xl font-semibold">Garantia de devolução</p>
+          </div>
+          <div className="flex flex-col items-center gap-2">
+            <FiCreditCard size={40} className="text-blue-500" />
+            <p className="text-xl font-semibold">Transações criptografadas</p>
+          </div>
+          <div className="flex flex-col items-center gap-2">
+            <FiLock size={40} className="text-purple-500" />
+            <p className="text-xl font-semibold">Privacidade garantida</p>
+          </div>
+        </div>
+
+        {/* Formas de pagamento */}
+        <div className="flex flex-row flex-wrap items-center justify-center gap-6 mb-6">
+          <FaCcVisa size={56} className="text-gray-800" />
+          <FaCcMastercard size={56} className="text-gray-800" />
+          <FaCcAmex size={56} className="text-gray-800" />
+          <FaPaypal size={56} className="text-gray-800" />
+          <FaApplePay size={56} className="text-gray-800" />
+          <FaGooglePay size={56} className="text-gray-800" />
+          <div className="flex flex-col items-center">
+            <img src="/pix-logo.svg" alt="Pix" className="w-14 h-14" />
+            <span className="mt-1 text-lg font-semibold text-green-700">Pix</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <img src="/boleto-logo.svg" alt="Boleto" className="w-14 h-14" />
+            <span className="mt-1 text-lg font-semibold text-blue-700">Boleto</span>
+          </div>
+        </div>
+
+        {/* 12x sem juros message */}
+        <div className="text-center mb-6">
+          <p
+            className="text-3xl md:text-4xl font-semibold text-blue-600"
+            style={{
+              fontFamily: "Calibri, sans-serif",
+              WebkitTextStroke: "1px black",
+              textStroke: "1px black",
+            }}
+          >
+            Até 12x sem juros
+          </p>
+        </div>
+
+        {/* Parcelamento e destaque */}
+        <div className="text-center mb-6">
+          <p className="text-gray-500 text-lg md:text-xl">
+            Aceitamos todos os cartões de crédito, PayPal, Apple Pay, Google Pay, Pix e Boleto.
+          </p>
+        </div>
+
+        {/* Observação com selo SSL */}
+        <div className="flex flex-col md:flex-row items-center justify-center gap-3">
+          <p className="text-center text-gray-500 text-base md:text-lg">
+            Todos os pagamentos são processados de forma segura e criptografada.
+          </p>
+          <img src={sslImg} alt="SSL Secure" className="w-36 h-auto" />
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default Pagamento;

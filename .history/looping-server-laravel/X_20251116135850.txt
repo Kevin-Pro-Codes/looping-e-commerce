@@ -1,0 +1,889 @@
+Can you remove localstorage and make it fetch data from database, the same existing on OrdersManagement.jsx?
+
+CustomersManagement.jsx
+
+// src/components/admin/CustomersManagement.jsx
+import React, { useState, useEffect } from "react";
+import { FiSearch, FiRefreshCw, FiUser, FiShoppingBag, FiDollarSign, FiCalendar } from "react-icons/fi";
+
+const CustomersManagement = () => {
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState(null);
+
+  // Fetch customers from localStorage (from CheckoutPage orders)
+  const fetchCustomersFromOrders = () => {
+    setLoading(true);
+    try {
+      // Get recent orders from localStorage
+      const recentOrdersKey = 'checkout_recent_orders';
+      const recentOrders = JSON.parse(localStorage.getItem(recentOrdersKey) || '[]');
+      
+      console.log('📦 Found orders in storage:', recentOrders.length);
+      
+      // Transform orders into customer data
+      const customerMap = new Map();
+      
+      recentOrders.forEach(order => {
+        const orderData = order.order || order;
+        const customerInfo = orderData.customer;
+        const shippingInfo = orderData.shipping_address;
+        
+        if (customerInfo && customerInfo.email) {
+          const customerKey = customerInfo.email.toLowerCase();
+          
+          if (customerMap.has(customerKey)) {
+            // Update existing customer
+            const existing = customerMap.get(customerKey);
+            existing.orders += 1;
+            existing.totalSpent += orderData.totals?.total || 0;
+            
+            // Update last purchase if this order is newer
+            const orderDate = new Date(orderData.created_at);
+            const lastPurchase = new Date(existing.lastPurchase);
+            if (orderDate > lastPurchase) {
+              existing.lastPurchase = orderData.created_at;
+            }
+          } else {
+            // Create new customer
+            customerMap.set(customerKey, {
+              id: customerInfo.email, // Use email as ID for now
+              name: customerInfo.name || 'Cliente',
+              email: customerInfo.email,
+              phone: customerInfo.phone || 'Não informado',
+              cpf: customerInfo.cpf || 'Não informado',
+              address: shippingInfo ? 
+                `${shippingInfo.street}, ${shippingInfo.number} - ${shippingInfo.city}, ${shippingInfo.state}` : 
+                'Endereço não informado',
+              orders: 1,
+              totalSpent: orderData.totals?.total || 0,
+              status: "active",
+              lastPurchase: orderData.created_at,
+              firstOrder: orderData.created_at,
+              orderIds: [orderData.id]
+            });
+          }
+        }
+      });
+      
+      const customersArray = Array.from(customerMap.values());
+      
+      // Sort by last purchase date (newest first)
+      customersArray.sort((a, b) => new Date(b.lastPurchase) - new Date(a.lastPurchase));
+      
+      console.log('👥 Processed customers:', customersArray);
+      setCustomers(customersArray);
+      
+    } catch (error) {
+      console.error('❌ Error fetching customers from orders:', error);
+      
+      // Fallback to sample data if no orders found
+      if (customers.length === 0) {
+        setCustomers([
+          { 
+            id: 1, 
+            name: "João Silva", 
+            email: "joao@email.com", 
+            phone: "+55 11 99999-9999", 
+            cpf: "123.456.789-00", 
+            address: "Rua das Flores, 123 - São Paulo, SP", 
+            orders: 5, 
+            totalSpent: 450.00, 
+            status: "active", 
+            lastPurchase: "2024-01-15",
+            firstOrder: "2024-01-10"
+          },
+          { 
+            id: 2, 
+            name: "Maria Santos", 
+            email: "maria@email.com", 
+            phone: "+55 21 88888-8888", 
+            cpf: "987.654.321-00", 
+            address: "Av. Copacabana, 456 - Rio de Janeiro, RJ", 
+            orders: 3, 
+            totalSpent: 180.00, 
+            status: "active", 
+            lastPurchase: "2024-01-14",
+            firstOrder: "2024-01-12"
+          }
+        ]);
+      }
+    } finally {
+      setLoading(false);
+      setLastRefresh(new Date().toLocaleTimeString());
+    }
+  };
+
+  // Load customers on component mount
+  useEffect(() => {
+    fetchCustomersFromOrders();
+    
+    // Set up polling to check for new customers every 10 seconds
+    const interval = setInterval(fetchCustomersFromOrders, 10000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "active": 
+        return "bg-green-100 text-green-800";
+      case "suspended": 
+        return "bg-red-100 text-red-800";
+      case "new": 
+        return "bg-blue-100 text-blue-800";
+      default: 
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const toggleCustomerStatus = (customerId, currentStatus) => {
+    setCustomers(customers.map(customer =>
+      customer.id === customerId ? { 
+        ...customer, 
+        status: currentStatus === "active" ? "suspended" : "active" 
+      } : customer
+    ));
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('pt-BR');
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(amount);
+  };
+
+  const filteredCustomers = customers.filter(customer =>
+    customer.name?.toLowerCase().includes(customerSearch.toLowerCase()) ||
+    customer.email?.toLowerCase().includes(customerSearch.toLowerCase()) ||
+    customer.address?.toLowerCase().includes(customerSearch.toLowerCase()) ||
+    customer.cpf?.toLowerCase().includes(customerSearch.toLowerCase())
+  );
+
+  const stats = {
+    total: customers.length,
+    active: customers.filter(c => c.status === 'active').length,
+    newCustomers: customers.filter(c => {
+      const firstOrder = new Date(c.firstOrder);
+      const today = new Date();
+      const diffTime = Math.abs(today - firstOrder);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays <= 7; // New in last 7 days
+    }).length,
+    totalRevenue: customers.reduce((sum, customer) => sum + customer.totalSpent, 0)
+  };
+
+  return (
+    <div className="space-y-6" style={{ fontFamily: 'Calibri, sans-serif' }}>
+      {/* Header with Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white p-4 rounded-lg border border-gray-200">
+          <div className="flex items-center">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <FiUser className="text-blue-600" size={20} />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-600">Total Clientes</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white p-4 rounded-lg border border-gray-200">
+          <div className="flex items-center">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <FiUser className="text-green-600" size={20} />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-600">Ativos</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.active}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white p-4 rounded-lg border border-gray-200">
+          <div className="flex items-center">
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <FiUser className="text-purple-600" size={20} />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-600">Novos (7 dias)</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.newCustomers}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white p-4 rounded-lg border border-gray-200">
+          <div className="flex items-center">
+            <div className="p-2 bg-orange-100 rounded-lg">
+              <FiDollarSign className="text-orange-600" size={20} />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-600">Receita Total</p>
+              <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalRevenue)}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Search and Controls */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-xl font-semibold">Gerenciamento de Clientes</h2>
+          <p className="text-sm text-gray-600">
+            {lastRefresh && `Atualizado em: ${lastRefresh}`}
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <button
+            onClick={fetchCustomersFromOrders}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-blue-300 transition-colors"
+          >
+            <FiRefreshCw className={loading ? 'animate-spin' : ''} size={16} />
+            {loading ? 'Atualizando...' : 'Atualizar'}
+          </button>
+          
+          <div className="relative w-full sm:w-64">
+            <input
+              type="text"
+              placeholder="Buscar clientes..."
+              value={customerSearch}
+              onChange={(e) => setCustomerSearch(e.target.value)}
+              className="w-full p-2 pl-10 border border-gray-300 rounded text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{ fontFamily: 'Calibri, sans-serif' }}
+            />
+            <FiSearch className="absolute left-3 top-2.5 text-gray-400" size={16} />
+          </div>
+        </div>
+      </div>
+
+      {/* Customers Grid */}
+      {loading ? (
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
+          <p className="text-gray-600">Carregando clientes...</p>
+        </div>
+      ) : filteredCustomers.length === 0 ? (
+        <div className="text-center py-8 bg-white rounded-lg border border-gray-200">
+          <FiUser className="mx-auto text-gray-400 mb-3" size={48} />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Nenhum cliente encontrado</h3>
+          <p className="text-gray-600">
+            {customerSearch ? 'Tente ajustar os termos da busca.' : 'Faça pedidos no checkout para ver os clientes aqui.'}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredCustomers.map((customer) => (
+            <div key={customer.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <h3 className="font-semibold text-lg">{customer.name}</h3>
+                  <p className="text-sm text-gray-500">{customer.email}</p>
+                </div>
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(customer.status)}`}>
+                  {customer.status === 'active' ? 'Ativo' : 'Suspenso'}
+                </span>
+              </div>
+              
+              <div className="text-sm text-gray-600 space-y-2">
+                <div className="flex items-center">
+                  <FiShoppingBag className="text-gray-400 mr-2" size={14} />
+                  <span><strong>Pedidos:</strong> {customer.orders}</span>
+                </div>
+                
+                <div className="flex items-center">
+                  <FiDollarSign className="text-gray-400 mr-2" size={14} />
+                  <span><strong>Total Gasto:</strong> {formatCurrency(customer.totalSpent)}</span>
+                </div>
+                
+                <div className="flex items-center">
+                  <FiCalendar className="text-gray-400 mr-2" size={14} />
+                  <span><strong>Última Compra:</strong> {formatDate(customer.lastPurchase)}</span>
+                </div>
+                
+                <div>
+                  <p><strong>Telefone:</strong> {customer.phone}</p>
+                  <p><strong>CPF:</strong> {customer.cpf}</p>
+                </div>
+                
+                <div>
+                  <p className="text-xs text-gray-500 truncate" title={customer.address}>
+                    <strong>Endereço:</strong> {customer.address}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap gap-2 mt-4">
+                <button 
+                  onClick={() => toggleCustomerStatus(customer.id, customer.status)}
+                  className={`text-xs px-3 py-1 rounded transition-colors ${
+                    customer.status === "active" 
+                      ? "bg-red-100 text-red-700 hover:bg-red-200" 
+                      : "bg-green-100 text-green-700 hover:bg-green-200"
+                  }`}
+                >
+                  {customer.status === "active" ? "Suspender" : "Ativar"}
+                </button>
+                <button className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200 transition-colors">
+                  Editar
+                </button>
+                <button className="text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded hover:bg-gray-200 transition-colors">
+                  Histórico
+                </button>
+                <button className="text-xs bg-purple-100 text-purple-700 px-3 py-1 rounded hover:bg-purple-200 transition-colors">
+                  Mensagem
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Debug Info */}
+      <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <details className="text-sm">
+          <summary className="cursor-pointer font-medium text-gray-700">
+            Informações de Debug (Desenvolvimento)
+          </summary>
+          <div className="mt-2 space-y-2 text-xs">
+            <p><strong>Total de pedidos no localStorage:</strong> {customers.reduce((sum, c) => sum + c.orders, 0)}</p>
+            <p><strong>Clientes únicos encontrados:</strong> {customers.length}</p>
+            <p><strong>Última atualização:</strong> {lastRefresh || 'Nunca'}</p>
+            <button 
+              onClick={() => console.log('Customers data:', customers)}
+              className="text-blue-600 hover:text-blue-800"
+            >
+              Ver dados completos no console
+            </button>
+          </div>
+        </details>
+      </div>
+    </div>
+  );
+};
+
+export default CustomersManagement;
+
+OrdersManagement.jsx
+
+import React, { useState, useEffect } from "react";
+import {
+  FiSearch,
+  FiEye,
+  FiRefreshCw,
+  FiPackage,
+  FiXCircle,
+  FiTrash2,
+  FiServer,
+} from "react-icons/fi";
+
+const OrdersManagement = () => {
+  const [orderSearch, setOrderSearch] = useState("");
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [error, setError] = useState(null);
+  const [apiStatus, setApiStatus] = useState(null);
+
+  const API_BASE_URL = 'http://localhost:8000/api';
+
+  const apiService = {
+    // REMOVIDO: testConnection() — não existe no Laravel e causava 5s de delay
+
+    async getOrders() {
+      try {
+        console.log('Buscando pedidos em:', `${API_BASE_URL}/orders`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+        const response = await fetch(`${API_BASE_URL}/orders`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('text/html')) {
+          const text = await response.text();
+          throw new Error('Erro no servidor. Verifique os logs do Laravel.');
+        }
+
+        if (!response.ok) {
+          let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorData.error || errorMessage;
+          } catch {}
+          throw new Error(errorMessage);
+        }
+
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message || 'Erro na API');
+        return data.data || [];
+      } catch (error) {
+        if (error.name === 'AbortError') throw new Error('Timeout: servidor demorou');
+        if (error.message.includes('Failed to fetch')) throw new Error('Servidor offline ou CORS bloqueado');
+        throw error;
+      }
+    },
+
+    async generateSampleOrders() {
+      const response = await fetch(`${API_BASE_URL}/orders/generate-samples`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      if (!response.ok) throw new Error(`Erro ${response.status}`);
+      const data = await response.json();
+      return data.data;
+    },
+  };
+
+  // Teste opcional da API (não bloqueia carregamento)
+  const testApiConnection = async () => {
+    setLoading(true);
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const response = await fetch(`${API_BASE_URL}/test`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      const result = response.ok
+        ? { connected: true, data: await response.json() }
+        : { connected: false, error: `HTTP ${response.status}` };
+
+      setApiStatus(result);
+      alert(result.connected ? 'API conectada!' : `Falha: ${result.error}`);
+    } catch (err) {
+      const msg = err.name === 'AbortError' ? 'Timeout no teste' : err.message;
+      setApiStatus({ connected: false, error: msg });
+      alert('Erro ao testar conexão');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // CARREGA PEDIDOS DIRETO DO BANCO (sem /test)
+  const fetchOrders = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const ordersData = await apiService.getOrders();
+      setOrders(ordersData);
+    } catch (err) {
+      setError("Erro ao carregar pedidos: " + err.message);
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateSampleOrders = async () => {
+    if (!window.confirm("Deseja gerar pedidos de exemplo para teste?")) return;
+    try {
+      await apiService.generateSampleOrders();
+      fetchOrders();
+    } catch (err) {
+      setError("Erro ao gerar exemplo: " + err.message);
+    }
+  };
+
+  const updateOrderStatus = (orderId, newStatus) => {
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+  };
+
+  const deleteOrder = (orderId) => {
+    setOrders(prev => prev.filter(o => o.id !== orderId));
+    setDeleteConfirm(null);
+  };
+
+  const viewOrderDetails = (order) => {
+    setSelectedOrder(order);
+    setShowOrderModal(true);
+  };
+
+  const cancelOrder = (orderId) => {
+    if (window.confirm("Tem certeza que deseja cancelar este pedido?")) {
+      updateOrderStatus(orderId, "cancelled");
+    }
+  };
+
+  const confirmDelete = (order) => setDeleteConfirm(order);
+  const cancelDelete = () => setDeleteConfirm(null);
+
+  const getStatusText = (status) => {
+    const map = {
+      pending: "Pendente",
+      processing: "Em Preparação",
+      shipped: "Enviado",
+      delivered: "Entregue",
+      cancelled: "Cancelado",
+    };
+    return map[status] || status;
+  };
+
+  const getPaymentText = (payment) => {
+    const map = { pix: "PIX", credit_card: "Cartão de Crédito", boleto: "Boleto" };
+    return map[payment] || payment;
+  };
+
+  const getStatusColor = (status) => {
+    const colors = {
+      shipped: "bg-green-100 text-green-800 border border-green-200",
+      processing: "bg-yellow-100 text-yellow-800 border border-yellow-200",
+      pending: "bg-blue-100 text-blue-800 border border-blue-200",
+      delivered: "bg-purple-100 text-purple-800 border border-purple-200",
+      cancelled: "bg-red-100 text-red-800 border border-red-200",
+    };
+    return colors[status] || "bg-gray-100 text-gray-800 border border-gray-200";
+  };
+
+  const getPaymentColor = (payment) => {
+    const colors = {
+      credit_card: "bg-green-100 text-green-800",
+      pix: "bg-blue-100 text-blue-800",
+      boleto: "bg-purple-100 text-purple-800",
+    };
+    return colors[payment] || "bg-gray-100 text-gray-800";
+  };
+
+  const formatCurrency = (value) => {
+    if (value == null || isNaN(value)) return 'R$ 0,00';
+    return `R$ ${parseFloat(value).toFixed(2)}`;
+  };
+
+  const filteredOrders = orders.filter(order =>
+    order && (
+      (order.order_number?.toLowerCase().includes(orderSearch.toLowerCase())) ||
+      (order.customer_name?.toLowerCase().includes(orderSearch.toLowerCase())) ||
+      (order.customer_email?.toLowerCase().includes(orderSearch.toLowerCase())) ||
+      getStatusText(order.status).toLowerCase().includes(orderSearch.toLowerCase()) ||
+      getPaymentText(order.payment_method).toLowerCase().includes(orderSearch.toLowerCase())
+    )
+  );
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  // ERRO
+  if (error) {
+    return (
+      <div className="p-6 space-y-6" style={{ fontFamily: 'Calibri, sans-serif' }}>
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+          <strong className="font-bold">Erro de Conexão: </strong>
+          <span className="block sm:inline">{error}</span>
+          <button onClick={() => setError(null)} className="absolute top-0 bottom-0 right-0 px-4 py-3">
+            <span className="text-2xl">&times;</span>
+          </button>
+        </div>
+
+        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+          <strong className="font-bold">Solução de Problemas:</strong>
+          <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
+            <li><strong>1. Laravel rodando?</strong> <code>php artisan serve --port=8000</code></li>
+            <li><strong>2. CORS instalado?</strong> <code>composer require fruitcake/laravel-cors</code></li>
+            <li><strong>3. config/cors.php permite localhost:3000?</strong></li>
+            <li><strong>4. Limpe cache:</strong> <code>php artisan config:clear</code></li>
+            <li><strong>5. Verifique logs:</strong> <code>tail -f storage/logs/laravel.log</code></li>
+          </ul>
+        </div>
+
+        <div className="flex gap-3 flex-wrap">
+          <button onClick={fetchOrders} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+            Tentar Novamente
+          </button>
+          <button onClick={testApiConnection} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">
+            Testar Conexão
+          </button>
+          <button onClick={() => { setError(null); setLoading(false); setOrders([]); }} className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">
+            Continuar Offline
+          </button>
+        </div>
+
+        {apiStatus && (
+          <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded">
+            <strong>Status da API:</strong>
+            <pre className="mt-2 text-sm whitespace-pre-wrap">{JSON.stringify(apiStatus, null, 2)}</pre>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // LOADING COM SKELETON (nunca mostra fallback)
+  if (loading) {
+    return (
+      <div className="p-6 space-y-6" style={{ fontFamily: 'Calibri, sans-serif' }}>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <h2 className="text-xl font-semibold">Gerenciamento de Pedidos</h2>
+          <div className="w-full sm:w-64 h-9 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+
+        <div className="space-y-3">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="bg-white border rounded-lg p-4 flex gap-4 animate-pulse">
+              <div className="h-12 w-12 bg-gray-200 rounded-full"></div>
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+              </div>
+              <div className="h-8 w-24 bg-gray-200 rounded-full"></div>
+              <div className="h-8 w-20 bg-gray-200 rounded-full"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // VAZIO (só se NÃO estiver carregando)
+  if (orders.length === 0) {
+    return (
+      <div className="p-6 space-y-6" style={{ fontFamily: 'Calibri, sans-serif' }}>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h2 className="text-xl font-semibold">Gerenciamento de Pedidos</h2>
+            <p className="text-gray-600 text-sm mt-1">0 pedidos encontrados</p>
+          </div>
+          <button onClick={generateSampleOrders} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm">
+            <FiPackage size={16} /> Gerar Exemplo
+          </button>
+        </div>
+
+        <div className="text-center py-16">
+          <FiPackage className="mx-auto text-gray-400 mb-4" size={48} />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Nenhum pedido no sistema</h3>
+          <p className="text-gray-500 mb-4">Comece gerando um pedido de exemplo ou finalize uma compra.</p>
+          <button onClick={generateSampleOrders} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm">
+            Gerar Pedido de Exemplo
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // TABELA COM DADOS
+  return (
+    <div className="p-6 space-y-6" style={{ fontFamily: 'Calibri, sans-serif' }}>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-xl font-semibold">Gerenciamento de Pedidos</h2>
+          <p className="text-gray-600 text-sm mt-1">
+            {filteredOrders.length} {filteredOrders.length === 1 ? 'pedido' : 'pedidos'} encontrados
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 flex-wrap">
+          <button onClick={fetchOrders} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <FiRefreshCw size={16} /> Atualizar
+          </button>
+          <button onClick={testApiConnection} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <FiServer size={16} /> Testar API
+          </button>
+          <button onClick={generateSampleOrders} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <FiPackage size={16} /> Gerar Exemplo
+          </button>
+          <div className="relative w-full sm:w-64">
+            <input
+              type="text"
+              placeholder="Buscar pedidos..."
+              value={orderSearch}
+              onChange={(e) => setOrderSearch(e.target.value)}
+              className="w-full p-2 pl-10 border border-gray-300 rounded text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <FiSearch className="absolute left-3 top-2.5 text-gray-400" size={16} />
+          </div>
+        </div>
+      </div>
+
+      {/* Tabela */}
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pedido</th>
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pagamento</th>
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredOrders.map((order) => (
+                <tr key={order.id} className="hover:bg-gray-50">
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {order.order_number || 'N/A'}
+                  </td>
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">{order.customer_name || 'Cliente'}</div>
+                    <div className="text-sm text-gray-500">{order.customer_email || 'N/A'}</div>
+                  </td>
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {order.created_at ? new Date(order.created_at).toLocaleDateString('pt-BR') : 'N/A'}
+                  </td>
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                    {formatCurrency(order.total)}
+                  </td>
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPaymentColor(order.payment_method)}`}>
+                      {getPaymentText(order.payment_method)}
+                    </span>
+                  </td>
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                    <select
+                      value={order.status || 'pending'}
+                      onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                      className={`text-xs font-medium rounded-full px-3 py-1 border-0 focus:ring-2 focus:ring-blue-500 ${getStatusColor(order.status)}`}
+                    >
+                      <option value="pending">Pendente</option>
+                      <option value="processing">Em Preparação</option>
+                      <option value="shipped">Enviado</option>
+                      <option value="delivered">Entregue</option>
+                      <option value="cancelled">Cancelado</option>
+                    </select>
+                  </td>
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                    <button onClick={() => viewOrderDetails(order)} className="text-indigo-600 hover:text-indigo-900 p-1 rounded transition-colors" title="Ver Detalhes">
+                      <FiEye size={16} />
+                    </button>
+                    <button onClick={() => cancelOrder(order.id)} className="text-yellow-600 hover:text-yellow-900 p-1 rounded transition-colors" title="Cancelar Pedido">
+                      <FiXCircle size={16} />
+                    </button>
+                    <button onClick={() => confirmDelete(order)} className="text-red-600 hover:text-red-900 p-1 rounded transition-colors" title="Excluir Pedido">
+                      <FiTrash2 size={16} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Modal de Detalhes */}
+      {showOrderModal && selectedOrder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">Detalhes do Pedido</h3>
+                <button onClick={() => setShowOrderModal(false)} className="text-gray-400 hover:text-gray-600">
+                  <FiXCircle size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-2">Informações do Pedido</h4>
+                  <p><strong>Número:</strong> {selectedOrder.order_number || 'N/A'}</p>
+                  <p><strong>Data:</strong> {selectedOrder.created_at ? new Date(selectedOrder.created_at).toLocaleDateString('pt-BR') : 'N/A'}</p>
+                  <p><strong>Status:</strong> <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(selectedOrder.status)}`}>{getStatusText(selectedOrder.status)}</span></p>
+                  <p><strong>Total:</strong> {formatCurrency(selectedOrder.total)}</p>
+                  <p><strong>Subtotal:</strong> {formatCurrency(selectedOrder.subtotal)}</p>
+                  <p><strong>Frete:</strong> {formatCurrency(selectedOrder.shipping)}</p>
+                  <p><strong>Desconto:</strong> {formatCurrency(selectedOrder.discount)}</p>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-2">Informações do Cliente</h4>
+                  <p><strong>Nome:</strong> {selectedOrder.customer_name || 'N/A'}</p>
+                  <p><strong>Email:</strong> {selectedOrder.customer_email || 'N/A'}</p>
+                  <p><strong>Telefone:</strong> {selectedOrder.customer_phone || 'Não informado'}</p>
+                  <p><strong>CPF:</strong> {selectedOrder.customer_cpf || 'Não informado'}</p>
+                  <p><strong>Pagamento:</strong> <span className={`px-2 py-1 rounded-full text-xs ${getPaymentColor(selectedOrder.payment_method)}`}>{getPaymentText(selectedOrder.payment_method)}</span></p>
+                  <p><strong>Status Pagamento:</strong> {selectedOrder.payment_status || 'N/A'}</p>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">Itens do Pedido</h4>
+                {selectedOrder.items?.length > 0 ? (
+                  selectedOrder.items.map((item, index) => (
+                    <div key={index} className="flex justify-between py-2 border-b border-gray-100">
+                      <div>
+                        <p className="font-medium">{item.product_name || 'Produto'}</p>
+                        <p className="text-sm text-gray-600">Quantidade: {item.quantity || 0} × {formatCurrency(item.price)}</p>
+                      </div>
+                      <p className="font-semibold">{formatCurrency(item.total)}</p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500">Nenhum item</p>
+                )}
+              </div>
+
+              {selectedOrder.shipping_street && (
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-2">Endereço de Entrega</h4>
+                  <p>{selectedOrder.shipping_street}, {selectedOrder.shipping_number}</p>
+                  {selectedOrder.shipping_complement && <p>Complemento: {selectedOrder.shipping_complement}</p>}
+                  <p>Bairro: {selectedOrder.shipping_neighborhood}</p>
+                  <p>{selectedOrder.shipping_city} - {selectedOrder.shipping_state}</p>
+                  <p>CEP: {selectedOrder.shipping_zip_code}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmação de Exclusão */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                  <FiTrash2 className="text-red-600" size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Excluir Pedido</h3>
+                  <p className="text-sm text-gray-600">Esta ação não pode ser desfeita</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <p className="text-gray-700 mb-4">
+                Tem certeza que deseja excluir o pedido <strong>{deleteConfirm.order_number}</strong> de <strong>{deleteConfirm.customer_name}</strong>?
+              </p>
+              <div className="flex justify-end gap-3">
+                <button onClick={cancelDelete} className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors">
+                  Cancelar
+                </button>
+                <button onClick={() => deleteOrder(deleteConfirm.id)} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors">
+                  Excluir Pedido
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default OrdersManagement;

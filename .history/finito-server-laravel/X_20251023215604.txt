@@ -1,0 +1,2845 @@
+I have a problem where something is going bad about routes, controller or frontend, see some codes:
+
+MongoWishlist.php 
+
+<?php
+
+namespace App\Models;
+
+use MongoDB\Client;
+use MongoDB\BSON\ObjectId;
+use Illuminate\Support\Facades\Log;
+
+class MongoWishlist
+{
+    protected $collection;
+    protected $mongoProduct;
+
+    public function __construct()
+    {
+        $client = new Client(env('MONGODB_URI', 'mongodb://localhost:27017'));
+        $database = env('MONGODB_DATABASE', 'finito');
+        $this->collection = $client->$database->wishlists;
+        $this->mongoProduct = new MongoProduct();
+    }
+
+    /**
+     * Get user's wishlist with product details
+     */
+    public function getUserWishlist($userId)
+    {
+        try {
+            // Get wishlist items for user
+            $wishlistItems = $this->collection->find([
+                'user_id' => (int)$userId
+            ])->toArray();
+
+            // Get product IDs from wishlist
+            $productIds = array_map(function($item) {
+                return $item['product_id'];
+            }, $wishlistItems);
+
+            // Get products from MongoDB using MongoProduct
+            $products = $this->mongoProduct->getByIds($productIds);
+
+            // Combine wishlist items with product data
+            $result = [];
+            foreach ($wishlistItems as $item) {
+                $product = $products[$item['product_id']] ?? null;
+                
+                $result[] = [
+                    'id' => (string)$item['_id'],
+                    'product_id' => $item['product_id'],
+                    'user_id' => $item['user_id'],
+                    'created_at' => $item['created_at'] ?? null,
+                    'updated_at' => $item['updated_at'] ?? null,
+                    'product' => $product
+                ];
+            }
+
+            return $result;
+
+        } catch (\Exception $e) {
+            Log::error('MongoWishlist getUserWishlist error:', ['error' => $e->getMessage()]);
+            return [];
+        }
+    }
+
+    /**
+     * Check if product is in user's wishlist
+     */
+    public function isProductInWishlist($userId, $productId)
+    {
+        try {
+            $count = $this->collection->countDocuments([
+                'user_id' => (int)$userId,
+                'product_id' => $productId
+            ]);
+
+            return $count > 0;
+
+        } catch (\Exception $e) {
+            Log::error('MongoWishlist isProductInWishlist error:', ['error' => $e->getMessage()]);
+            return false;
+        }
+    }
+
+    /**
+     * Add product to wishlist
+     */
+    public function addToWishlist($userId, $productId)
+    {
+        try {
+            // Check if product exists
+            $product = $this->getProduct($productId);
+            if (!$product) {
+                return ['error' => 'Product not found'];
+            }
+
+            // Check if already in wishlist
+            if ($this->isProductInWishlist($userId, $productId)) {
+                return ['error' => 'Product already in wishlist'];
+            }
+
+            $result = $this->collection->insertOne([
+                'user_id' => (int)$userId,
+                'product_id' => $productId,
+                'created_at' => now()->toISOString(),
+                'updated_at' => now()->toISOString()
+            ]);
+
+            return [
+                'success' => true,
+                'inserted_id' => (string)$result->getInsertedId()
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('MongoWishlist addToWishlist error:', ['error' => $e->getMessage()]);
+            return ['error' => 'Failed to add to wishlist'];
+        }
+    }
+
+    /**
+     * Remove product from wishlist
+     */
+    public function removeFromWishlist($userId, $productId)
+    {
+        try {
+            $result = $this->collection->deleteOne([
+                'user_id' => (int)$userId,
+                'product_id' => $productId
+            ]);
+
+            if ($result->getDeletedCount() === 0) {
+                return ['error' => 'Product not found in wishlist'];
+            }
+
+            return ['success' => true, 'deleted_count' => $result->getDeletedCount()];
+
+        } catch (\Exception $e) {
+            Log::error('MongoWishlist removeFromWishlist error:', ['error' => $e->getMessage()]);
+            return ['error' => 'Failed to remove from wishlist'];
+        }
+    }
+
+    /**
+     * Toggle product in wishlist
+     */
+    public function toggleWishlist($userId, $productId)
+    {
+        try {
+            // Check if product exists
+            $product = $this->getProduct($productId);
+            if (!$product) {
+                return ['error' => 'Product not found'];
+            }
+
+            if ($this->isProductInWishlist($userId, $productId)) {
+                // Remove from wishlist
+                $result = $this->removeFromWishlist($userId, $productId);
+                if (isset($result['success'])) {
+                    return [
+                        'action' => 'removed',
+                        'product_id' => $productId,
+                        'in_wishlist' => false
+                    ];
+                }
+                return $result;
+            } else {
+                // Add to wishlist
+                $result = $this->addToWishlist($userId, $productId);
+                if (isset($result['success'])) {
+                    return [
+                        'action' => 'added',
+                        'product_id' => $productId,
+                        'in_wishlist' => true
+                    ];
+                }
+                return $result;
+            }
+
+        } catch (\Exception $e) {
+            Log::error('MongoWishlist toggleWishlist error:', ['error' => $e->getMessage()]);
+            return ['error' => 'Failed to toggle wishlist'];
+        }
+    }
+
+    /**
+     * Get single product from MongoDB using MongoProduct
+     */
+    private function getProduct($productId)
+    {
+        return $this->mongoProduct->find($productId);
+    }
+
+    /**
+     * Get wishlist count for user
+     */
+    public function getWishlistCount($userId)
+    {
+        try {
+            return $this->collection->countDocuments([
+                'user_id' => (int)$userId
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('MongoWishlist getWishlistCount error:', ['error' => $e->getMessage()]);
+            return 0;
+        }
+    }
+
+    /**
+     * Get all wishlist items for user (without product data)
+     */
+    public function getWishlistItems($userId)
+    {
+        try {
+            $wishlistItems = $this->collection->find([
+                'user_id' => (int)$userId
+            ])->toArray();
+
+            $result = [];
+            foreach ($wishlistItems as $item) {
+                $result[] = [
+                    'id' => (string)$item['_id'],
+                    'product_id' => $item['product_id'],
+                    'user_id' => $item['user_id'],
+                    'created_at' => $item['created_at'] ?? null,
+                    'updated_at' => $item['updated_at'] ?? null
+                ];
+            }
+
+            return $result;
+
+        } catch (\Exception $e) {
+            Log::error('MongoWishlist getWishlistItems error:', ['error' => $e->getMessage()]);
+            return [];
+        }
+    }
+
+    /**
+     * Clear entire wishlist for user
+     */
+    public function clearWishlist($userId)
+    {
+        try {
+            $result = $this->collection->deleteMany([
+                'user_id' => (int)$userId
+            ]);
+
+            return [
+                'success' => true,
+                'deleted_count' => $result->getDeletedCount()
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('MongoWishlist clearWishlist error:', ['error' => $e->getMessage()]);
+            return ['error' => 'Failed to clear wishlist'];
+        }
+    }
+
+    /**
+     * Get wishlist items with pagination
+     */
+    public function getWishlistPaginated($userId, $page = 1, $perPage = 20)
+    {
+        try {
+            $skip = ($page - 1) * $perPage;
+            
+            $wishlistItems = $this->collection->find(
+                ['user_id' => (int)$userId],
+                [
+                    'skip' => $skip,
+                    'limit' => $perPage,
+                    'sort' => ['created_at' => -1]
+                ]
+            )->toArray();
+
+            $total = $this->getWishlistCount($userId);
+
+            // Get product IDs from wishlist
+            $productIds = array_map(function($item) {
+                return $item['product_id'];
+            }, $wishlistItems);
+
+            // Get products from MongoDB using MongoProduct
+            $products = $this->mongoProduct->getByIds($productIds);
+
+            // Combine wishlist items with product data
+            $items = [];
+            foreach ($wishlistItems as $item) {
+                $product = $products[$item['product_id']] ?? null;
+                
+                $items[] = [
+                    'id' => (string)$item['_id'],
+                    'product_id' => $item['product_id'],
+                    'user_id' => $item['user_id'],
+                    'created_at' => $item['created_at'] ?? null,
+                    'updated_at' => $item['updated_at'] ?? null,
+                    'product' => $product
+                ];
+            }
+
+            return [
+                'items' => $items,
+                'pagination' => [
+                    'current_page' => $page,
+                    'per_page' => $perPage,
+                    'total' => $total,
+                    'last_page' => ceil($total / $perPage)
+                ]
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('MongoWishlist getWishlistPaginated error:', ['error' => $e->getMessage()]);
+            return [
+                'items' => [],
+                'pagination' => [
+                    'current_page' => $page,
+                    'per_page' => $perPage,
+                    'total' => 0,
+                    'last_page' => 0
+                ]
+            ];
+        }
+    }
+
+    /**
+     * Check if multiple products are in wishlist
+     */
+    public function checkMultipleProducts($userId, $productIds)
+    {
+        try {
+            $wishlistItems = $this->collection->find([
+                'user_id' => (int)$userId,
+                'product_id' => ['$in' => $productIds]
+            ])->toArray();
+
+            $result = [];
+            foreach ($productIds as $productId) {
+                $result[$productId] = false;
+            }
+
+            foreach ($wishlistItems as $item) {
+                $result[$item['product_id']] = true;
+            }
+
+            return $result;
+
+        } catch (\Exception $e) {
+            Log::error('MongoWishlist checkMultipleProducts error:', ['error' => $e->getMessage()]);
+            return [];
+        }
+    }
+
+    /**
+     * Get most wishlisted products
+     */
+    public function getPopularProducts($limit = 10)
+    {
+        try {
+            $pipeline = [
+                [
+                    '$group' => [
+                        '_id' => '$product_id',
+                        'count' => ['$sum' => 1]
+                    ]
+                ],
+                [
+                    '$sort' => ['count' => -1]
+                ],
+                [
+                    '$limit' => $limit
+                ]
+            ];
+
+            $popularProducts = $this->collection->aggregate($pipeline)->toArray();
+
+            $productIds = array_map(function($item) {
+                return $item['_id'];
+            }, $popularProducts);
+
+            $products = $this->mongoProduct->getByIds($productIds);
+
+            $result = [];
+            foreach ($popularProducts as $popular) {
+                $productId = $popular['_id'];
+                if (isset($products[$productId])) {
+                    $result[] = [
+                        'product' => $products[$productId],
+                        'wishlist_count' => $popular['count']
+                    ];
+                }
+            }
+
+            return $result;
+
+        } catch (\Exception $e) {
+            Log::error('MongoWishlist getPopularProducts error:', ['error' => $e->getMessage()]);
+            return [];
+        }
+    }
+
+    /**
+     * Create indexes for better performance
+     */
+    public function createIndexes()
+    {
+        try {
+            $this->collection->createIndex(['user_id' => 1, 'product_id' => 1], ['unique' => true]);
+            $this->collection->createIndex(['user_id' => 1]);
+            $this->collection->createIndex(['product_id' => 1]);
+            $this->collection->createIndex(['created_at' => -1]);
+            
+            return ['success' => true, 'message' => 'Wishlist indexes created successfully'];
+
+        } catch (\Exception $e) {
+            Log::error('MongoWishlist createIndexes error:', ['error' => $e->getMessage()]);
+            return ['error' => 'Failed to create indexes'];
+        }
+    }
+
+    /**
+     * Get wishlist statistics
+     */
+    public function getStats($userId = null)
+    {
+        try {
+            $match = [];
+            if ($userId) {
+                $match = ['user_id' => (int)$userId];
+            }
+
+            $pipeline = [
+                [
+                    '$match' => $match
+                ],
+                [
+                    '$group' => [
+                        '_id' => null,
+                        'total_wishlists' => ['$sum' => 1],
+                        'unique_users' => ['$addToSet' => '$user_id'],
+                        'unique_products' => ['$addToSet' => '$product_id']
+                    ]
+                ],
+                [
+                    '$project' => [
+                        'total_wishlists' => 1,
+                        'unique_users_count' => ['$size' => '$unique_users'],
+                        'unique_products_count' => ['$size' => '$unique_products']
+                    ]
+                ]
+            ];
+
+            $stats = $this->collection->aggregate($pipeline)->toArray();
+
+            if (empty($stats)) {
+                return [
+                    'total_wishlists' => 0,
+                    'unique_users_count' => 0,
+                    'unique_products_count' => 0
+                ];
+            }
+
+            return $stats[0];
+
+        } catch (\Exception $e) {
+            Log::error('MongoWishlist getStats error:', ['error' => $e->getMessage()]);
+            return [
+                'total_wishlists' => 0,
+                'unique_users_count' => 0,
+                'unique_products_count' => 0
+            ];
+        }
+    }
+
+    /**
+     * Migrate data from MySQL to MongoDB (one-time use)
+     */
+    public function migrateFromMySQL($mysqlWishlistItems)
+    {
+        try {
+            $documents = [];
+            foreach ($mysqlWishlistItems as $item) {
+                $documents[] = [
+                    'user_id' => (int)$item->user_id,
+                    'product_id' => $item->product_id,
+                    'created_at' => $item->created_at?->toISOString() ?? now()->toISOString(),
+                    'updated_at' => $item->updated_at?->toISOString() ?? now()->toISOString()
+                ];
+            }
+
+            if (!empty($documents)) {
+                $result = $this->collection->insertMany($documents);
+                return [
+                    'success' => true,
+                    'inserted_count' => $result->getInsertedCount()
+                ];
+            }
+
+            return ['success' => true, 'inserted_count' => 0];
+
+        } catch (\Exception $e) {
+            Log::error('MongoWishlist migrateFromMySQL error:', ['error' => $e->getMessage()]);
+            return ['error' => 'Migration failed: ' . $e->getMessage()];
+        }
+    }
+}
+
+MongoWishlistController.php
+
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\MongoWishlist;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+
+class MongoWishlistController extends Controller
+{
+    protected $mongoWishlist;
+
+    public function __construct()
+    {
+        $this->mongoWishlist = new MongoWishlist();
+    }
+
+    /**
+     * Get user's wishlist with product details
+     */
+    public function index()
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            $wishlistItems = $this->mongoWishlist->getUserWishlist($user->id);
+
+            Log::info("MongoDB Wishlist fetched:", [
+                'user_id' => $user->id,
+                'count' => count($wishlistItems)
+            ]);
+
+            return response()->json([
+                'wishlist' => $wishlistItems,
+                'count' => count($wishlistItems)
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('MongoWishlist index error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'error' => 'Failed to fetch wishlist',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Toggle product in wishlist (add/remove)
+     */
+    public function toggle(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            $request->validate([
+                'product_id' => 'required|string'
+            ]);
+
+            $productId = $request->product_id;
+
+            $result = $this->mongoWishlist->toggleWishlist($user->id, $productId);
+
+            if (isset($result['error'])) {
+                return response()->json(['error' => $result['error']], 400);
+            }
+
+            return response()->json([
+                'message' => 'Product ' . $result['action'] . ' from wishlist',
+                'action' => $result['action'],
+                'product_id' => $result['product_id'],
+                'in_wishlist' => $result['in_wishlist']
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'error' => 'Validation failed',
+                'messages' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('MongoWishlist toggle error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'error' => 'Failed to toggle wishlist',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Check if product is in wishlist
+     */
+    public function check($productId)
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            $isInWishlist = $this->mongoWishlist->isProductInWishlist($user->id, $productId);
+
+            return response()->json([
+                'product_id' => $productId,
+                'in_wishlist' => $isInWishlist
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('MongoWishlist check error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'error' => 'Failed to check wishlist status',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Remove product from wishlist
+     */
+    public function destroy($productId)
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            $result = $this->mongoWishlist->removeFromWishlist($user->id, $productId);
+
+            if (isset($result['error'])) {
+                return response()->json(['error' => $result['error']], 404);
+            }
+
+            return response()->json([
+                'message' => 'Product removed from wishlist',
+                'product_id' => $productId
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('MongoWishlist destroy error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'error' => 'Failed to remove product from wishlist',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get wishlist count
+     */
+    public function count()
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            $count = $this->mongoWishlist->getWishlistCount($user->id);
+
+            return response()->json([
+                'count' => $count
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('MongoWishlist count error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'error' => 'Failed to get wishlist count',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Create indexes (run once manually)
+     */
+    public function createIndexes()
+    {
+        try {
+            $result = $this->mongoWishlist->createIndexes();
+            
+            if (isset($result['error'])) {
+                return response()->json(['error' => $result['error']], 500);
+            }
+
+            return response()->json([
+                'message' => 'MongoDB wishlist indexes created successfully!'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Debug endpoint to check MongoDB connection and data
+     */
+    public function debug()
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            $wishlistItems = $this->mongoWishlist->getUserWishlist($user->id);
+            $count = $this->mongoWishlist->getWishlistCount($user->id);
+
+            // Test MongoDB connection
+            $client = new \MongoDB\Client(env('MONGODB_URI', 'mongodb://localhost:27017'));
+            $database = env('MONGODB_DATABASE', 'finito');
+            
+            $collections = $client->$database->listCollections();
+            $collectionNames = [];
+            foreach ($collections as $collection) {
+                $collectionNames[] = $collection->getName();
+            }
+
+            // Get wishlist stats
+            $stats = $this->mongoWishlist->getStats($user->id);
+
+            return response()->json([
+                'user_id' => $user->id,
+                'mongodb_connection' => 'success',
+                'database' => $database,
+                'collections' => $collectionNames,
+                'wishlist_count' => $count,
+                'wishlist_stats' => $stats,
+                'wishlist_items_sample' => array_slice($wishlistItems, 0, 3), // First 3 items
+                'items_with_products' => count(array_filter($wishlistItems, function($item) {
+                    return !is_null($item['product']);
+                }))
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+                'mongodb_connection' => 'failed'
+            ], 500);
+        }
+    }
+
+    /**
+     * Health check - simple endpoint to test if MongoDB is working
+     */
+    public function health()
+    {
+        try {
+            $client = new \MongoDB\Client(env('MONGODB_URI', 'mongodb://localhost:27017'));
+            $database = env('MONGODB_DATABASE', 'finito');
+            
+            // Try to list databases to test connection
+            $client->listDatabases();
+            
+            // Test wishlist collection access
+            $wishlistStats = $this->mongoWishlist->getStats();
+            
+            return response()->json([
+                'status' => 'healthy',
+                'mongodb' => 'connected',
+                'database' => $database,
+                'wishlist_stats' => $wishlistStats,
+                'timestamp' => now()->toISOString()
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'unhealthy',
+                'mongodb' => 'disconnected',
+                'error' => $e->getMessage(),
+                'timestamp' => now()->toISOString()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get wishlist items with pagination
+     */
+    public function paginated(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            $page = $request->get('page', 1);
+            $perPage = $request->get('per_page', 20);
+
+            $result = $this->mongoWishlist->getWishlistPaginated($user->id, $page, $perPage);
+
+            return response()->json($result);
+
+        } catch (\Exception $e) {
+            Log::error('MongoWishlist paginated error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'error' => 'Failed to fetch paginated wishlist',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Check multiple products in wishlist
+     */
+    public function checkMultiple(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            $request->validate([
+                'product_ids' => 'required|array',
+                'product_ids.*' => 'required|string'
+            ]);
+
+            $productIds = $request->product_ids;
+            $result = $this->mongoWishlist->checkMultipleProducts($user->id, $productIds);
+
+            return response()->json([
+                'products' => $result
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'error' => 'Validation failed',
+                'messages' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('MongoWishlist checkMultiple error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'error' => 'Failed to check multiple products',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get popular wishlisted products
+     */
+    public function popular(Request $request)
+    {
+        try {
+            $limit = $request->get('limit', 10);
+            $popularProducts = $this->mongoWishlist->getPopularProducts($limit);
+
+            return response()->json([
+                'popular_products' => $popularProducts
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('MongoWishlist popular error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'error' => 'Failed to fetch popular products',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Clear entire wishlist for user
+     */
+    public function clear()
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            $result = $this->mongoWishlist->clearWishlist($user->id);
+
+            if (isset($result['error'])) {
+                return response()->json(['error' => $result['error']], 500);
+            }
+
+            return response()->json([
+                'message' => 'Wishlist cleared successfully',
+                'deleted_count' => $result['deleted_count']
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('MongoWishlist clear error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'error' => 'Failed to clear wishlist',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get wishlist statistics
+     */
+    public function stats()
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            $userStats = $this->mongoWishlist->getStats($user->id);
+            $globalStats = $this->mongoWishlist->getStats();
+
+            return response()->json([
+                'user_stats' => $userStats,
+                'global_stats' => $globalStats
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('MongoWishlist stats error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'error' => 'Failed to get wishlist statistics',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Migrate from MySQL to MongoDB (one-time use)
+     */
+    public function migrateFromMySQL()
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            // Check if user is admin or has migration privileges
+            // You might want to add additional authorization here
+
+            // Get MySQL wishlist items (you'll need to adjust this based on your MySQL model)
+            // $mysqlWishlistItems = \App\Models\Wishlist::where('user_id', $user->id)->get();
+            
+            // For now, return instruction
+            return response()->json([
+                'message' => 'Migration endpoint ready',
+                'instruction' => 'Uncomment the migration code in the controller and adjust based on your MySQL Wishlist model'
+            ]);
+
+            // Uncomment when ready to migrate:
+            // $result = $this->mongoWishlist->migrateFromMySQL($mysqlWishlistItems);
+            // 
+            // if (isset($result['error'])) {
+            //     return response()->json(['error' => $result['error']], 500);
+            // }
+            // 
+            // return response()->json([
+            //     'message' => 'Migration completed successfully',
+            //     'migrated_count' => $result['inserted_count']
+            // ]);
+
+        } catch (\Exception $e) {
+            Log::error('MongoWishlist migrateFromMySQL error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'error' => 'Migration failed',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+}
+
+MongoProduct.php
+
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Product extends Model
+{
+    use HasFactory;
+
+    // If you're using MongoDB or non-integer IDs, disable auto-incrementing
+    public $incrementing = false;
+    
+    // Set the key type to string if using UUIDs or string IDs
+    protected $keyType = 'string';
+
+    protected $fillable = [
+        '_id',
+        'title',
+        'price',
+        'image',
+        'description',
+        'category',
+    ];
+
+    /**
+     * Get the wishlist items for the product
+     */
+    public function wishlistItems()
+    {
+        return $this->hasMany(Wishlist::class, '_id');
+    }
+}
+
+MongoProductController.php
+
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\MongoProduct;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+
+class MongoProductController extends Controller
+{
+    protected $mongoProduct;
+
+    public function __construct()
+    {
+        $this->mongoProduct = new MongoProduct();
+    }
+
+    /**
+     * List all products
+     */
+    public function index(Request $request)
+    {
+        try {
+            $orderBy = $request->get('orderBy', 'created_at');
+            $direction = $request->get('direction', 'desc');
+            
+            $products = $this->mongoProduct->getAll($orderBy, $direction);
+
+            return response()->json($products);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to fetch products',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Store a new product with file upload
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'price' => 'required|numeric|min:0',
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'category' => 'nullable|string|max:100',
+            'description' => 'nullable|string|max:1000',
+        ]);
+
+        try {
+            $product = $this->mongoProduct->create($validated);
+
+            if (!$product) {
+                return response()->json([
+                    'error' => 'Failed to create product'
+                ], 500);
+            }
+
+            return response()->json($product, 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to create product',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Show a single product by ID
+     */
+    public function show($id)
+    {
+        try {
+            $product = $this->mongoProduct->find($id);
+
+            if (!$product) {
+                return response()->json([
+                    'error' => 'Product not found'
+                ], 404);
+            }
+
+            return response()->json($product);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to fetch product',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update a product
+     */
+    public function update(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'title' => 'sometimes|required|string|max:255',
+            'price' => 'sometimes|required|numeric|min:0',
+            'image' => 'sometimes|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'category' => 'nullable|string|max:100',
+            'description' => 'nullable|string|max:1000',
+        ]);
+
+        try {
+            $product = $this->mongoProduct->update($id, $validated);
+
+            if (!$product) {
+                return response()->json([
+                    'error' => 'Product not found or no changes made'
+                ], 404);
+            }
+
+            return response()->json($product);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to update product',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete a product
+     */
+    public function destroy($id)
+    {
+        try {
+            $success = $this->mongoProduct->delete($id);
+
+            if (!$success) {
+                return response()->json([
+                    'error' => 'Product not found'
+                ], 404);
+            }
+
+            return response()->json([
+                'message' => 'Product deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to delete product',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Search products
+     */
+    public function search(Request $request)
+    {
+        try {
+            $query = $request->get('q', '');
+            
+            if (empty($query)) {
+                return response()->json([]);
+            }
+
+            $products = $this->mongoProduct->search($query);
+
+            return response()->json($products);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to search products',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get products by category
+     */
+    public function byCategory($category)
+    {
+        try {
+            $products = $this->mongoProduct->getByCategory($category);
+
+            return response()->json($products);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to fetch products by category',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get product count
+     */
+    public function count()
+    {
+        try {
+            $count = $this->mongoProduct->count();
+
+            return response()->json([
+                'count' => $count
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to get product count',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Create indexes for products (run once)
+     */
+    public function createIndexes()
+    {
+        try {
+            $result = $this->mongoProduct->createIndexes();
+            
+            if (isset($result['error'])) {
+                return response()->json(['error' => $result['error']], 500);
+            }
+
+            return response()->json([
+                'message' => 'Product indexes created successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Debug endpoint
+     */
+    public function debug()
+    {
+        try {
+            $count = $this->mongoProduct->count();
+            $sampleProducts = array_slice($this->mongoProduct->getAll(), 0, 3);
+
+            return response()->json([
+                'product_count' => $count,
+                'sample_products' => $sampleProducts,
+                'mongodb_connection' => 'success'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+                'mongodb_connection' => 'failed'
+            ], 500);
+        }
+    }
+}
+
+Profile.jsx
+
+import React, { useState, useEffect } from "react";
+import { FiShoppingCart, FiPlus, FiMinus, FiTrash2, FiMenu, FiX, FiUser, FiMapPin, FiCreditCard, FiPackage, FiHeart, FiShoppingBag, FiTag, FiSettings, FiHelpCircle, FiLogOut } from "react-icons/fi";
+import { VscExtensions } from "react-icons/vsc";
+import { IoReload } from "react-icons/io5";
+
+
+const mockUserProfile = {
+  name: "",
+  email: "",
+  tel: "",
+  cpf: "",
+  birth_date: "",
+  avatar: "",
+  marketing: true,
+  addresses: [],
+  payment: [],
+};
+
+const ProfilePage = () => {
+  const [user, setUser] = useState(null);
+  const [activeTab, setActiveTab] = useState("perfil");
+  const [editAddressId, setEditAddressId] = useState(null);
+  const [newAddress, setNewAddress] = useState({ street: "", number: "", city: "", state: "", zip: "" });
+  const [paymentInfo, setPaymentInfo] = useState({ cardNumber: "", cardName: "", expiry: "" });
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // Wishlist state
+  const [wishlist, setWishlist] = useState([]);
+  const [loadingWishlist, setLoadingWishlist] = useState(false);
+
+  // Cart state - NOVO
+  const [cart, setCart] = useState([]);
+  const [loadingCart, setLoadingCart] = useState(false);
+  const [cartTotal, setCartTotal] = useState(0);
+
+  useEffect(() => {
+    fetchProfile();
+    fetchAddresses();
+    fetchWishlist();
+    fetchCart(); // NOVO: Buscar carrinho
+  }, []);
+
+  // Navigation items
+  const navigationItems = [
+    { id: "perfil", label: "Perfil", icon: FiUser },
+    { id: "enderecos", label: "Endereço", icon: FiMapPin },
+    { id: "pagamento", label: "Pagamento", icon: FiCreditCard },
+    { id: "pedidos", label: "Pedidos", icon: FiPackage },
+    { id: "desejos", label: "Desejos", icon: FiHeart },
+    { id: "carrinho", label: "Carrinho", icon: FiShoppingBag },
+    { id: "cupons", label: "Cupons & Créditos", icon: FiTag },
+    { id: "configuracoes", label: "Configurações", icon: FiSettings },
+    { id: "suporte", label: "Suporte e Ajuda", icon: FiHelpCircle },
+  ];
+
+// Mobile Navigation - FULL SCREEN VERSION
+const MobileNavigation = () => (
+  <div className="lg:hidden">
+    {/* Mobile Header - MOVED DOWN POSITION */}
+    <div className="bg-white shadow-sm border-b border-gray-200 p-4 pt-15 fixed top-16 left-0 right-0 z-40">
+   
+    <div className="flex items-center justify-between">
+  <button
+    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+    className="p-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-center"
+  >
+    {isMobileMenuOpen ? (
+      <FiX size={20} className="text-black" />
+    ) : (
+      <svg 
+        width="28" 
+        height="28" 
+        viewBox="-3 -3 38 38"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="text-black"
+      >
+        <path d="M23.56.436c-.58-.58-1.54-.58-2.12 0L15.436 6.44c-.58.58-.58 1.54 0 2.12l6.004 6.005c.58.58 1.54.58 2.12 0l6.005-6.004c.58-.58.58-1.54 0-2.12L23.56.436zm-.706.708l6.003 6.003c.202.202.202.505 0 .707l-6.003 6.004c-.202.202-.505.202-.707 0l-6.004-6.004c-.202-.202-.202-.505 0-.707l6.004-6.003c.202-.202.505-.202.707 0zM16.5 18c-.822 0-1.5.678-1.5 1.5v9c0 .822.678 1.5 1.5 1.5h9c.822 0 1.5-.678 1.5-1.5v-9c0-.822-.678-1.5-1.5-1.5h-9zm0 1h9c.286 0 .5.214.5.5v9c0 .286-.214.5-.5.5h-9c-.286 0-.5-.214-.5-.5v-9c0-.286.214-.5.5-.5zM1.5 3C.678 3 0 3.678 0 4.5v9c0 .822.678 1.5 1.5 1.5h9c.822 0 1.5-.678 1.5-1.5v-9c0-.822-.678-1.5-1.5-1.5h-9zm0 1h9c.286 0 .5.214.5.5v9c0 .286-.214.5-.5.5h-9c-.286 0-.5-.214-.5-.5v-9c0-.286.214-.5.5-.5zm0 14c-.822 0-1.5.678-1.5 1.5v9c0 .822.678 1.5 1.5 1.5h9c.822 0 1.5-.678 1.5-1.5v-9c0-.822-.678-1.5-1.5-1.5h-9zm0 1h9c.286 0 .5.214.5.5v9c0 .286-.214.5-.5.5h-9c-.286 0-.5-.214-.5-.5v-9c0-.286.214-.5.5-.5z"/>
+      </svg>
+    )}
+  </button>
+  <h1 className="text-lg font-semibold text-black flex-1 text-center mx-3">
+    {navigationItems.find(item => item.id === activeTab)?.label || "Minha Conta"}
+  </h1>
+  <div className="w-10"></div>
+</div>
+
+
+</div>
+
+    {/* Mobile Menu Overlay - FULL SCREEN VERSION */}
+    {isMobileMenuOpen && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 lg:hidden">
+        {/* Full screen container */}
+        <div className="bg-white h-full w-full overflow-y-auto">
+          {/* Header Section */}
+          <div className="p-6 border-b border-gray-200 bg-white sticky top-0 z-10">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-800">Minha Conta</h2>
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-3 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <FiX size={24} />
+              </button>
+            </div>
+            
+            {/* User Info */}
+            {user && (
+              <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center">
+                  <span className="text-white font-semibold text-xl">
+                    {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-gray-800 text-lg truncate">{user.name || 'Usuário'}</p>
+                  <p className="text-gray-500 truncate">{user.email}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Navigation Items - Full height content */}
+          <nav className="p-6">
+            <ul className="space-y-3">
+              {navigationItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <li key={item.id}>
+                    <button
+                      onClick={() => {
+                        setActiveTab(item.id);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center space-x-4 p-4 rounded-xl transition-all ${
+                        activeTab === item.id
+                          ? 'bg-red-500 text-white shadow-lg'
+                          : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                      }`}
+                    >
+                      <Icon size={24} />
+                      <span className="font-medium text-lg">{item.label}</span>
+                    </button>
+                  </li>
+                );
+              })}
+              
+              {/* Logout Button */}
+              <li className="mt-8 pt-6 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    localStorage.clear();
+                    // window.location.href = '/login';
+                  }}
+                  className="w-full flex items-center space-x-4 p-4 rounded-xl text-red-600 hover:bg-red-50 transition-all"
+                >
+                  <FiLogOut size={24} />
+                  <span className="font-medium text-lg">Sair</span>
+                </button>
+              </li>
+            </ul>
+          </nav>
+
+          {/* Bottom padding for better scrolling */}
+          <div className="h-20"></div>
+        </div>
+      </div>
+    )}
+  </div>
+);
+  
+  const DesktopSidebar = () => (
+    <aside className="hidden lg:block w-64 bg-white shadow-lg border-r border-gray-200 h-screen sticky top-0 overflow-y-auto pt-30 drawer-scroll">
+      <div className="p-6">
+        {/*
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Minha Conta</h2>
+        <p className="text-gray-500 text-sm mb-8">Gerencie suas informações</p>
+        /*}
+        {/* User Info */}
+        {user && (
+          <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg mb-8">
+            <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center">
+              <span className="text-white font-semibold text-xl">
+                {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-gray-800 truncate">{user.name || 'Usuário'}</p>
+              <p className="text-sm text-gray-500 truncate">{user.email}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Navigation */}
+        <nav>
+          <ul className="space-y-2">
+            {navigationItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <li key={item.id}>
+                  <button
+                    onClick={() => setActiveTab(item.id)}
+                    className={`w-full flex items-center space-x-3 p-4 rounded-xl transition-all ${
+                      activeTab === item.id
+                        ? 'bg-red-500 text-white shadow-lg shadow-red-200'
+                        : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                    }`}
+                  >
+                    <Icon size={20} />
+                    <span className="font-medium">{item.label}</span>
+                  </button>
+                </li>
+              );
+            })}
+            
+            {/* Logout Button */}
+            <li className="mt-8 pt-6 border-t border-gray-200">
+              <button
+                onClick={() => {
+                  localStorage.clear();
+                  // window.location.href = '/login';
+                }}
+                className="w-full flex items-center space-x-3 p-4 rounded-xl text-red-600 hover:bg-red-50 transition-all"
+              >
+                <FiLogOut size={20} />
+                <span className="font-medium">Sair</span>
+              </button>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </aside>
+  );
+
+  // ✅ UPDATED: No token, just session cookies
+  const fetchProfile = async () => {
+    try {
+      console.log("🔥 Fetching profile with session cookies...");
+
+      // 1️⃣ Get CSRF cookie first
+      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      // 2️⃣ Fetch profile using session cookies only
+      const res = await fetch("http://localhost:8000/profile", { 
+        method: "GET",
+        credentials: "include", // This sends the session cookie automatically
+        headers: {
+          "Accept": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      });
+
+      console.log("🔥 Profile response status:", res.status);
+
+      if (res.status === 401) {
+        console.log("🚨 401 - Not authenticated");
+        localStorage.removeItem('user');
+        localStorage.removeItem('loggedIn');
+        //window.location.href = '/login';
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      const data = await res.json();
+      console.log("✅ PROFILE LOADED:", data);
+      setUser(data);
+
+    } catch (err) {
+      console.error("Erro ao buscar perfil:", err.message);
+      
+      // If authentication error, redirect to login
+      if (err.message.includes('401') || err.message.includes('network')) {
+        //window.location.href = '/login';
+        return;
+      }
+      
+      // Only use mock data for non-auth errors
+      setUser(mockUserProfile);
+    }
+  };
+
+  // ✅ UPDATED: Save profile with session cookies
+  const saveProfile = async () => {
+    if (!user?.id) {
+      alert("Erro: usuário não está logado!");
+      return;
+    }
+
+    try {
+      // 1️⃣ Get CSRF cookie
+      console.log("Getting CSRF cookie...");
+      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      // 2️⃣ Extract CSRF token from cookies
+      const csrfToken = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("XSRF-TOKEN="))
+        ?.split("=")[1];
+
+      if (!csrfToken) throw new Error("CSRF token not found");
+
+      // 3️⃣ Save profile with session cookies
+      const res = await fetch("http://localhost:8000/profile", {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+          "X-XSRF-TOKEN": decodeURIComponent(csrfToken),
+        },
+        body: JSON.stringify({
+          name: user.name,
+          email: user.email,
+          tel: user.tel,
+          cpf: user.cpf,
+          birth_date: user.birth_date,
+          avatar: user.avatar,
+          marketing: user.marketing,
+        }),      
+      });
+
+      const data = await res.json();
+      
+      if (res.status === 401) {
+        //window.location.href = '/login';
+        return;
+      }
+
+      if (!res.ok) throw new Error(data.message || "Erro ao salvar");
+
+      console.log("✅ PROFILE SAVED:", data);
+      setUser(data);
+      setIsEditingProfile(false);
+      alert("Perfil salvo com sucesso!");
+
+    } catch (err) {
+      console.error("Erro ao salvar:", err.message);
+      alert("Error!");
+    }
+  };
+
+  // ✅ UPDATED: Fetch addresses with session cookies
+  const fetchAddresses = async () => {
+    try {
+      console.log("🔄 Fetching addresses...");
+
+      // Get CSRF cookie first
+      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      const res = await fetch("http://localhost:8000/addresses", {
+        method: "GET",
+        credentials: "include", // Session cookies sent automatically
+        headers: { 
+          "Accept": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      });
+
+      console.log("🔥 Addresses response status:", res.status);
+
+      if (res.status === 401) {
+        console.log("🚨 401 - Not authenticated for addresses");
+        return;
+      }
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to fetch addresses");
+
+      setUser(prev => ({ ...prev, addresses: data }));
+      console.log("✅ ADDRESSES:", data);
+    } catch (err) {
+      console.error("❌ Error fetching addresses:", err);
+    }
+  };
+
+  // ✅ UPDATED: Save address with session cookies
+  const saveAddress = async (e) => {
+    e.preventDefault();
+    console.log("🚀 saveAddress triggered");
+
+    try {
+      // 1️⃣ Get CSRF cookie
+      console.log("🌐 Requesting CSRF cookie...");
+      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      // 2️⃣ Extract CSRF token
+      const csrfToken = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("XSRF-TOKEN="))
+        ?.split("=")[1];
+
+      if (!csrfToken) throw new Error("❌ CSRF token not found");
+      console.log("🔑 CSRF token found");
+
+      // 3️⃣ Send POST request with session cookies
+      console.log("📨 Sending POST request to /addresses...", newAddress);
+      const res = await fetch("http://localhost:8000/addresses", {
+        method: "POST",
+        credentials: "include", // Session cookies sent automatically
+        headers: {
+          "Content-Type": "application/json",
+          "X-XSRF-TOKEN": decodeURIComponent(csrfToken),
+          "Accept": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: JSON.stringify(newAddress),
+      });
+
+      console.log("📬 Response status:", res.status);
+
+      if (res.status === 401) {
+        //window.location.href = '/login';
+        return;
+      }
+
+      if (res.ok) {
+        const newAddr = await res.json();       
+        console.log("✅ Address added successfully:", newAddr);
+        setUser(prev => ({ ...prev, addresses: [...prev.addresses, newAddr] }));
+        setNewAddress({ street: "", number: "", city: "", state: "", zip: "" });
+        alert("Endereço adicionado!");
+      } else {
+        const data = await res.json();
+        console.warn("⚠️ Failed to add address:", data);
+        alert(data.message || "Erro ao adicionar endereço!");
+      }
+    } catch (err) {
+      console.error("❌ Error in saveAddress:", err);
+      alert("Erro ao adicionar endereço!");
+    }
+  };
+
+  // ✅ UPDATED: Edit address with session cookies
+  const editAddress = async (id) => {
+    const addressToSave = user.addresses.find((addr) => addr.id === id);
+    if (!addressToSave) return alert("Endereço não encontrado!");
+
+    try {
+      // 1️⃣ Get CSRF cookie
+      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      // 2️⃣ Extract CSRF token
+      const csrfToken = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("XSRF-TOKEN="))
+        ?.split("=")[1];
+      if (!csrfToken) throw new Error("CSRF token not found");
+
+      // 3️⃣ Send PUT request with session cookies
+      const res = await fetch(`http://localhost:8000/addresses/${id}`, {
+        method: "PUT",
+        credentials: "include", // Session cookies sent automatically
+        headers: {
+          "Content-Type": "application/json",
+          "X-XSRF-TOKEN": decodeURIComponent(csrfToken),
+          "Accept": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: JSON.stringify(addressToSave),
+      });
+
+      if (res.status === 401) {
+        //window.location.href = '/login';
+        return;
+      }
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Erro ao atualizar endereço");
+      }
+
+      // 4️⃣ Update UI
+      await fetchAddresses();
+      setEditAddressId(null);
+      alert("✅ Endereço atualizado com sucesso!");
+    } catch (err) {
+      console.error("❌ Erro ao editar endereço:", err);
+      alert("Erro ao salvar endereço!");
+    }
+  };
+
+
+ // ✅ ADDED: Fetch wishlist with session cookies - DEBUG VERSION
+ const fetchWishlist = async () => {
+  try {
+    setLoadingWishlist(true);
+    console.log("🔄 STARTING fetchWishlist with Native MongoDB...");
+
+    // 1️⃣ Get CSRF cookie first
+    await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+      method: "GET",
+      credentials: "include",
+    });
+
+    // 2️⃣ Fetch wishlist from Native MongoDB API
+    const wishlistUrl = "http://localhost:8000/api/wishlist";
+    
+    const res = await fetch(wishlistUrl, {
+      method: "GET",
+      credentials: "include",
+      headers: {
+        "Accept": "application/json",
+        "X-Requested-With": "XMLHttpRequest",
+      },
+    });
+
+    console.log("🔥 MongoDB Wishlist response status:", res.status);
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      console.error("🚨 MongoDB API error:", errorData);
+      throw new Error(`MongoDB Error: ${errorData.message || 'Unknown error'}`);
+    }
+
+    const data = await res.json();
+    console.log("✅ NATIVE MONGODB WISHLIST RESPONSE:", data);
+    
+    const wishlistData = data.wishlist || [];
+    console.log("📦 DYNAMIC MONGODB WISHLIST ITEMS:", wishlistData);
+
+    // Log each item for debugging
+    wishlistData.forEach((item, index) => {
+      console.log(`📦 MongoDB Item ${index}:`, {
+        id: item.id,
+        product_id: item.product_id,
+        product_title: item.product?.title,
+        product_price: item.product?.price,
+        product_image: item.product?.image,
+        product_category: item.product?.category
+      });
+    });
+
+    setWishlist(wishlistData);
+
+  } catch (err) {
+    console.error("❌ Error fetching Native MongoDB wishlist:", err.message);
+    
+    // Show user-friendly error message
+    alert("Erro ao carregar lista de desejos: " + err.message);
+    
+    // Set empty array instead of mock data
+    setWishlist([]);
+  } finally {
+    setLoadingWishlist(false);
+  }
+};
+
+  
+  // ✅ ADDED: Remove product from wishlist
+  const removeFromWishlist = async (productId) => {
+    try {
+      console.log("🗑️ Removing product from wishlist:", productId);
+
+      // 1️⃣ Get CSRF cookie
+      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      // 2️⃣ Extract CSRF token
+      const csrfToken = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("XSRF-TOKEN="))
+        ?.split("=")[1];
+
+      if (!csrfToken) throw new Error("CSRF token not found");
+
+      // 3️⃣ Send DELETE request
+      const res = await fetch(`http://localhost:8000/api/wishlist/${productId}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: {
+          "X-XSRF-TOKEN": decodeURIComponent(csrfToken),
+          "Accept": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      });
+
+      if (res.status === 401) {
+        //window.location.href = '/login';
+        return;
+      }
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Failed to remove from wishlist");
+      }
+
+      // 4️⃣ Update local state
+      setWishlist(prev => prev.filter(item => item.product_id !== productId));
+      console.log("✅ Product removed from wishlist");
+      alert("Produto removido dos desejos!");
+
+    } catch (err) {
+      console.error("❌ Error removing from wishlist:", err);
+      alert("Erro ao remover produto dos desejos!");
+    }
+  };
+
+  // ✅ ADDED: Toggle product in wishlist (add/remove)
+  const toggleWishlist = async (productId) => {
+    try {
+      console.log("🔄 Toggling wishlist for product:", productId);
+
+      // 1️⃣ Get CSRF cookie
+      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      // 2️⃣ Extract CSRF token
+      const csrfToken = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("XSRF-TOKEN="))
+        ?.split("=")[1];
+
+      if (!csrfToken) throw new Error("CSRF token not found");
+
+      // 3️⃣ Send POST request to toggle
+      const res = await fetch("http://localhost:8000/api/wishlist/toggle", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "X-XSRF-TOKEN": decodeURIComponent(csrfToken),
+          "Accept": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: JSON.stringify({ product_id: productId }),
+      });
+
+      if (res.status === 401) {
+        //window.location.href = '/login';
+        return;
+      }
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to toggle wishlist");
+      }
+
+      console.log("✅ Wishlist toggled:", data);
+
+      // Refresh wishlist if we're on the wishlist tab
+      if (activeTab === "desejos") {
+        fetchWishlist();
+      }
+
+      return data;
+
+    } catch (err) {
+      console.error("❌ Error toggling wishlist:", err);
+      alert("Erro ao atualizar lista de desejos!");
+    }
+  };
+
+ 
+
+  const fetchCart = async () => {
+    try {
+      setLoadingCart(true);
+      console.log("🔄 Fetching cart...");
+
+      // 1️⃣ Get CSRF cookie first
+      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      // 2️⃣ Fetch cart using session cookies
+      const res = await fetch("http://localhost:8000/api/cart", {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          "Accept": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      });
+
+      console.log("🔥 Cart response status:", res.status);
+
+      if (res.status === 401) {
+        console.log("🚨 401 - Not authenticated for cart");
+        return;
+      }
+
+      if (!res.ok) {
+        // Se não huma API de carrinho, usar dados mock
+        console.log("⚠️ Cart API not available, using mock data");
+        const mockCart = [
+          {
+            id: 1,
+            product_id: "68f29c23926f510c96cebea4",
+            quantity: 2,
+            product: {
+              id: "68f29c23926f510c96cebea4",
+              name: "Produto Exemplo 1",
+              price: 29.99,
+              image: "https://via.placeholder.com/150",
+              description: "Descrição do produto exemplo 1",
+              category: "Categoria A"
+            }
+          },
+          {
+            id: 2,
+            product_id: "68f29c23926f510c96cebea5",
+            quantity: 1,
+            product: {
+              id: "68f29c23926f510c96cebea5",
+              name: "Produto Exemplo 2",
+              price: 49.99,
+              image: "https://via.placeholder.com/150",
+              description: "Descrição do produto exemplo 2",
+              category: "Categoria B"
+            }
+          }
+        ];
+        setCart(mockCart);
+        calculateTotal(mockCart);
+        return;
+      }
+
+      const data = await res.json();
+      console.log("✅ CART LOADED:", data);
+      setCart(data.cart || []);
+      calculateTotal(data.cart || []);
+
+    } catch (err) {
+      console.error("❌ Error fetching cart:", err.message);
+      // Usar dados mock em caso de erro
+      const mockCart = [
+        {
+          id: 1,
+          product_id: "68f29c23926f510c96cebea4",
+          quantity: 2,
+          product: {
+            id: "68f29c23926f510c96cebea4",
+            name: "Produto Exemplo 1",
+            price: 29.99,
+            image: "https://via.placeholder.com/150",
+            description: "Descrição do produto exemplo 1",
+            category: "Categoria A"
+          }
+        }
+      ];
+      setCart(mockCart);
+      calculateTotal(mockCart);
+    } finally {
+      setLoadingCart(false);
+    }
+  };
+
+  // ✅ NOVO: Calculate cart total
+  const calculateTotal = (cartItems) => {
+    const total = cartItems.reduce((sum, item) => {
+      const product = item.product || {
+        price: 0
+      };
+      return sum + (product.price * item.quantity);
+    }, 0);
+    setCartTotal(total);
+  };
+
+  // ✅ NOVO: Update quantity in cart
+  const updateCartQuantity = async (productId, newQuantity) => {
+    if (newQuantity < 1) {
+      removeFromCart(productId);
+      return;
+    }
+
+    try {
+      // 1️⃣ Get CSRF cookie
+      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      // 2️⃣ Extract CSRF token
+      const csrfToken = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("XSRF-TOKEN="))
+        ?.split("=")[1];
+
+      if (!csrfToken) throw new Error("CSRF token not found");
+
+      // 3️⃣ Send PUT request to update quantity
+      const res = await fetch(`http://localhost:8000/api/cart/${productId}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "X-XSRF-TOKEN": decodeURIComponent(csrfToken),
+          "Accept": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: JSON.stringify({ quantity: newQuantity }),
+      });
+
+      if (res.status === 401) {
+        //window.location.href = '/login';
+        return;
+      }
+
+      if (res.ok) {
+        // Atualizar estado local
+        const updatedCart = cart.map(item => 
+          item.product_id === productId 
+            ? { ...item, quantity: newQuantity }
+            : item
+        );
+        setCart(updatedCart);
+        calculateTotal(updatedCart);
+      } else {
+        // Fallback: atualizar localmente
+        const updatedCart = cart.map(item => 
+          item.product_id === productId 
+            ? { ...item, quantity: newQuantity }
+            : item
+        );
+        setCart(updatedCart);
+        calculateTotal(updatedCart);
+      }
+    } catch (err) {
+      console.error("❌ Error updating cart quantity:", err);
+      // Fallback: atualizar localmente
+      const updatedCart = cart.map(item => 
+        item.product_id === productId 
+          ? { ...item, quantity: newQuantity }
+          : item
+      );
+      setCart(updatedCart);
+      calculateTotal(updatedCart);
+    }
+  };
+
+  // ✅ NOVO: Remove product from cart
+  const removeFromCart = async (productId) => {
+    try {
+      // 1️⃣ Get CSRF cookie
+      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      // 2️⃣ Extract CSRF token
+      const csrfToken = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("XSRF-TOKEN="))
+        ?.split("=")[1];
+
+      if (!csrfToken) throw new Error("CSRF token not found");
+
+      // 3️⃣ Send DELETE request
+      const res = await fetch(`http://localhost:8000/api/cart/${productId}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: {
+          "X-XSRF-TOKEN": decodeURIComponent(csrfToken),
+          "Accept": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      });
+
+      if (res.status === 401) {
+        //window.location.href = '/login';
+        return;
+      }
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Failed to remove from cart");
+      }
+
+      // 4️⃣ Update local state
+      const updatedCart = cart.filter(item => item.product_id !== productId);
+      setCart(updatedCart);
+      calculateTotal(updatedCart);
+      console.log("✅ Product removed from cart");
+
+    } catch (err) {
+      console.error("❌ Error removing from cart:", err);
+      // Fallback: remover localmente
+      const updatedCart = cart.filter(item => item.product_id !== productId);
+      setCart(updatedCart);
+      calculateTotal(updatedCart);
+      alert("Produto removido do carrinho!");
+    }
+  };
+
+  // ✅ NOVO: Process checkout
+  const processCheckout = () => {
+    if (cart.length === 0) {
+      alert("Seu carrinho está vazio!");
+      return;
+    }
+    alert(`Checkout processado! Total: R$ ${cartTotal.toFixed(2)}`);
+    // Aqui você implementaria a lógica real de checkout
+  };
+
+  // Check authentication on component mount
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    const loggedIn = localStorage.getItem('loggedIn');
+    
+    if (!userData || !loggedIn) {
+      console.log("🚨 No user data found, redirecting to login");
+      //window.location.href = '/login';
+    }
+  }, []);
+
+  if (!user) return <p className="text-black p-4 lg:p-8">Carregando perfil...</p>;
+
+  const handleProfileChange = (e) => setUser({ ...user, [e.target.name]: e.target.value });
+  const handleAddressChange = (e) => setNewAddress({ ...newAddress, [e.target.name]: e.target.value });
+  const handleEditAddressChange = (id, e) => {
+    setUser({
+      ...user,
+      addresses: user.addresses.map(addr =>
+        addr.id === id ? { ...addr, [e.target.name]: e.target.value } : addr
+      ),
+    });
+  };
+  const handlePaymentChange = (e) => setPaymentInfo({ ...paymentInfo, [e.target.name]: e.target.value });
+  const toggleEditProfile = () => setIsEditingProfile(!isEditingProfile);
+
+  // Responsive Container
+  const ResponsiveContainer = ({ children, className = "" }) => (
+    <div className={`w-full mx-auto pt-35 px-4 sm:px-6 lg:px-8 ${className}`}>
+      {children}
+    </div>
+  );
+
+  // Card Component
+  const Card = ({ children, className = "" }) => (
+    <div className={`bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden ${className}`}>
+      {children}
+    </div>
+  );
+
+  // Button Component
+  const Button = ({ children, variant = "primary", className = "", ...props }) => {
+    const baseClasses = "font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 px-4 py-2";
+    
+    const variants = {
+      primary: "bg-red-500 text-white hover:bg-red-600 focus:ring-red-500",
+      secondary: "bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-gray-500",
+      outline: "border border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-gray-500",
+    };
+
+    return (
+      <button className={`${baseClasses} ${variants[variant]} ${className}`} {...props}>
+        {children}
+      </button>
+    );
+  };
+
+  // Input Component
+  const Input = ({ label, className = "", ...props }) => (
+    <div className="space-y-2">
+      {label && <label className="block text-sm font-medium text-gray-700">{label}</label>}
+      <input
+        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors ${className}`}
+        {...props}
+      />
+    </div>
+  );
+
+  // ✅ UPDATED: Wishlist Tab Component - MOBILE RESPONSIVE
+  const WishlistTab = () => {
+    if (loadingWishlist) {
+      return (
+        <div className="text-center py-8 text-black">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+          Carregando seus desejos...
+        </div>
+      );
+    }
+
+    if (wishlist.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-gray-500 text-lg mb-2">Sua lista de desejos está vazia</p>
+          <p className="text-gray-400 mb-4">Adicione produtos que você gosta para vê-los aqui!</p>
+          <Button onClick={fetchWishlist}>
+            🔄
+          </Button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Desejos</h2>
+                        
+            <p className="text-gray-500 mt-1">
+              {wishlist.length} {wishlist.length === 1 ? 'item' : 'itens'}
+            </p>            
+            
+          </div>
+          <Button
+  onClick={fetchWishlist}
+  className="flex items-center justify-center space-x-2 border border-white p-3 pt-2.25 text-3xl bg-transparent hover:bg-white focus:outline-none focus:ring-0 focus-visible:ring-0">
+
+<span>
+<IoReload className="text-black hover:text-black" />
+</span>
+
+</Button>
+
+        </div>
+        {/* Wishlist Items */}
+        <div className="space-y-4">
+          {wishlist.map((item, index) => {
+            const product = item.product || {};
+            const productTitle = product.title || product.name || `Produto ${item.product_id}`;
+            const productPrice = product.price || 0;
+            const productImage = product.image || product.image_url || null;
+            const productDescription = product.description || 'Informação do produto não disponível';
+            const productCategory = product.category || 'Desconhecida';
+
+            const formattedPrice = productPrice 
+              ? parseFloat(productPrice).toFixed(2).replace('.', ',')
+              : '0,00';
+
+            return (
+              <Card key={item.id || index} className="p-4 hover:shadow-md transition-shadow">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  {/* Product Image */}
+                  <div className="flex-shrink-0 w-full sm:w-24 h-48 sm:h-24">
+                    {productImage ? (
+                      <img 
+                        src={productImage} 
+                        alt={productTitle}
+                        className="w-full h-full object-cover rounded-lg"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          const fallback = e.target.nextSibling;
+                          if (fallback) fallback.classList.remove('hidden');
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center">
+                        <span className="text-gray-500 text-sm">Sem imagem</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Product Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-lg text-gray-900 mb-2 line-clamp-2">
+                          {productTitle}
+                        </h3>
+                        <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                          {productDescription}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <span className="text-xl font-bold text-gray-900">
+                            R$ {formattedPrice}
+                          </span>
+                          <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full capitalize">
+                            {productCategory}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Action Buttons */}
+                      <div className="flex flex-row sm:flex-col gap-2 flex-shrink-0">
+  {/* Remove Button */}
+  <Button
+  variant="outline"
+  onClick={() => {
+    if (window.confirm("Are you sure you want to remove this item from your wishlist?")) {
+      removeFromWishlist(item.product_id);
+    }
+  }}
+  className="flex items-center justify-center gap-2 px-4 py-2 h-10 text-red-600 border-red-200 hover:bg-red-50"
+>
+  <span className="text-lg font-bold">×</span>
+</Button>
+
+
+  {/* Add to Cart Button */}
+  <Button
+    onClick={() => {
+      console.log('Add to cart:', item.product_id);
+      alert(`Produto "${productTitle}" adicionado ao carrinho!`);
+    }}
+    className="flex items-center justify-center gap-2 px-4 py-2 h-10"
+  >
+    <FiShoppingCart size={19} />
+    <span className="sm:hidden">Comprar</span>
+  </Button>
+</div>
+
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Wishlist Summary */}
+        <Card className="p-6 bg-gradient-to-r from-gray-50 to-gray-100">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Resumo da Lista de Desejos
+            </h3>
+            <div className="text-right">
+              <p className="text-gray-600">
+                Total de itens: <span className="font-bold text-gray-900">{wishlist.length}</span>
+              </p>
+              <p className="text-gray-600">
+                Valor total: <span className="font-bold text-green-600 text-lg">
+                  R$ {wishlist.reduce((sum, item) => sum + (item.product?.price || 0), 0).toFixed(2)}
+                </span>
+              </p>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  };
+
+  // ✅ UPDATED: Cart Tab Component - MOBILE RESPONSIVE
+  const CartTab = () => {
+    if (loadingCart) {
+      return <div className="text-center py-8 text-black">Carregando seu carrinho...</div>;
+    }
+
+    if (cart.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-gray-500 text-lg">Seu carrinho está vazio</p>
+          <p className="text-gray-400">Adicione produtos para vê-los aqui!</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Carrinho</h2>
+            <p className="text-gray-500 mt-1">
+              {cart.length} {cart.length === 1 ? 'item' : 'itens'}
+            </p>
+          </div>
+        </div>
+
+        {/* Cart Items */}
+        <div className="space-y-4">
+          {cart.map((item, index) => {
+            const product = item.product || {
+              id: item.product_id,
+              name: 'Product ' + item.product_id,
+              price: 0,
+              image: '',
+              description: 'Product information not available',
+              category: 'Unknown'
+            };
+
+            const itemTotal = product.price * item.quantity;
+
+            return (
+              <Card key={item.id} className="p-4 hover:shadow-md transition-shadow">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  {/* Product Image */}
+                  <div className="flex-shrink-0 w-full sm:w-20 h-40 sm:h-20">
+                    {product.image ? (
+                      <img 
+                        src={product.image} 
+                        alt={product.name}
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center">
+                        <span className="text-gray-500 text-xs">No image</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Product Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-lg text-gray-900 mb-1">{product.name}</h3>
+                        <p className="text-gray-600 text-sm line-clamp-2 mb-3">
+                          {product.description}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-4">
+                          <span className="text-black font-bold text-lg">
+                            R$ {product.price ? parseFloat(product.price).toFixed(2) : '0,00'}
+                          </span>
+                          <span className="text-gray-500 text-sm capitalize">{product.category}</span>
+                          
+                          {/* Quantity Controls */}
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => updateCartQuantity(item.product_id, item.quantity - 1)}
+                              className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded hover:bg-gray-100 transition-colors"
+                            >
+                              <FiMinus size={14} />
+                            </button>
+                            <span className="w-8 text-center font-semibold">{item.quantity}</span>
+                            <button
+                              onClick={() => updateCartQuantity(item.product_id, item.quantity + 1)}
+                              className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded hover:bg-gray-100 transition-colors"
+                            >
+                              <FiPlus size={14} />
+                            </button>
+                          </div>
+                          
+                          <span className="text-green-600 font-bold text-lg">
+                            R$ {itemTotal.toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Remove Button */}
+                      <div className="flex flex-row sm:flex-col gap-2">
+                        <button
+                          onClick={() => removeFromCart(item.product_id)}
+                          className="text-red-500 hover:text-red-700 p-2 rounded hover:bg-red-50 transition-colors"
+                          title="Remover do carrinho"
+                        >
+                          <FiTrash2 size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Cart Summary */}
+        <Card className="p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <h3 className="text-xl font-semibold text-gray-900">Resumo do Pedido</h3>
+            <span className="text-2xl font-bold text-green-600">
+              R$ {cartTotal.toFixed(2)}
+            </span>
+          </div>
+          
+          <div className="space-y-3 mb-6">
+            <div className="flex justify-between text-gray-600">
+              <span>Subtotal</span>
+              <span>R$ {cartTotal.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-gray-600">
+              <span>Frete</span>
+              <span>Grátis</span>
+            </div>
+            <div className="flex justify-between text-lg font-semibold text-gray-900 pt-3 border-t border-gray-200">
+              <span>Total</span>
+              <span>R$ {cartTotal.toFixed(2)}</span>
+            </div>
+          </div>
+
+          <button
+            onClick={processCheckout}
+            className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg font-semibold text-lg transition-colors"
+          >
+            Finalizar Compra
+          </button>
+        </Card>
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-100 text-black" style={{ fontFamily: "Calibri, sans-serif" }}>
+      {/* Mobile Navigation */}
+      <MobileNavigation />
+
+      <div className="flex">
+        {/* Desktop Sidebar */}
+        <DesktopSidebar />
+
+        {/* Main Content */}
+        <main className="flex-1 lg:ml-0 min-h-screen">
+          {/* Mobile padding top */}
+          <div className="lg:hidden pt-16"></div>
+          
+          {/* Tab Content */}
+          <div className="p-4 lg:p-8">
+            {/* Perfil */}
+            {activeTab === "perfil" && (
+              <ResponsiveContainer className="max-w-2xl">
+                <Card className="p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                    <h2 className="text-xl font-semibold text-gray-900">Informações do Usuário</h2>
+                    <Button
+                      variant={isEditingProfile ? "outline" : "primary"}
+                      onClick={toggleEditProfile}
+                    >
+                      {isEditingProfile ? "Cancelar" : "Editar"}
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input
+                      label="Nome"
+                      name="name"
+                      value={user.name || ''}
+                      onChange={handleProfileChange}
+                      placeholder="Nome"
+                      disabled={!isEditingProfile}
+                    />
+                    <Input
+                      label="Email"
+                      type="email"
+                      name="email"
+                      value={user.email || ''}
+                      onChange={handleProfileChange}
+                      placeholder="Email"
+                      disabled={!isEditingProfile}
+                    />
+                    <Input
+                      label="Telefone"
+                      name="tel"
+                      value={user.tel || ''}
+                      onChange={handleProfileChange}
+                      placeholder="Telefone"
+                      disabled={!isEditingProfile}
+                    />
+                    <Input
+                      label="CPF"
+                      name="cpf"
+                      value={user.cpf || ''}
+                      onChange={handleProfileChange}
+                      placeholder="CPF"
+                      disabled={!isEditingProfile}
+                    />
+                    <Input
+                      label="Data de Nascimento"
+                      type="date"
+                      name="birth_date"
+                      value={user.birth_date || ''}
+                      onChange={handleProfileChange}
+                      disabled={!isEditingProfile}
+                      className="md:col-span-2"
+                    />
+                  </div>
+                  {isEditingProfile && (
+                    <div className="flex justify-end pt-6">
+                      <Button onClick={saveProfile}>
+                        Salvar
+                      </Button>
+                    </div>
+                  )}
+                </Card>
+              </ResponsiveContainer>
+            )}
+
+            {/* Endereços */}
+            {activeTab === "enderecos" && (
+              <ResponsiveContainer className="max-w-3xl">
+                <Card className="p-6">
+                  <h2 className="text-xl font-semibold mb-6 text-gray-900">Endereços</h2>
+                  {user.addresses?.map((addr) => (
+                    <div key={addr.id} className="border-b last:border-b-0 py-4 text-gray-900">
+                      {editAddressId === addr.id ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                          <Input
+                            name="street"
+                            value={addr.street || ''}
+                            onChange={(e) => handleEditAddressChange(addr.id, e)}
+                            placeholder="Rua"
+                          />
+                          <Input
+                            name="number"
+                            value={addr.number || ''}
+                            onChange={(e) => handleEditAddressChange(addr.id, e)}
+                            placeholder="Número"
+                          />
+                          <Input
+                            name="city"
+                            value={addr.city || ''}
+                            onChange={(e) => handleEditAddressChange(addr.id, e)}
+                            placeholder="Cidade"
+                          />
+                          <Input
+                            name="state"
+                            value={addr.state || ''}
+                            onChange={(e) => handleEditAddressChange(addr.id, e)}
+                            placeholder="Estado"
+                          />
+                          <Input
+                            name="zip"
+                            value={addr.zip || ''}
+                            onChange={(e) => handleEditAddressChange(addr.id, e)}
+                            placeholder="CEP"
+                            className="md:col-span-2"
+                          />
+                          <button 
+                            onClick={() => editAddress(addr.id)}
+                            className="bg-green-600 text-white py-2 px-4 rounded col-span-full mt-2 hover:bg-green-700 transition-colors"
+                          >
+                            Salvar
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                          <div>
+                            <p className="font-medium text-gray-900">{addr.street}, {addr.number}</p>
+                            <p className="text-gray-600">{addr.city} - {addr.state}, {addr.zip}</p>
+                          </div>
+                          <button 
+                            onClick={() => setEditAddressId(addr.id)}
+                            className="text-blue-600 hover:underline self-start sm:self-auto"
+                          >
+                            Editar
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  <form className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={saveAddress}>
+                    <Input
+                      name="street"
+                      value={newAddress.street}
+                      onChange={handleAddressChange}
+                      placeholder="Rua"
+                      required
+                    />
+                    <Input
+                      name="number"
+                      value={newAddress.number}
+                      onChange={handleAddressChange}
+                      placeholder="Número"
+                      required
+                    />
+                    <Input
+                      name="city"
+                      value={newAddress.city}
+                      onChange={handleAddressChange}
+                      placeholder="Cidade"
+                      required
+                    />
+                    <Input
+                      name="state"
+                      value={newAddress.state}
+                      onChange={handleAddressChange}
+                      placeholder="Estado"
+                      required
+                    />
+                    <Input
+                      name="zip"
+                      value={newAddress.zip}
+                      onChange={handleAddressChange}
+                      placeholder="CEP"
+                      required
+                      className="md:col-span-2"
+                    />
+                    <button type="submit" className="bg-blue-600 text-white py-2 px-4 rounded col-span-full hover:bg-blue-700 transition-colors">
+                      Adicionar
+                    </button>
+                  </form>
+                </Card>
+              </ResponsiveContainer>
+            )}
+
+            {/* Other tabs remain similar but wrapped with ResponsiveContainer and Card */}
+            {activeTab === "desejos" && (
+              <ResponsiveContainer className="max-w-6xl">
+                <Card className="p-6">
+                  <WishlistTab />
+                </Card>
+              </ResponsiveContainer>
+            )}
+
+            {activeTab === "carrinho" && (
+              <ResponsiveContainer className="max-w-6xl">
+                <Card className="p-6">
+                  <CartTab />
+                </Card>
+              </ResponsiveContainer>
+            )}
+
+            {/* Add other tabs following the same pattern... */}
+            {activeTab === "pedidos" && (
+              <ResponsiveContainer className="max-w-3xl">
+                <Card className="p-6">
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">Histórico de pedidos</p>
+                  </div>
+                </Card>
+              </ResponsiveContainer>
+            )}
+
+            {activeTab === "cupons" && (
+              <ResponsiveContainer className="max-w-3xl">
+                <Card className="p-6">
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">Cupons</p>
+                  </div>
+                </Card>
+              </ResponsiveContainer>
+            )}
+
+            {activeTab === "configuracoes" && (
+              <ResponsiveContainer className="max-w-3xl">
+                <Card className="p-6">
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">Configurações</p>
+                  </div>
+                </Card>
+              </ResponsiveContainer>
+            )}
+
+            {activeTab === "suporte" && (
+              <ResponsiveContainer className="max-w-3xl">
+                <Card className="p-6">
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">Suporte</p>
+                  </div>
+                </Card>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export default ProfilePage;
+
+api.php
+

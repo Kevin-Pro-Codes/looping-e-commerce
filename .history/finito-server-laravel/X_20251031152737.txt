@@ -1,0 +1,513 @@
+Login + Products + Profile + Admin Panel
+
+See my codes and help me decipher how to fix and why its causing to not fetch MongoDB database upon login (Made with MySQL), so i have to fetch Products (made with Mongodb)
+The exact issue is that when i logout from admin account and try to login into a normal account it returns this error: Erro ao carregar lista de desejos: MongoDB Error: Unauthenticated.
+
+Returning these errors on console: 
+
+Login.jsx:89  GET http://localhost:8000/api/user 401 (Unauthorized)
+handleLogin @ Login.jsx:89
+await in handleLogin
+executeDispatch @ react-dom_client.js?v=ff5c2880:8256
+runWithFiberInDEV @ react-dom_client.js?v=ff5c2880:1255
+processDispatchQueue @ react-dom_client.js?v=ff5c2880:8282
+(anonymous) @ react-dom_client.js?v=ff5c2880:8565
+batchedUpdates$1 @ react-dom_client.js?v=ff5c2880:2036
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=ff5c2880:8355
+dispatchEvent @ react-dom_client.js?v=ff5c2880:10337
+dispatchDiscreteEvent @ react-dom_client.js?v=ff5c2880:10319
+<form>
+__commonJS.node_modules/react/cjs/react-jsx-dev-runtime.development.js.exports.jsxDEV @ react_jsx-dev-runtime.js?v=ff5c2880:182
+Login @ Login.jsx:441
+react_stack_bottom_frame @ react-dom_client.js?v=ff5c2880:12759
+renderWithHooksAgain @ react-dom_client.js?v=ff5c2880:3428
+renderWithHooks @ react-dom_client.js?v=ff5c2880:3379
+updateFunctionComponent @ react-dom_client.js?v=ff5c2880:5042
+beginWork @ react-dom_client.js?v=ff5c2880:5631
+runWithFiberInDEV @ react-dom_client.js?v=ff5c2880:1255
+performUnitOfWork @ react-dom_client.js?v=ff5c2880:7610
+workLoopConcurrentByScheduler @ react-dom_client.js?v=ff5c2880:7606
+renderRootConcurrent @ react-dom_client.js?v=ff5c2880:7588
+performWorkOnRoot @ react-dom_client.js?v=ff5c2880:7231
+performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=ff5c2880:8178
+performWorkUntilDeadline @ react-dom_client.js?v=ff5c2880:27
+Login.jsx:99 🔐 Verify response status: 401
+Login.jsx:108 ⚠️ Session verification failed
+overrideMethod @ hook.js:608
+handleLogin @ Login.jsx:108
+await in handleLogin
+executeDispatch @ react-dom_client.js?v=ff5c2880:8256
+runWithFiberInDEV @ react-dom_client.js?v=ff5c2880:1255
+processDispatchQueue @ react-dom_client.js?v=ff5c2880:8282
+(anonymous) @ react-dom_client.js?v=ff5c2880:8565
+batchedUpdates$1 @ react-dom_client.js?v=ff5c2880:2036
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=ff5c2880:8355
+dispatchEvent @ react-dom_client.js?v=ff5c2880:10337
+dispatchDiscreteEvent @ react-dom_client.js?v=ff5c2880:10319
+<form>
+__commonJS.node_modules/react/cjs/react-jsx-dev-runtime.development.js.exports.jsxDEV @ react_jsx-dev-runtime.js?v=ff5c2880:182
+Login @ Login.jsx:441
+react_stack_bottom_frame @ react-dom_client.js?v=ff5c2880:12759
+renderWithHooksAgain @ react-dom_client.js?v=ff5c2880:3428
+renderWithHooks @ react-dom_client.js?v=ff5c2880:3379
+updateFunctionComponent @ react-dom_client.js?v=ff5c2880:5042
+beginWork @ react-dom_client.js?v=ff5c2880:5631
+runWithFiberInDEV @ react-dom_client.js?v=ff5c2880:1255
+performUnitOfWork @ react-dom_client.js?v=ff5c2880:7610
+workLoopConcurrentByScheduler @ react-dom_client.js?v=ff5c2880:7606
+renderRootConcurrent @ react-dom_client.js?v=ff5c2880:7588
+performWorkOnRoot @ react-dom_client.js?v=ff5c2880:7231
+performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=ff5c2880:8178
+performWorkUntilDeadline @ react-dom_client.js?v=ff5c2880:27
+Login.jsx:112 💾 Saving auth data to localStorage...
+Login.jsx:128 👤 User type: REGULAR
+Login.jsx:129 🎯 Destination: /loading
+Login.jsx:138 🔄 Updating global auth state...
+Login.jsx:153 🔄 Navigating to: /loading
+Navbar.jsx:86 Navbar Auth check: {token: null, storedStatus: 'true', user: '{"id":150,"google_id":null,"name":"Kevin","email":…_at":"2025-10-22T23:17:43.000000Z","type":"user"}', isAuthenticated: true}
+Navbar.jsx:86 Navbar Auth check: {token: null, storedStatus: 'true', user: '{"id":150,"google_id":null,"name":"Kevin","email":…_at":"2025-10-22T23:17:43.000000Z","type":"user"}', isAuthenticated: true}
+Loading.jsx:40 🎯 Redirecting User to: /profile
+Profile.jsx:862 🔥 Fetching profile with session cookies...
+Profile.jsx:862 🔥 Fetching profile with session cookies...
+Profile.jsx:871  GET http://localhost:8000/profile 401 (Unauthorized)
+fetchProfile @ Profile.jsx:871
+await in fetchProfile
+initializeData @ Profile.jsx:1484
+(anonymous) @ Profile.jsx:1493
+react_stack_bottom_frame @ react-dom_client.js?v=ff5c2880:12796
+runWithFiberInDEV @ react-dom_client.js?v=ff5c2880:1255
+commitHookEffectListMount @ react-dom_client.js?v=ff5c2880:6066
+commitHookPassiveMountEffects @ react-dom_client.js?v=ff5c2880:6101
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6975
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6982
+flushPassiveEffects @ react-dom_client.js?v=ff5c2880:7938
+(anonymous) @ react-dom_client.js?v=ff5c2880:7737
+performWorkUntilDeadline @ react-dom_client.js?v=ff5c2880:27
+Profile.jsx:880 🔥 Profile response status: 401
+Profile.jsx:883 🚨 401 - Not authenticated
+Profile.jsx:972 🔄 Fetching addresses...
+Profile.jsx:871  GET http://localhost:8000/profile 401 (Unauthorized)
+fetchProfile @ Profile.jsx:871
+await in fetchProfile
+initializeData @ Profile.jsx:1484
+(anonymous) @ Profile.jsx:1493
+react_stack_bottom_frame @ react-dom_client.js?v=ff5c2880:12796
+runWithFiberInDEV @ react-dom_client.js?v=ff5c2880:1255
+commitHookEffectListMount @ react-dom_client.js?v=ff5c2880:6066
+commitHookPassiveMountEffects @ react-dom_client.js?v=ff5c2880:6101
+reconnectPassiveEffects @ react-dom_client.js?v=ff5c2880:7027
+doubleInvokeEffectsOnFiber @ react-dom_client.js?v=ff5c2880:8047
+runWithFiberInDEV @ react-dom_client.js?v=ff5c2880:1255
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+commitDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8055
+flushPassiveEffects @ react-dom_client.js?v=ff5c2880:7940
+(anonymous) @ react-dom_client.js?v=ff5c2880:7737
+performWorkUntilDeadline @ react-dom_client.js?v=ff5c2880:27
+Profile.jsx:880 🔥 Profile response status: 401
+Profile.jsx:883 🚨 401 - Not authenticated
+Profile.jsx:972 🔄 Fetching addresses...
+Profile.jsx:979  GET http://localhost:8000/addresses 401 (Unauthorized)
+fetchAddresses @ Profile.jsx:979
+await in fetchAddresses
+initializeData @ Profile.jsx:1485
+await in initializeData
+(anonymous) @ Profile.jsx:1493
+react_stack_bottom_frame @ react-dom_client.js?v=ff5c2880:12796
+runWithFiberInDEV @ react-dom_client.js?v=ff5c2880:1255
+commitHookEffectListMount @ react-dom_client.js?v=ff5c2880:6066
+commitHookPassiveMountEffects @ react-dom_client.js?v=ff5c2880:6101
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6975
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6982
+flushPassiveEffects @ react-dom_client.js?v=ff5c2880:7938
+(anonymous) @ react-dom_client.js?v=ff5c2880:7737
+performWorkUntilDeadline @ react-dom_client.js?v=ff5c2880:27
+Profile.jsx:988 🔥 Addresses response status: 401
+Profile.jsx:991 🚨 401 - Not authenticated for addresses
+Profile.jsx:1220 🔄 STARTING fetchWishlist with Native MongoDB...
+Profile.jsx:979  GET http://localhost:8000/addresses 401 (Unauthorized)
+fetchAddresses @ Profile.jsx:979
+await in fetchAddresses
+initializeData @ Profile.jsx:1485
+await in initializeData
+(anonymous) @ Profile.jsx:1493
+react_stack_bottom_frame @ react-dom_client.js?v=ff5c2880:12796
+runWithFiberInDEV @ react-dom_client.js?v=ff5c2880:1255
+commitHookEffectListMount @ react-dom_client.js?v=ff5c2880:6066
+commitHookPassiveMountEffects @ react-dom_client.js?v=ff5c2880:6101
+reconnectPassiveEffects @ react-dom_client.js?v=ff5c2880:7027
+doubleInvokeEffectsOnFiber @ react-dom_client.js?v=ff5c2880:8047
+runWithFiberInDEV @ react-dom_client.js?v=ff5c2880:1255
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+commitDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8055
+flushPassiveEffects @ react-dom_client.js?v=ff5c2880:7940
+(anonymous) @ react-dom_client.js?v=ff5c2880:7737
+performWorkUntilDeadline @ react-dom_client.js?v=ff5c2880:27
+Profile.jsx:988 🔥 Addresses response status: 401
+Profile.jsx:991 🚨 401 - Not authenticated for addresses
+Profile.jsx:1220 🔄 STARTING fetchWishlist with Native MongoDB...
+Profile.jsx:1229  GET http://localhost:8000/api/wishlist 401 (Unauthorized)
+fetchWishlist @ Profile.jsx:1229
+await in fetchWishlist
+initializeData @ Profile.jsx:1486
+await in initializeData
+(anonymous) @ Profile.jsx:1493
+react_stack_bottom_frame @ react-dom_client.js?v=ff5c2880:12796
+runWithFiberInDEV @ react-dom_client.js?v=ff5c2880:1255
+commitHookEffectListMount @ react-dom_client.js?v=ff5c2880:6066
+commitHookPassiveMountEffects @ react-dom_client.js?v=ff5c2880:6101
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6975
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6982
+flushPassiveEffects @ react-dom_client.js?v=ff5c2880:7938
+(anonymous) @ react-dom_client.js?v=ff5c2880:7737
+performWorkUntilDeadline @ react-dom_client.js?v=ff5c2880:27
+Profile.jsx:1238 🔥 MongoDB Wishlist response status: 401
+Profile.jsx:1242 🚨 MongoDB API error: {message: 'Unauthenticated.'}
+overrideMethod @ hook.js:608
+fetchWishlist @ Profile.jsx:1242
+await in fetchWishlist
+initializeData @ Profile.jsx:1486
+await in initializeData
+(anonymous) @ Profile.jsx:1493
+react_stack_bottom_frame @ react-dom_client.js?v=ff5c2880:12796
+runWithFiberInDEV @ react-dom_client.js?v=ff5c2880:1255
+commitHookEffectListMount @ react-dom_client.js?v=ff5c2880:6066
+commitHookPassiveMountEffects @ react-dom_client.js?v=ff5c2880:6101
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6975
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6982
+flushPassiveEffects @ react-dom_client.js?v=ff5c2880:7938
+(anonymous) @ react-dom_client.js?v=ff5c2880:7737
+performWorkUntilDeadline @ react-dom_client.js?v=ff5c2880:27
+Profile.jsx:1266 ❌ Error fetching Native MongoDB wishlist: MongoDB Error: Unauthenticated.
+overrideMethod @ hook.js:608
+fetchWishlist @ Profile.jsx:1266
+await in fetchWishlist
+initializeData @ Profile.jsx:1486
+await in initializeData
+(anonymous) @ Profile.jsx:1493
+react_stack_bottom_frame @ react-dom_client.js?v=ff5c2880:12796
+runWithFiberInDEV @ react-dom_client.js?v=ff5c2880:1255
+commitHookEffectListMount @ react-dom_client.js?v=ff5c2880:6066
+commitHookPassiveMountEffects @ react-dom_client.js?v=ff5c2880:6101
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6975
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6982
+flushPassiveEffects @ react-dom_client.js?v=ff5c2880:7938
+(anonymous) @ react-dom_client.js?v=ff5c2880:7737
+performWorkUntilDeadline @ react-dom_client.js?v=ff5c2880:27
+Profile.jsx:1323 🔄 Fetching cart from MongoDB...
+Profile.jsx:1229  GET http://localhost:8000/api/wishlist 401 (Unauthorized)
+fetchWishlist @ Profile.jsx:1229
+await in fetchWishlist
+initializeData @ Profile.jsx:1486
+await in initializeData
+(anonymous) @ Profile.jsx:1493
+react_stack_bottom_frame @ react-dom_client.js?v=ff5c2880:12796
+runWithFiberInDEV @ react-dom_client.js?v=ff5c2880:1255
+commitHookEffectListMount @ react-dom_client.js?v=ff5c2880:6066
+commitHookPassiveMountEffects @ react-dom_client.js?v=ff5c2880:6101
+reconnectPassiveEffects @ react-dom_client.js?v=ff5c2880:7027
+doubleInvokeEffectsOnFiber @ react-dom_client.js?v=ff5c2880:8047
+runWithFiberInDEV @ react-dom_client.js?v=ff5c2880:1255
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+commitDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8055
+flushPassiveEffects @ react-dom_client.js?v=ff5c2880:7940
+(anonymous) @ react-dom_client.js?v=ff5c2880:7737
+performWorkUntilDeadline @ react-dom_client.js?v=ff5c2880:27
+Profile.jsx:1238 🔥 MongoDB Wishlist response status: 401
+Profile.jsx:1242 🚨 MongoDB API error: {message: 'Unauthenticated.'}
+overrideMethod @ hook.js:608
+fetchWishlist @ Profile.jsx:1242
+await in fetchWishlist
+initializeData @ Profile.jsx:1486
+await in initializeData
+(anonymous) @ Profile.jsx:1493
+react_stack_bottom_frame @ react-dom_client.js?v=ff5c2880:12796
+runWithFiberInDEV @ react-dom_client.js?v=ff5c2880:1255
+commitHookEffectListMount @ react-dom_client.js?v=ff5c2880:6066
+commitHookPassiveMountEffects @ react-dom_client.js?v=ff5c2880:6101
+reconnectPassiveEffects @ react-dom_client.js?v=ff5c2880:7027
+doubleInvokeEffectsOnFiber @ react-dom_client.js?v=ff5c2880:8047
+runWithFiberInDEV @ react-dom_client.js?v=ff5c2880:1255
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+commitDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8055
+flushPassiveEffects @ react-dom_client.js?v=ff5c2880:7940
+(anonymous) @ react-dom_client.js?v=ff5c2880:7737
+performWorkUntilDeadline @ react-dom_client.js?v=ff5c2880:27
+Profile.jsx:1266 ❌ Error fetching Native MongoDB wishlist: MongoDB Error: Unauthenticated.
+overrideMethod @ hook.js:608
+fetchWishlist @ Profile.jsx:1266
+await in fetchWishlist
+initializeData @ Profile.jsx:1486
+await in initializeData
+(anonymous) @ Profile.jsx:1493
+react_stack_bottom_frame @ react-dom_client.js?v=ff5c2880:12796
+runWithFiberInDEV @ react-dom_client.js?v=ff5c2880:1255
+commitHookEffectListMount @ react-dom_client.js?v=ff5c2880:6066
+commitHookPassiveMountEffects @ react-dom_client.js?v=ff5c2880:6101
+reconnectPassiveEffects @ react-dom_client.js?v=ff5c2880:7027
+doubleInvokeEffectsOnFiber @ react-dom_client.js?v=ff5c2880:8047
+runWithFiberInDEV @ react-dom_client.js?v=ff5c2880:1255
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+commitDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8055
+flushPassiveEffects @ react-dom_client.js?v=ff5c2880:7940
+(anonymous) @ react-dom_client.js?v=ff5c2880:7737
+performWorkUntilDeadline @ react-dom_client.js?v=ff5c2880:27
+Profile.jsx:1323 🔄 Fetching cart from MongoDB...
+Profile.jsx:1330  GET http://localhost:8000/api/cart 401 (Unauthorized)
+fetchCart @ Profile.jsx:1330
+await in fetchCart
+initializeData @ Profile.jsx:1487
+await in initializeData
+(anonymous) @ Profile.jsx:1493
+react_stack_bottom_frame @ react-dom_client.js?v=ff5c2880:12796
+runWithFiberInDEV @ react-dom_client.js?v=ff5c2880:1255
+commitHookEffectListMount @ react-dom_client.js?v=ff5c2880:6066
+commitHookPassiveMountEffects @ react-dom_client.js?v=ff5c2880:6101
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6975
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6974
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:7013
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=ff5c2880:6966
+commitPassiveMountOnFiber @ react-dom_client.js?v=ff5c2880:6982
+flushPassiveEffects @ react-dom_client.js?v=ff5c2880:7938
+(anonymous) @ react-dom_client.js?v=ff5c2880:7737
+performWorkUntilDeadline @ react-dom_client.js?v=ff5c2880:27
+Profile.jsx:1339 🔥 Cart response status: 401
+Profile.jsx:1342 🚨 401 - Not authenticated for cart
+Profile.jsx:1330  GET http://localhost:8000/api/cart 401 (Unauthorized)
+fetchCart @ Profile.jsx:1330
+await in fetchCart
+initializeData @ Profile.jsx:1487
+await in initializeData
+(anonymous) @ Profile.jsx:1493
+react_stack_bottom_frame @ react-dom_client.js?v=ff5c2880:12796
+runWithFiberInDEV @ react-dom_client.js?v=ff5c2880:1255
+commitHookEffectListMount @ react-dom_client.js?v=ff5c2880:6066
+commitHookPassiveMountEffects @ react-dom_client.js?v=ff5c2880:6101
+reconnectPassiveEffects @ react-dom_client.js?v=ff5c2880:7027
+doubleInvokeEffectsOnFiber @ react-dom_client.js?v=ff5c2880:8047
+runWithFiberInDEV @ react-dom_client.js?v=ff5c2880:1255
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8039
+commitDoubleInvokeEffectsInDEV @ react-dom_client.js?v=ff5c2880:8055
+flushPassiveEffects @ react-dom_client.js?v=ff5c2880:7940
+(anonymous) @ react-dom_client.js?v=ff5c2880:7737
+performWorkUntilDeadline @ react-dom_client.js?v=ff5c2880:27
+Profile.jsx:1339 🔥 Cart response status: 401
+Profile.jsx:1342 🚨 401 - Not authenticated for cart

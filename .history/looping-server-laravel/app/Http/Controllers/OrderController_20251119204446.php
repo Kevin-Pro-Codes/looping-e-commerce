@@ -1,0 +1,524 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Controllers\Controller;
+use App\Models\Order;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Exception;
+use Illuminate\Support\Collection;
+
+class OrderController extends Controller
+{
+    /**
+     * Display a listing of the infos.
+     */
+    public function index(): JsonResponse
+    {
+        try {
+            Log::info('=== INFOS INDEX START ===');
+
+            // Test database connection
+            $dbConnected = true;
+            try {
+                DB::connection()->getPdo();
+                Log::info('Database connection: OK');
+            } catch (Exception $e) {
+                Log::error('Database connection failed: ' . $e->getMessage());
+                $dbConnected = false;
+            }
+
+            $tableExists = $dbConnected && Schema::hasTable('infos');
+            if ($tableExists) {
+                Log::info('Infos table exists: YES');
+            } else {
+                Log::info('Infos table exists: NO');
+            }
+
+            // Always use a Collection → safe ->count()
+            $infos = collect();
+
+            if ($tableExists) {
+                try {
+                    $infos = Order::select([
+                        'id',
+                        'order_number',
+                        'customer_name',
+                        'customer_email',
+                        'customer_phone',
+                        'customer_cpf',
+                        'total',
+                        'subtotal',
+                        'shipping',
+                        'discount',
+                        'payment_method',
+                        'payment_status',
+                        'status',
+                        'shipping_street',
+                        'shipping_number',
+                        'shipping_complement',
+                        'shipping_neighborhood',
+                        'shipping_city',
+                        'shipping_state',
+                        'shipping_zip_code',
+                        'items',
+                        'pix_data',
+                        'metadata',
+                        'created_at',
+                        'updated_at'
+                    ])->get();
+
+                    Log::info('Fetched ' . $infos->count() . ' infos from database');
+                } catch (Exception $e) {
+                    Log::error('Failed to fetch infos: ' . $e->getMessage());
+                    $infos = collect(); // Keep as Collection even on error
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Infos fetched successfully',
+                'data' => $infos,
+                'debug' => [
+                    'server' => 'running',
+                    'database_connected' => $dbConnected,
+                    'infos_table_exists' => $tableExists,
+                    'total_infos' => $infos->count(),
+                    'timestamp' => now()->format('c')
+                ]
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('=== INFOS INDEX ERROR ===');
+            Log::error('Error: ' . $e->getMessage());
+            Log::error('File: ' . $e->getFile() . ':' . $e->getLine());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error occurred',
+                'error' => 'Check Laravel logs for details',
+                'debug' => [
+                    'exception' => get_class($e),
+                    'message' => $e->getMessage(),
+                    'timestamp' => now()->format('c')
+                ]
+            ], 500);
+        }
+    }
+
+    /**
+     * Update info status and payment status
+     * PUT /api/infos/{id}/status
+     */
+    public function updateStatus($id, Request $request): JsonResponse
+    {
+        try {
+            Log::info('=== INFO STATUS UPDATE START ===', ['info_id' => $id]);
+
+            // Validate input
+            $validated = $request->validate([
+                'status' => 'required|string|in:pending,processing,shipped,delivered,cancelled',
+                'payment_status' => 'required|string|in:pending,paid,failed,refunded'
+            ]);
+
+            // Find info
+            $info = Order::find($id);
+            if (!$info) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Info not found',
+                    'debug' => ['info_id' => $id]
+                ], 404);
+            }
+
+            // Update fields
+            $info->status = $validated['status'];
+            $info->payment_status = $validated['payment_status'];
+            $info->save();
+
+            Log::info('Info status updated successfully', [
+                'info_id' => $info->id,
+                'status' => $info->status,
+                'payment_status' => $info->payment_status
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Info status updated successfully',
+                'data' => [
+                    'info_id' => $info->id,
+                    'order_number' => $info->order_number,
+                    'status' => $info->status,
+                    'payment_status' => $info->payment_status
+                ],
+                'debug' => [
+                    'timestamp' => now()->format('c')
+                ]
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('=== INFO STATUS UPDATE ERROR ===');
+            Log::error('Error: ' . $e->getMessage());
+            Log::error('File: ' . $e->getFile() . ':' . $e->getLine());
+            Log::error('Request data: ', $request->all());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update info status',
+                'error' => $e->getMessage(),
+                'debug' => [
+                    'exception' => get_class($e),
+                    'message' => $e->getMessage(),
+                    'timestamp' => now()->format('c')
+                ]
+            ], 500);
+        }
+    }
+
+    /**
+     * Simple test endpoint
+     */
+    public function test(): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'message' => 'OrderController is working!',
+            'timestamp' => now()->format('c'),
+            'status' => 'OK'
+        ]);
+    }
+
+    /**
+     * Store a newly created info (POST /api/infos)
+     */
+    public function store(Request $request): JsonResponse
+    {
+        try {
+            Log::info('=== INFO STORE START ===');
+            Log::info('Info data received:', $request->all());
+
+            // Validate required fields
+            $validated = $request->validate([
+                'customer_name' => 'required|string|max:255',
+                'customer_email' => 'required|email',
+                'customer_phone' => 'required|string',
+                'customer_cpf' => 'required|string',
+                'total' => 'required|numeric',
+                'subtotal' => 'required|numeric',
+                'shipping' => 'required|numeric',
+                'discount' => 'numeric',
+                'payment_method' => 'required|string',
+                'payment_status' => 'required|string',
+                'status' => 'required|string',
+                'shipping_street' => 'required|string',
+                'shipping_number' => 'required|string',
+                'shipping_complement' => 'nullable|string',
+                'shipping_neighborhood' => 'required|string',
+                'shipping_city' => 'required|string',
+                'shipping_state' => 'required|string',
+                'shipping_zip_code' => 'required|string',
+                'items' => 'required|array',
+            ]);
+
+            // Generate order number if not provided
+            $orderNumber = $request->order_number ?? 'ORD-' . strtoupper(substr(uniqid(), -6));
+
+            // Create the info
+            $infoData = [
+                'order_number' => $orderNumber,
+                'customer_name' => $validated['customer_name'],
+                'customer_email' => $validated['customer_email'],
+                'customer_phone' => $validated['customer_phone'],
+                'customer_cpf' => $validated['customer_cpf'],
+                'total' => $validated['total'],
+                'subtotal' => $validated['subtotal'],
+                'shipping' => $validated['shipping'],
+                'discount' => $validated['discount'] ?? 0,
+                'payment_method' => $validated['payment_method'],
+                'payment_status' => $validated['payment_status'],
+                'status' => $validated['status'],
+                'shipping_street' => $validated['shipping_street'],
+                'shipping_number' => $validated['shipping_number'],
+                'shipping_complement' => $validated['shipping_complement'] ?? null,
+                'shipping_neighborhood' => $validated['shipping_neighborhood'],
+                'shipping_city' => $validated['shipping_city'],
+                'shipping_state' => $validated['shipping_state'],
+                'shipping_zip_code' => $validated['shipping_zip_code'],
+                'items' => json_encode($validated['items']),
+                'pix_data' => $request->pix_data ? json_encode($request->pix_data) : null,
+                'metadata' => $request->metadata ? json_encode($request->metadata) : null,
+            ];
+
+            $info = Order::create($infoData);
+
+            Log::info('Info created successfully:', ['info_id' => $info->id, 'order_number' => $info->order_number]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Info created successfully',
+                'data' => [
+                    'info_id' => $info->id,
+                    'order_number' => $info->order_number,
+                    'info' => $info
+                ],
+                'debug' => [
+                    'timestamp' => now()->format('c'),
+                    'info_id' => $info->id
+                ]
+            ], 201);
+
+        } catch (Exception $e) {
+            Log::error('=== INFO STORE ERROR ===');
+            Log::error('Error: ' . $e->getMessage());
+            Log::error('File: ' . $e->getFile() . ':' . $e->getLine());
+            Log::error('Request data: ', $request->all());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create info',
+                'error' => $e->getMessage(),
+                'debug' => [
+                    'exception' => get_class($e),
+                    'message' => $e->getMessage(),
+                    'timestamp' => now()->format('c')
+                ]
+            ], 500);
+        }
+    }
+
+    /**
+     * Generate sample infos and save to database.
+     */
+    public function generateSamples(): JsonResponse
+    {
+        try {
+            if (!Schema::hasTable('infos')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Infos table does not exist. Run migrations first.',
+                    'debug' => ['table_missing' => true]
+                ], 500);
+            }
+
+            $sampleInfos = [
+                [
+                    'order_number' => 'ORD-' . strtoupper(substr(uniqid(), -6)),
+                    'customer_name' => 'João Silva',
+                    'customer_email' => 'joao@example.com',
+                    'customer_phone' => '(11) 98765-4321',
+                    'customer_cpf' => '123.456.789-00',
+                    'total' => 159.90,
+                    'subtotal' => 149.90,
+                    'shipping' => 10.00,
+                    'discount' => 0.00,
+                    'payment_method' => 'pix',
+                    'payment_status' => 'paid',
+                    'status' => 'processing',
+                    'shipping_street' => 'Rua das Flores',
+                    'shipping_number' => '123',
+                    'shipping_complement' => 'Apto 45',
+                    'shipping_neighborhood' => 'Jardim Primavera',
+                    'shipping_city' => 'São Paulo',
+                    'shipping_state' => 'SP',
+                    'shipping_zip_code' => '01234-567',
+                    // ✅ UPDATED: Sample items with color and size data
+                    'items' => json_encode([
+                        [
+                            'product_name' => 'Camiseta Premium', 
+                            'quantity' => 1, 
+                            'price' => 79.90, 
+                            'total' => 79.90,
+                            'size' => 'M',
+                            'color' => 'Azul',
+                            'image' => 'https://via.placeholder.com/150?text=Camiseta+Azul'
+                        ],
+                        [
+                            'product_name' => 'Caneca Personalizada', 
+                            'quantity' => 1, 
+                            'price' => 70.00, 
+                            'total' => 70.00,
+                            'size' => 'Único',
+                            'color' => 'Branco',
+                            'image' => 'https://via.placeholder.com/150?text=Caneca+Branca'
+                        ]
+                    ]),
+                    'pix_data' => json_encode(['txid' => 'PIX123456789', 'qr_code' => '000201...']),
+                    'metadata' => json_encode(['source' => 'sample_generator'])
+                ],
+                [
+                    'order_number' => 'ORD-' . strtoupper(substr(uniqid(), -6)),
+                    'customer_name' => 'Maria Oliveira',
+                    'customer_email' => 'maria@example.com',
+                    'total' => 89.90,
+                    'subtotal' => 89.90,
+                    'shipping' => 0.00,
+                    'discount' => 10.00,
+                    'payment_method' => 'credit_card',
+                    'payment_status' => 'paid',
+                    'status' => 'shipped',
+                    // ✅ UPDATED: Sample items with color and size data
+                    'items' => json_encode([
+                        [
+                            'product_name' => 'Livro Laravel Avançado', 
+                            'quantity' => 1, 
+                            'price' => 89.90, 
+                            'total' => 89.90,
+                            'size' => 'Único',
+                            'color' => 'Preto',
+                            'image' => 'https://via.placeholder.com/150?text=Livro+Laravel'
+                        ]
+                    ])
+                ],
+                // ✅ ADDED: More sample orders with different products
+                [
+                    'order_number' => 'ORD-' . strtoupper(substr(uniqid(), -6)),
+                    'customer_name' => 'Carlos Santos',
+                    'customer_email' => 'carlos@example.com',
+                    'customer_phone' => '(11) 98765-1234',
+                    'customer_cpf' => '987.654.321-00',
+                    'total' => 250.00,
+                    'subtotal' => 230.00,
+                    'shipping' => 20.00,
+                    'discount' => 0.00,
+                    'payment_method' => 'boleto',
+                    'payment_status' => 'pending',
+                    'status' => 'pending',
+                    'shipping_street' => 'Avenida Principal',
+                    'shipping_number' => '456',
+                    'shipping_complement' => 'Sala 101',
+                    'shipping_neighborhood' => 'Centro',
+                    'shipping_city' => 'Rio de Janeiro',
+                    'shipping_state' => 'RJ',
+                    'shipping_zip_code' => '22000-000',
+                    // ✅ UPDATED: Sample items with color and size data
+                    'items' => json_encode([
+                        [
+                            'product_name' => 'Tênis Esportivo', 
+                            'quantity' => 1, 
+                            'price' => 150.00, 
+                            'total' => 150.00,
+                            'size' => '42',
+                            'color' => 'Preto',
+                            'image' => 'https://via.placeholder.com/150?text=Tenis+Preto'
+                        ],
+                        [
+                            'product_name' => 'Meias Esportivas', 
+                            'quantity' => 2, 
+                            'price' => 40.00, 
+                            'total' => 80.00,
+                            'size' => 'M',
+                            'color' => 'Cinza',
+                            'image' => 'https://via.placeholder.com/150?text=Meias+Cinza'
+                        ]
+                    ]),
+                    'metadata' => json_encode(['source' => 'sample_generator'])
+                ]
+            ];
+
+            $created = [];
+            foreach ($sampleInfos as $data) {
+                try {
+                    $info = Order::create($data);
+                    $created[] = $info->refresh();
+                } catch (Exception $e) {
+                    Log::warning('Failed to create sample info: ' . $e->getMessage());
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Sample infos generated and saved to database',
+                'data' => $created,
+                'debug' => [
+                    'sample_count' => count($created),
+                    'timestamp' => now()->format('c')
+                ]
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('Generate samples error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate samples',
+                'error' => $e->getMessage(),
+                'debug' => ['timestamp' => now()->format('c')]
+            ], 500);
+        }
+    }
+
+    /**
+     * Get customers from infos table
+     */
+    public function getCustomersFromInfos(): JsonResponse
+    {
+        try {
+            Log::info('=== GET CUSTOMERS FROM INFOS START ===');
+
+            if (!Schema::hasTable('infos')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Infos table does not exist',
+                    'debug' => ['table_missing' => true]
+                ], 500);
+            }
+
+            $customers = DB::table('infos')
+                ->select([
+                    'customer_email as email',
+                    'customer_name as name',
+                    'customer_phone as phone',
+                    'customer_cpf as cpf',
+                    DB::raw('COUNT(*) as orders_count'),
+                    DB::raw('SUM(total) as total_spent'),
+                    DB::raw('MAX(created_at) as last_purchase'),
+                    DB::raw('MIN(created_at) as first_order'),
+                    DB::raw('CONCAT(shipping_street, ", ", shipping_number, " - ", shipping_city, ", ", shipping_state) as address')
+                ])
+                ->whereNotNull('customer_email')
+                ->groupBy('customer_email', 'customer_name', 'customer_phone', 'customer_cpf', 'shipping_street', 'shipping_number', 'shipping_city', 'shipping_state')
+                ->get()
+                ->map(function($customer) {
+                    return [
+                        'email' => $customer->email,
+                        'name' => $customer->name,
+                        'phone' => $customer->phone,
+                        'cpf' => $customer->cpf,
+                        'orders_count' => $customer->orders_count,
+                        'total_spent' => $customer->total_spent ?: 0,
+                        'last_purchase' => $customer->last_purchase,
+                        'first_order' => $customer->first_order,
+                        'address' => $customer->address,
+                        'status' => 'active'
+                    ];
+                });
+
+            Log::info('Found ' . $customers->count() . ' customers from infos');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Customers fetched from infos successfully',
+                'data' => $customers,
+                'debug' => [
+                    'total_customers' => $customers->count(),
+                    'timestamp' => now()->format('c')
+                ]
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('=== GET CUSTOMERS FROM INFOS ERROR ===');
+            Log::error('Error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch customers from infos',
+                'error' => $e->getMessage(),
+                'debug' => ['timestamp' => now()->format('c')]
+            ], 500);
+        }
+    }
+}

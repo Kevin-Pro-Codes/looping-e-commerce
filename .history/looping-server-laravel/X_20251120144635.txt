@@ -1,0 +1,57 @@
+CREATE TABLE pix_details (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    payer_name VARCHAR(150) NOT NULL,
+    payer_cpf VARCHAR(14) NOT NULL,
+    pix_key VARCHAR(255) NOT NULL,
+    qr_code TEXT NOT NULL,
+    transaction_id VARCHAR(100),
+    amount DECIMAL(10,2) NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME ON UPDATE CURRENT_TIMESTAMP NULL
+);
+
+CREATE TABLE credit_details (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    cardholder_name VARCHAR(150) NOT NULL,
+    card_last_digits VARCHAR(4) NOT NULL,
+    card_brand VARCHAR(30) NOT NULL,
+    authorization_code VARCHAR(50),
+    transaction_id VARCHAR(100),
+    installments INT DEFAULT 1,
+    amount DECIMAL(10,2) NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME ON UPDATE CURRENT_TIMESTAMP NULL
+);
+
+CREATE TABLE debit_details (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    cardholder_name VARCHAR(150) NOT NULL,
+    card_last_digits VARCHAR(4) NOT NULL,
+    card_brand VARCHAR(30) NOT NULL,
+    authorization_code VARCHAR(50),
+    transaction_id VARCHAR(100),
+    amount DECIMAL(10,2) NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME ON UPDATE CURRENT_TIMESTAMP NULL
+);
+
+CREATE TABLE boleto_details (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    payer_name VARCHAR(150) NOT NULL,
+    payer_cpf VARCHAR(14) NOT NULL,
+    barcode VARCHAR(255) NOT NULL,
+    digitable_line VARCHAR(255) NOT NULL,
+    pdf_link TEXT,
+    expiration_date DATE NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME ON UPDATE CURRENT_TIMESTAMP NULL
+);

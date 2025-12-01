@@ -1,0 +1,673 @@
+import React, { useState, useEffect } from "react";
+import {
+  FiSearch,
+  FiEye,
+  FiRefreshCw,
+  FiPackage,
+  FiXCircle,
+  FiTrash2,
+  FiServer,
+  FiChevronUp,
+  FiChevronDown,
+} from "react-icons/fi";
+
+const OrdersManagement = () => {
+  const [orderSearch, setOrderSearch] = useState("");
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [error, setError] = useState(null);
+  const [apiStatus, setApiStatus] = useState(null);
+  
+  // ✅ NOVO: Estado para ordenação
+  const [sortConfig, setSortConfig] = useState({
+    key: 'created_at', // Campo padrão para ordenação
+    direction: 'desc'  // Direção padrão: decrescente (mais recente primeiro)
+  });
+
+  const API_BASE_URL = 'http://localhost:8000/api';
+
+  // ✅ CONFIGURAÇÃO DE ORDENAÇÃO PARA CADA CAMPO
+  const sortableFields = {
+    order_number: { label: 'Número do Pedido', type: 'string' },
+    customer_name: { label: 'Nome do Cliente', type: 'string' },
+    customer_email: { label: 'Email', type: 'string' },
+    created_at: { label: 'Data do Pedido', type: 'date' },
+    total: { label: 'Valor Total', type: 'number' },
+    payment_method: { label: 'Método de Pagamento', type: 'string' },
+    status: { label: 'Status', type: 'string' }
+  };
+
+  const apiService = {
+    async getOrders() {
+      try {
+        console.log('Buscando pedidos em:', `${API_BASE_URL}/infos`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+        const response = await fetch(`${API_BASE_URL}/infos`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('text/html')) {
+          const text = await response.text();
+          throw new Error('Erro no servidor. Verifique os logs do Laravel.');
+        }
+
+        if (!response.ok) {
+          let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorData.error || errorMessage;
+          } catch {}
+          throw new Error(errorMessage);
+        }
+
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message || 'Erro na API');
+        
+        return data.data || [];
+      } catch (error) {
+        if (error.name === 'AbortError') throw new Error('Timeout: servidor demorou');
+        if (error.message.includes('Failed to fetch')) throw new Error('Servidor offline ou CORS bloqueado');
+        throw error;
+      }
+    },
+
+    async generateSampleOrders() {
+      const response = await fetch(`${API_BASE_URL}/infos/generate-samples`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      if (!response.ok) throw new Error(`Erro ${response.status}`);
+      const data = await response.json();
+      return data.data;
+    },
+  };
+
+  // ✅ FUNÇÃO DE ORDENAÇÃO
+  const sortOrders = (orders, config) => {
+    if (!config.key) return orders;
+
+    return [...orders].sort((a, b) => {
+      let aValue = a[config.key];
+      let bValue = b[config.key];
+
+      // Tratamento de valores nulos/undefined
+      if (aValue == null) aValue = '';
+      if (bValue == null) bValue = '';
+
+      const fieldConfig = sortableFields[config.key];
+      
+      // Ordenação baseada no tipo do campo
+      let comparison = 0;
+      
+      switch (fieldConfig?.type) {
+        case 'number':
+          aValue = parseFloat(aValue) || 0;
+          bValue = parseFloat(bValue) || 0;
+          comparison = aValue - bValue;
+          break;
+        
+        case 'date':
+          aValue = new Date(aValue || 0);
+          bValue = new Date(bValue || 0);
+          comparison = aValue - bValue;
+          break;
+        
+        case 'string':
+        default:
+          aValue = String(aValue).toLowerCase();
+          bValue = String(bValue).toLowerCase();
+          comparison = aValue.localeCompare(bValue, 'pt-BR');
+          break;
+      }
+
+      // Aplica a direção da ordenação
+      return config.direction === 'desc' ? -comparison : comparison;
+    });
+  };
+
+  // ✅ FUNÇÃO PARA ALTERAR ORDENAÇÃO
+  const handleSort = (key) => {
+    setSortConfig(currentConfig => ({
+      key,
+      direction: 
+        currentConfig.key === key && currentConfig.direction === 'asc' 
+          ? 'desc' 
+          : 'asc'
+    }));
+  };
+
+  // ✅ RENDERIZAR ÍCONE DE ORDENAÇÃO
+  const renderSortIcon = (key) => {
+    if (sortConfig.key !== key) {
+      return <span className="text-gray-400">↕</span>;
+    }
+    
+    return sortConfig.direction === 'asc' 
+      ? <FiChevronUp className="text-black" size={16} />
+      : <FiChevronDown className="text-black" size={16} />;
+  };
+
+  // ✅ FUNÇÃO MELHORADA: Buscar cor e tamanho de forma mais abrangente
+  const getItemAttributes = (item) => {
+    // DEBUG: Ver estrutura completa do item
+    if (item && (!item.size || !item.color)) {
+      console.log('🔍 Estrutura completa do item:', JSON.stringify(item, null, 2));
+    }
+    
+    // Busca em TODOS os campos possíveis para tamanho
+    const size = 
+      item.size ||
+      item.selectedSize || 
+      item.tamanho || 
+      item.variant_size ||
+      item.product_variant?.size ||
+      item.variant?.size ||
+      item.product?.size ||
+      (item.options && (item.options.size || item.options.tamanho)) ||
+      item.attributes?.size ||
+      item.metadata?.size ||
+      'Não especificado';
+    
+    // Busca em TODOS os campos possíveis para cor
+    const color = 
+      item.color ||
+      item.selectedColor || 
+      item.cor || 
+      item.variant_color ||
+      item.product_variant?.color ||
+      item.variant?.color ||
+      item.product?.color ||
+      (item.options && (item.options.color || item.options.cor)) ||
+      item.attributes?.color ||
+      item.metadata?.color ||
+      'Não especificada';
+    
+    console.log(`📦 Item: ${item.product_name} | Tamanho: ${size} | Cor: ${color}`);
+    return { size, color };
+  };
+
+  // ✅ FUNÇÃO: Converter código de cor para nome (MELHORADA)
+  const getColorName = (color) => {
+    if (!color || color === 'Não especificada' || color === 'undefined') {
+      return 'Não especificada';
+    }
+    
+    const colorMap = {
+      // Códigos HEX
+      "#000000": "Preto",
+      "#000": "Preto",
+      "#FFFFFF": "Branco", 
+      "#fff": "Branco",
+      "#1E90FF": "Azul",
+      "#FF69B4": "Rosa",
+      "#FF0000": "Vermelho",
+      "#00FF00": "Verde",
+      "#0000FF": "Azul Escuro",
+      "#FFFF00": "Amarelo",
+      "#FFA500": "Laranja",
+      "#800080": "Roxo",
+      "#808080": "Cinza",
+      "#964B00": "Marrom",
+      
+      // Nomes em português
+      "preto": "Preto",
+      "branco": "Branco", 
+      "azul": "Azul",
+      "rosa": "Rosa",
+      "vermelho": "Vermelho",
+      "verde": "Verde",
+      "amarelo": "Amarelo",
+      "laranja": "Laranja",
+      "roxo": "Roxo",
+      "cinza": "Cinza",
+      "marrom": "Marrom",
+      
+      // Nomes em inglês
+      "black": "Preto",
+      "white": "Branco",
+      "blue": "Azul",
+      "pink": "Rosa", 
+      "red": "Vermelho",
+      "green": "Verde",
+      "yellow": "Amarelo",
+      "orange": "Laranja",
+      "purple": "Roxo",
+      "gray": "Cinza",
+      "grey": "Cinza",
+      "brown": "Marrom"
+    };
+    
+    // Normaliza a cor
+    const normalizedColor = color.toString().toLowerCase().trim().replace(/\s+/g, '');
+    
+    // Procura correspondência exata
+    if (colorMap[normalizedColor]) {
+      return colorMap[normalizedColor];
+    }
+    
+    // Procura por correspondência parcial
+    for (const [key, value] of Object.entries(colorMap)) {
+      if (normalizedColor.includes(key.toLowerCase()) || key.toLowerCase().includes(normalizedColor)) {
+        return value;
+      }
+    }
+    
+    // Se for um código HEX válido, retorna o código
+    if (/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(color)) {
+      return color.toUpperCase();
+    }
+    
+    // Retorna a cor original capitalizada
+    return color.charAt(0).toUpperCase() + color.slice(1);
+  };
+
+  // Teste opcional da API (não bloqueia carregamento)
+  const testApiConnection = async () => {
+    setLoading(true);
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const response = await fetch(`${API_BASE_URL}/test`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      const result = response.ok
+        ? { connected: true, data: await response.json() }
+        : { connected: false, error: `HTTP ${response.status}` };
+
+      setApiStatus(result);
+      alert(result.connected ? 'API conectada!' : `Falha: ${result.error}`);
+    } catch (err) {
+      const msg = err.name === 'AbortError' ? 'Timeout no teste' : err.message;
+      setApiStatus({ connected: false, error: msg });
+      alert('Erro ao testar conexão');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // CARREGA PEDIDOS DIRETO DO BANCO (sem /test)
+  const fetchOrders = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const ordersData = await apiService.getOrders();
+      setOrders(ordersData);
+    } catch (err) {
+      setError("Erro ao carregar pedidos: " + err.message);
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateSampleOrders = async () => {
+    if (!window.confirm("Deseja gerar pedidos de exemplo para teste?")) return;
+    try {
+      await apiService.generateSampleOrders();
+      fetchOrders();
+    } catch (err) {
+      setError("Erro ao gerar exemplo: " + err.message);
+    }
+  };
+
+  const updateOrderStatus = (orderId, newStatus) => {
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+  };
+
+  const deleteOrder = (orderId) => {
+    setOrders(prev => prev.filter(o => o.id !== orderId));
+    setDeleteConfirm(null);
+  };
+
+  const viewOrderDetails = (order) => {
+    console.log('📋 Pedido selecionado para detalhes:', order);
+    setSelectedOrder(order);
+    setShowOrderModal(true);
+  };
+
+  const cancelOrder = (orderId) => {
+    if (window.confirm("Tem certeza que deseja cancelar este pedido?")) {
+      updateOrderStatus(orderId, "cancelled");
+    }
+  };
+
+  const confirmDelete = (order) => setDeleteConfirm(order);
+  const cancelDelete = () => setDeleteConfirm(null);
+
+  const getStatusText = (status) => {
+    const map = {
+      pending: "Pendente",
+      processing: "Em Preparação",
+      shipped: "Enviado",
+      delivered: "Entregue",
+      cancelled: "Cancelado",
+    };
+    return map[status] || status;
+  };
+
+  const getPaymentText = (payment) => {
+    const map = { 
+      pix: "PIX", 
+      credit_card: "Cartão de Crédito", 
+      boleto: "Boleto",
+      debit_card: "Cartão de Débito",
+      cash: "Dinheiro"
+    };
+    return map[payment] || payment;
+  };
+
+  const getStatusColor = (status) => {
+    const colors = {
+      shipped: "bg-green-100 text-green-800 border border-green-200",
+      processing: "bg-yellow-100 text-yellow-800 border border-yellow-200",
+      pending: "bg-blue-100 text-blue-800 border border-blue-200",
+      delivered: "bg-purple-100 text-purple-800 border border-purple-200",
+      cancelled: "bg-red-100 text-red-800 border border-red-200",
+    };
+    return colors[status] || "bg-gray-100 text-gray-800 border border-gray-200";
+  };
+
+  const getPaymentColor = (payment) => {
+    const colors = {
+      credit_card: "bg-green-100 text-green-800",
+      debit_card: "bg-blue-100 text-blue-800",
+      pix: "bg-blue-100 text-blue-800",
+      boleto: "bg-purple-100 text-purple-800",
+      cash: "bg-gray-100 text-gray-800",
+    };
+    return colors[payment] || "bg-gray-100 text-gray-800";
+  };
+
+  const formatCurrency = (value) => {
+    if (value == null || isNaN(value)) return 'R$ 0,00';
+    return `R$ ${parseFloat(value).toFixed(2)}`;
+  };
+
+  // ✅ FILTRAR E ORDENAR PEDIDOS
+  const filteredAndSortedOrders = sortOrders(
+    orders.filter(order =>
+      order && (
+        (order.order_number?.toLowerCase().includes(orderSearch.toLowerCase())) ||
+        (order.customer_name?.toLowerCase().includes(orderSearch.toLowerCase())) ||
+        (order.customer_email?.toLowerCase().includes(orderSearch.toLowerCase())) ||
+        getStatusText(order.status).toLowerCase().includes(orderSearch.toLowerCase()) ||
+        getPaymentText(order.payment_method).toLowerCase().includes(orderSearch.toLowerCase()) ||
+        formatCurrency(order.total).toLowerCase().includes(orderSearch.toLowerCase())
+      )
+    ),
+    sortConfig
+  );
+
+  // ✅ FORMATAR VALOR PARA EXIBIÇÃO NA ORDENAÇÃO
+  const getDisplayValue = (order, key) => {
+    const value = order[key];
+    
+    switch (key) {
+      case 'total':
+        return formatCurrency(value);
+      case 'created_at':
+        return order.created_at ? new Date(order.created_at).toLocaleDateString('pt-BR') : 'N/A';
+      case 'status':
+        return getStatusText(value);
+      case 'payment_method':
+        return getPaymentText(value);
+      default:
+        return value || 'N/A';
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  // TABELA COM DADOS E ORDENAÇÃO
+  return (
+    <div className="p-6 space-y-6" style={{ fontFamily: 'Calibri, sans-serif' }}>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-xl font-semibold">Gerenciamento de Pedidos</h2>
+          <p className="text-gray-600 text-sm mt-1">
+            {filteredAndSortedOrders.length} {filteredAndSortedOrders.length === 1 ? 'pedido' : 'pedidos'} encontrados
+            {filteredAndSortedOrders.length > 0 && (
+              <span className="text-blue-600 ml-2">
+                • Ordenado por: {sortableFields[sortConfig.key]?.label} ({sortConfig.direction === 'asc' ? 'crescente' : 'decrescente'})
+              </span>
+            )}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 flex-wrap">
+          <button onClick={fetchOrders} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <FiRefreshCw size={16} /> Atualizar
+          </button>
+          <button onClick={testApiConnection} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <FiServer size={16} /> Testar API
+          </button>
+          <button onClick={generateSampleOrders} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <FiPackage size={16} /> Gerar Exemplo
+          </button>
+          <div className="relative w-full sm:w-64">
+            <input
+              type="text"
+              placeholder="Buscar pedidos..."
+              value={orderSearch}
+              onChange={(e) => setOrderSearch(e.target.value)}
+              className="w-full p-2 pl-10 border border-gray-300 rounded text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <FiSearch className="absolute left-3 top-2.5 text-gray-400" size={16} />
+          </div>
+        </div>
+      </div>
+
+      {/* Controles de Ordenação Rápidos */}
+      <div className="bg-gray-50 p-4 rounded-lg border">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm font-medium text-gray-700">Ordenar por:</span>
+          {Object.entries(sortableFields).map(([key, config]) => (
+            <button
+              key={key}
+              onClick={() => handleSort(key)}
+              className={`
+                box-border inline-flex items-center gap-1
+                px-3 py-1 rounded text-xs font-medium transition-colors border
+                focus:outline-none focus:ring-0
+                ${
+                  sortConfig.key === key
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                }
+              `}
+            >
+              <span className="leading-none">{config.label}</span>
+              {renderSortIcon(key)}
+            </button>
+          ))}
+
+          <button
+            onClick={() => setSortConfig({ key: 'created_at', direction: 'desc' })}
+            className="box-border inline-flex items-center gap-1 px-3 py-1 rounded text-xs font-medium border bg-gray-200 text-gray-700 border-gray-300 hover:bg-gray-300 focus:outline-none focus:ring-0"
+          >
+            Resetar
+          </button>
+        </div>
+      </div>
+
+      {/* Tabela com Cabeçalhos Cliqueáveis */}
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th 
+                  className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                  onClick={() => handleSort('order_number')}
+                >
+                  <div className="flex items-center gap-1">
+                    Pedido
+                    {renderSortIcon('order_number')}
+                  </div>
+                </th>
+                <th 
+                  className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                  onClick={() => handleSort('customer_name')}
+                >
+                  <div className="flex items-center gap-1">
+                    Cliente
+                    {renderSortIcon('customer_name')}
+                  </div>
+                </th>
+                <th 
+                  className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                  onClick={() => handleSort('created_at')}
+                >
+                  <div className="flex items-center gap-1">
+                    Data
+                    {renderSortIcon('created_at')}
+                  </div>
+                </th>
+                <th 
+                  className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                  onClick={() => handleSort('total')}
+                >
+                  <div className="flex items-center gap-1">
+                    Total
+                    {renderSortIcon('total')}
+                  </div>
+                </th>
+                <th 
+                  className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                  onClick={() => handleSort('payment_method')}
+                >
+                  <div className="flex items-center gap-1">
+                    Pagamento
+                    {renderSortIcon('payment_method')}
+                  </div>
+                </th>
+                <th 
+                  className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                  onClick={() => handleSort('status')}
+                >
+                  <div className="flex items-center gap-1">
+                    Status
+                    {renderSortIcon('status')}
+                  </div>
+                </th>
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Ações
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredAndSortedOrders.map((order) => (
+                <tr key={order.id} className="hover:bg-gray-50">
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {getDisplayValue(order, 'order_number')}
+                  </td>
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">{getDisplayValue(order, 'customer_name')}</div>
+                    <div className="text-sm text-gray-500">{order.customer_email || 'N/A'}</div>
+                  </td>
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {getDisplayValue(order, 'created_at')}
+                    {order.created_at && (
+                      <div className="text-xs text-gray-500">
+                        {new Date(order.created_at).toLocaleTimeString('pt-BR')}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                    {getDisplayValue(order, 'total')}
+                  </td>
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPaymentColor(order.payment_method)}`}>
+                      {getDisplayValue(order, 'payment_method')}
+                    </span>
+                  </td>
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                    <select
+                      value={order.status || 'pending'}
+                      onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                      className={`text-xs font-medium rounded-full px-3 py-1 border-0 focus:ring-2 focus:ring-blue-500 ${getStatusColor(order.status)}`}
+                    >
+                      <option value="pending">Pendente</option>
+                      <option value="processing">Em Preparação</option>
+                      <option value="shipped">Enviado</option>
+                      <option value="delivered">Entregue</option>
+                      <option value="cancelled">Cancelado</option>
+                    </select>
+                  </td>
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                    <button onClick={() => viewOrderDetails(order)} className="text-indigo-600 hover:text-indigo-900 p-1 rounded transition-colors" title="Ver Detalhes">
+                      <FiEye size={16} />
+                    </button>
+                    <button onClick={() => cancelOrder(order.id)} className="text-yellow-600 hover:text-yellow-900 p-1 rounded transition-colors" title="Cancelar Pedido">
+                      <FiXCircle size={16} />
+                    </button>
+                    <button onClick={() => confirmDelete(order)} className="text-red-600 hover:text-red-900 p-1 rounded transition-colors" title="Excluir Pedido">
+                      <FiTrash2 size={16} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ✅ MODAL DE DETALHES DO PEDIDO - FROM YOUR CODE */}
+    
+
+      {/* Modal de Confirmação de Exclusão */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                  <FiTrash2 className="text-red-600" size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Excluir Pedido</h3>
+                  <p className="text-sm text-gray-600">Esta ação não pode ser desfeita</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <p className="text-gray-700 mb-4">
+                Tem certeza que deseja excluir o pedido <strong>{deleteConfirm.order_number}</strong> de <strong>{deleteConfirm.customer_name}</strong>?
+              </p>
+              <div className="flex justify-end gap-3">
+                <button onClick={cancelDelete} className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors">
+                  Cancelar
+                </button>
+                <button onClick={() => deleteOrder(deleteConfirm.id)} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors">
+                  Excluir Pedido
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};   
+
+export default OrdersManagement;

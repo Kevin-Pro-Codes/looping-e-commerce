@@ -1,0 +1,17 @@
+Help me doing the backend and frontend part then: all i have is the button that leads to pix payment on frontend : 
+
+     <button
+        onClick={processCheckout}
+        disabled={loading}
+        className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white py-3 px-8 rounded-lg font-semibold transition-colors flex items-center"
+      >
+        {loading ? 'Processando...' : (
+          <>
+            <FiLock className="mr-2" />
+            {paymentMethod === 'pix' ? 'Gerar PIX' : 
+             paymentMethod === 'boleto' ? 'Gerar Boleto' : 'Finalizar Pedido'}
+          </>
+        )}
+      </button>
+
+What to do about it?
