@@ -94,7 +94,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return response()->json($request->user());
 });
 
-
 Route::middleware('auth:sanctum')->put('/user/{id}', function (Request $request, $id) {
    
     if ($request->user()->id != $id) {
@@ -114,9 +113,6 @@ Route::middleware('auth:sanctum')->put('/user/{id}', function (Request $request,
     return response()->json($request->user());
 });
 
-
-
-
 Route::get('/products', function () {
     try {
         $client = new MongoDB\Client(env('MONGO_URI'));
@@ -131,7 +127,6 @@ Route::get('/products', function () {
     }
 });
 
-
 Route::get('/products/{id}', function ($id) {
     try {
         $client = new Client(env('MONGO_URI'));
@@ -145,7 +140,6 @@ Route::get('/products/{id}', function ($id) {
         return response()->json(['error' => $e->getMessage()], 500);
     }
 });
-
 
 Route::post('/products', function (Request $request) {
     try {
@@ -163,7 +157,6 @@ Route::post('/products', function (Request $request) {
         return response()->json(['error' => $e->getMessage()], 500);
     }
 });
-
 
 Route::put('/products/{id}', function (Request $request, $id) {
     try {
@@ -188,7 +181,6 @@ Route::put('/products/{id}', function (Request $request, $id) {
     }
 });
 
-
 Route::delete('/products/{id}', function ($id) {
     try {
         $client = new Client(env('MONGO_URI'));
@@ -205,7 +197,6 @@ Route::delete('/products/{id}', function ($id) {
     }
 });
 
-
 Route::middleware(['auth:sanctum', 'admin'])->get('/admin/products', function () { 
     try {
         $client = new MongoDB\Client(env('MONGO_URI'));
@@ -219,10 +210,6 @@ Route::middleware(['auth:sanctum', 'admin'])->get('/admin/products', function ()
         ], 500);
     }
 });
-
-
-
-
 
 Route::post('/upload', [UploadController::class, 'store']);
 
@@ -254,10 +241,6 @@ Route::post('/debug-upload', function (Request $request) {
     ]);
 });
 
-
-
-
-
 Route::middleware('auth:sanctum')->group(function () {
     // MongoDB wishlist routes using your WishlistController
     Route::get('/wishlist', [WishlistController::class, 'index']);
@@ -267,18 +250,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/wishlist/count', [WishlistController::class, 'count']);
 
     Route::get('/cart', [CartController::class, 'index']);
-Route::get('/cart/debug', [CartController::class, 'debug']);
-Route::get('/cart/count', [CartController::class, 'count']);
-Route::post('/cart/add', [CartController::class, 'addToCart']);
-Route::put('/cart/{productId}', [CartController::class, 'updateQuantity']);
-Route::delete('/cart/{productId}', [CartController::class, 'removeFromCart']);
+    Route::get('/cart/debug', [CartController::class, 'debug']);
+    Route::get('/cart/count', [CartController::class, 'count']);
+    Route::post('/cart/add', [CartController::class, 'addToCart']);
+    Route::put('/cart/{productId}', [CartController::class, 'updateQuantity']);
+    Route::delete('/cart/{productId}', [CartController::class, 'removeFromCart']);
 Route::delete('/cart', [CartController::class, 'clearCart']);
 });
-
-
-
-
-
 
 
 // Test MongoProduct directly
@@ -400,11 +378,6 @@ Route::post('/wishlist/debug', function(Request $request) {
     ]);
 });
 
-
-
-///////////////////////
-
-
 {/*
 
 Route::prefix('payments')->group(function () {
@@ -435,9 +408,6 @@ Route::get('/test-pix', function () {
         ], 500);
     }
 });
-
-
-
 
 // Test route to verify API is working
 Route::get('/test', function () {
@@ -473,8 +443,6 @@ Route::get('/infos/stats', [InfoController::class, 'getCustomerStats']);
 Route::get('/infos/{email}', [InfoController::class, 'getCustomerByEmail']);
 Route::get('/infos/search/customers', [InfoController::class, 'searchCustomers']);
 
-
-
 Route::put('/infos/stock/sync-order', [StockController::class, 'syncOrderStock'])->name('stock.sync-order');
 Route::put('/infos/stock/reverse-order', [StockController::class, 'reverseOrderStock'])->name('stock.reverse-order');
 Route::put('/infos/stock/{id}/reset-reserved', [StockController::class, 'resetReservedStock'])->name('stock.reset-reserved');
@@ -490,7 +458,6 @@ Route::post('/infos/stock/samples', [StockController::class, 'store'])->name('st
 Route::delete('/infos/stock/variant/{id}', [StockController::class, 'destroy'])->name('stock.destroy-variant');
 Route::delete('/infos/stock/product/{productId}', [StockController::class, 'destroyByProductId'])->name('stock.destroy-product');
 
-
 Route::post('/pix/generate', [PixPaymentController::class, 'generatePix']);
 Route::get('/pix/status/{orderId}', [PixPaymentController::class, 'checkPaymentStatus']);
 Route::post('/pix/webhook', [PixPaymentController::class, 'handleWebhook']);
@@ -498,7 +465,6 @@ Route::post('/pix/webhook', [PixPaymentController::class, 'handleWebhook']);
 Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink']);
 Route::post('/reset-password', [PasswordResetController::class, 'resetPassword']);
 Route::post('/check-reset-token', [PasswordResetController::class, 'checkToken']);
-
 
 Route::post('/email/verification-resend', function (Request $request) {
     $request->validate(['email' => 'required|email']);
