@@ -16,6 +16,7 @@ use App\Http\Controllers\UploadController;
 use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\CartController;
 use App\Models\Wishlist;
+
 use App\Http\Controllers\PixPaymentController;
 use App\Http\Controllers\InfoController;
 use App\Http\Controllers\StockController;
@@ -483,3 +484,19 @@ Route::post('/email/verification-resend', function (Request $request) {
     
     return response()->json(['message' => 'Email de verificação reenviado!']);
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/////
+

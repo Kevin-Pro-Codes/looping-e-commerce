@@ -451,4 +451,394 @@ class OrderController extends Controller
             ], 500);
         }
     }
+
+   /**
+     * Sync stock for ANY paid order
+     * POST /api/orders/{orderId}/sync-stock
+     */
+    public function syncStock($orderId): JsonResponse
+    {
+        try {
+            Log::info('=== SYNC STOCK FOR ANY ORDER ===', ['order_id' => $orderId]);
+
+            $order = Order::find($orderId);
+            
+            if (!$order) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order not found'
+                ], 404);
+            }
+
+            // Check if order is already paid
+            if ($order->payment_status !== 'paid') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order is not paid',
+                    'payment_status' => $order->payment_status
+                ], 400);
+            }
+
+            // Check if stock already synced
+            $metadata = json_decode($order->metadata ?? '{}', true) ?? [];
+            if (isset($metadata['stock_synced_at'])) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Stock already synced for this order',
+                    'already_synced' => true,
+                    'synced_at' => $metadata['stock_synced_at']
+                ]);
+            }
+
+            // Parse order items
+            $items = json_decode($order->items, true) ?? [];
+            $stockUpdates = [];
+
+            DB::beginTransaction();
+
+            foreach ($items as $itemIndex => $item) {
+                $productName = $item['product_name'] ?? null;
+                $quantity = $item['quantity'] ?? 1;
+                $color = $item['color'] ?? ($item['selectedColor'] ?? null);
+                $size = $item['size'] ?? ($item['selectedSize'] ?? null);
+
+                if (!$productName) {
+                    Log::warning('No product name in item', ['item_index' => $itemIndex]);
+                    continue;
+                }
+
+                // Find stock item - try multiple approaches
+                $stockItem = $this->findStockItem($productName, $color, $size);
+                
+                if (!$stockItem) {
+                    Log::error('Stock item not found', [
+                        'product' => $productName,
+                        'color' => $color,
+                        'size' => $size
+                    ]);
+                    continue;
+                }
+
+                // Calculate available stock
+                $available = $stockItem->stock - $stockItem->reserved;
+                
+                if ($available < $quantity) {
+                    throw new \Exception(
+                        "Not enough stock for '{$stockItem->name}'. " .
+                        "Available: {$available}, Ordered: {$quantity}"
+                    );
+                }
+
+                // Update stock - reduce current stock, increase reserved
+                $oldStock = $stockItem->stock;
+                $oldReserved = $stockItem->reserved;
+                
+                $stockItem->stock = $oldStock - $quantity;
+                $stockItem->reserved = $oldReserved + $quantity;
+                $stockItem->last_updated = now()->format('Y-m-d');
+                $stockItem->save();
+
+                $stockUpdates[] = [
+                    'product' => $stockItem->name,
+                    'color' => $stockItem->color,
+                    'size' => $stockItem->size,
+                    'quantity' => $quantity,
+                    'old_stock' => $oldStock,
+                    'new_stock' => $stockItem->stock,
+                    'old_reserved' => $oldReserved,
+                    'new_reserved' => $stockItem->reserved,
+                    'available_now' => $stockItem->stock - $stockItem->reserved
+                ];
+
+                Log::info('Stock updated', [
+                    'product' => $stockItem->name,
+                    'quantity' => $quantity,
+                    'payment_method' => $order->payment_method
+                ]);
+            }
+
+            // Mark order as stock synced
+            $metadata['stock_synced_at'] = now()->toISOString();
+            $metadata['stock_updates'] = $stockUpdates;
+            $metadata['payment_method'] = $order->payment_method;
+            
+            $order->metadata = json_encode($metadata);
+            $order->save();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Stock synced for {$order->payment_method} payment",
+                'data' => [
+                    'order_id' => $order->id,
+                    'order_number' => $order->order_number,
+                    'payment_method' => $order->payment_method,
+                    'items_count' => count($items),
+                    'stock_updates' => $stockUpdates
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            Log::error('Stock sync error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to sync stock: ' . $e->getMessage(),
+                'order_id' => $orderId
+            ], 500);
+        }
+    }
+
+    /**
+     * Helper: Find stock item by product name, color, size
+     */
+    private function findStockItem($productName, $color, $size)
+    {
+        // Clean up inputs
+        $cleanProductName = trim($productName);
+        $cleanColor = $color ? trim($color) : null;
+        $cleanSize = $size ? trim($size) : null;
+
+        // Try exact match first
+        $query = Stock::query();
+        
+        // Search in product name
+        $query->where(function($q) use ($cleanProductName) {
+            $q->where('name', 'like', "%{$cleanProductName}%")
+              ->orWhere('product_id', 'like', "%{$cleanProductName}%");
+        });
+        
+        // Add color if provided and not "Não especificada"
+        if ($cleanColor && !in_array(strtolower($cleanColor), ['não especificada', 'nao especificada', ''])) {
+            $query->where('color', $cleanColor);
+        }
+        
+        // Add size if provided and not "Não especificado"
+        if ($cleanSize && !in_array(strtolower($cleanSize), ['não especificado', 'nao especificado', ''])) {
+            $query->where('size', $cleanSize);
+        }
+        
+        $result = $query->first();
+        
+        if ($result) {
+            return $result;
+        }
+
+        // Fallback: Try without color/size
+        if ($cleanColor || $cleanSize) {
+            $fallbackQuery = Stock::query();
+            $fallbackQuery->where(function($q) use ($cleanProductName) {
+                $q->where('name', 'like', "%{$cleanProductName}%")
+                  ->orWhere('product_id', 'like', "%{$cleanProductName}%");
+            });
+            
+            return $fallbackQuery->first();
+        }
+
+        return null;
+    }
+
+    /**
+     * Handle payment webhook for ANY payment type
+     * POST /api/webhooks/payment-confirmed
+     */
+    public function handlePaymentWebhook(Request $request): JsonResponse
+    {
+        try {
+            Log::info('=== PAYMENT WEBHOOK RECEIVED ===', [
+                'payment_type' => $request->input('payment_method', 'unknown'),
+                'data' => $request->all()
+            ]);
+
+            // Get order info from webhook
+            $orderId = $request->input('order_id') ?? 
+                      $request->input('reference') ?? 
+                      $request->input('external_reference');
+            
+            if (!$orderId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No order ID in webhook'
+                ], 400);
+            }
+
+            // Find order
+            $order = Order::find($orderId);
+            
+            if (!$order) {
+                // Try by order number
+                $order = Order::where('order_number', $orderId)->first();
+                
+                if (!$order) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Order not found'
+                    ], 404);
+                }
+            }
+
+            // Update order payment status
+            $paymentMethod = $request->input('payment_method', $order->payment_method);
+            $paymentStatus = 'paid';
+            
+            $order->payment_status = $paymentStatus;
+            $order->payment_method = $paymentMethod;
+            
+            // Set status based on payment
+            if ($order->status === 'pending') {
+                $order->status = 'processing';
+            }
+            
+            $order->save();
+
+            Log::info('Order payment updated', [
+                'order_id' => $order->id,
+                'payment_method' => $paymentMethod,
+                'status' => 'paid'
+            ]);
+
+            // Auto-sync stock
+            return $this->syncStock($order->id);
+
+        } catch (\Exception $e) {
+            Log::error('Payment webhook error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment webhook failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update order status AND sync stock if paid
+     * This extends your existing updateStatus method
+     */
+    public function updateStatus($id, Request $request): JsonResponse
+    {
+        try {
+            Log::info('=== ORDER STATUS UPDATE ===', ['order_id' => $id]);
+
+            // Validate input
+            $validated = $request->validate([
+                'status' => 'required|string|in:pending,processing,shipped,delivered,cancelled',
+                'payment_status' => 'required|string|in:pending,paid,failed,refunded'
+            ]);
+
+            // Find order
+            $order = Order::find($id);
+            if (!$order) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order not found'
+                ], 404);
+            }
+
+            $oldPaymentStatus = $order->payment_status;
+            $newPaymentStatus = $validated['payment_status'];
+
+            // Update fields
+            $order->status = $validated['status'];
+            $order->payment_status = $newPaymentStatus;
+            $order->save();
+
+            Log::info('Order status updated', [
+                'order_id' => $order->id,
+                'old_payment_status' => $oldPaymentStatus,
+                'new_payment_status' => $newPaymentStatus
+            ]);
+
+            // Auto-sync stock when payment status changes to "paid"
+            if ($oldPaymentStatus !== 'paid' && $newPaymentStatus === 'paid') {
+                Log::info('Auto-syncing stock for newly paid order', ['order_id' => $order->id]);
+                
+                // Call sync stock in background
+                dispatch(function () use ($order) {
+                    $this->syncStock($order->id);
+                })->afterResponse();
+            }
+            
+            // Reverse stock if order cancelled and was paid
+            if ($validated['status'] === 'cancelled' && $oldPaymentStatus === 'paid') {
+                Log::info('Reversing stock for cancelled order', ['order_id' => $order->id]);
+                $this->reverseStock($order->id);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order status updated successfully',
+                'data' => [
+                    'order_id' => $order->id,
+                    'order_number' => $order->order_number,
+                    'status' => $order->status,
+                    'payment_status' => $order->payment_status,
+                    'stock_sync_triggered' => ($newPaymentStatus === 'paid')
+                ]
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('Order status update error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update order status',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Reverse stock for cancelled order
+     */
+    private function reverseStock($orderId): void
+    {
+        try {
+            $order = Order::find($orderId);
+            if (!$order) return;
+
+            $metadata = json_decode($order->metadata ?? '{}', true) ?? [];
+            
+            if (!isset($metadata['stock_updates'])) {
+                return; // No stock was synced
+            }
+
+            DB::beginTransaction();
+
+            foreach ($metadata['stock_updates'] as $update) {
+                $stockItem = Stock::where('name', 'like', "%{$update['product']}%")
+                    ->where('color', $update['color'])
+                    ->where('size', $update['size'])
+                    ->first();
+
+                if ($stockItem) {
+                    // Reverse: add back to stock, remove from reserved
+                    $stockItem->stock += $update['quantity'];
+                    $stockItem->reserved -= $update['quantity'];
+                    $stockItem->last_updated = now()->format('Y-m-d');
+                    $stockItem->save();
+
+                    Log::info('Stock reversed for cancelled order', [
+                        'product' => $stockItem->name,
+                        'quantity' => $update['quantity']
+                    ]);
+                }
+            }
+
+            // Update metadata
+            $metadata['stock_reversed_at'] = now()->toISOString();
+            $order->metadata = json_encode($metadata);
+            $order->save();
+
+            DB::commit();
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Reverse stock error: ' . $e->getMessage());
+        }
+    }
+
+
 }
