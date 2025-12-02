@@ -346,17 +346,20 @@ const StockManagement = () => {
     });
   };
 
-  const saveEditProductModal = async () => {
+  const saveEditProductModal = async (formData = null) => {
     try {
       if (!editingProduct) return;
-
+  
+      // Use provided formData or fall back to editModalForm
+      const formToUse = formData || editModalForm;
+  
       const fieldUpdateData = {
-        name: editModalForm.name,
-        sku: editModalForm.sku,
-        category: editModalForm.category,
-        supplier: editModalForm.supplier
+        name: formToUse.name,
+        sku: formToUse.sku,
+        category: formToUse.category,
+        supplier: formToUse.supplier
       };
-
+  
       const csrfToken = await getCsrfToken();
       
       const fieldResponse = await fetch(`http://localhost:8000/api/infos/stock/product/${editingProduct.product_id}/update-field`, {
@@ -369,24 +372,24 @@ const StockManagement = () => {
         },
         body: JSON.stringify(fieldUpdateData)
       });
-
+  
       if (!fieldResponse.ok) {
         const errorText = await fieldResponse.text();
         throw new Error(`HTTP error! status: ${fieldResponse.status}, response: ${errorText}`);
       }
-
+  
       const fieldResult = await fieldResponse.json();
       
       if (!fieldResult.success) {
         throw new Error(fieldResult.message || 'Failed to update product fields');
       }
-
+  
       const pricingData = {
-        cost: parseFloat(editModalForm.price) || 0,
-        profit: parseFloat(editModalForm.profit) || 0,
-        sale_price: parseFloat(editModalForm.sale_price) || 0,
+        cost: parseFloat(formToUse.price) || 0,
+        profit: parseFloat(formToUse.profit) || 0,
+        sale_price: parseFloat(formToUse.sale_price) || 0,
       };
-
+  
       const pricingResponse = await fetch(`http://localhost:8000/api/infos/stock/product/${editingProduct.product_id}/pricing`, {
         method: 'PUT',
         credentials: 'include',
@@ -397,22 +400,22 @@ const StockManagement = () => {
         },
         body: JSON.stringify(pricingData)
       });
-
+  
       if (!pricingResponse.ok) {
         const errorText = await pricingResponse.text();
         throw new Error(`HTTP error! status: ${pricingResponse.status}, response: ${errorText}`);
       }
-
+  
       const pricingResult = await pricingResponse.json();
       
       if (!pricingResult.success) {
         throw new Error(pricingResult.message || 'Failed to update product pricing');
       }
-
+  
       await fetchStockFromBackend();
       closeEditProductModal();
       alert('✅ Produto atualizado com sucesso!');
-
+  
     } catch (error) {
       console.error("❌ Error updating product via modal:", error);
       alert(`Erro ao atualizar produto: ${error.message}`);
@@ -1343,8 +1346,29 @@ const deleteVariant = async (variantId, color, size) => {
   };
 
   const EditProductModal = () => {
+    const [localForm, setLocalForm] = useState(editModalForm);
+  
+    useEffect(() => {
+      if (showEditProductModal && editingProduct) {
+        setLocalForm({
+          product_id: editingProduct.product_id,
+          name: editingProduct.name,
+          sku: editingProduct.sku,
+          category: editingProduct.category,
+          supplier: editingProduct.supplier,
+          price: editingProduct.price.toString(),
+          profit: editingProduct.profit.toString(),
+          sale_price: editingProduct.sale_price.toString(),
+        });
+      }
+    }, [showEditProductModal, editingProduct]);
+  
+    const handleSave = async () => {
+      await saveEditProductModal(localForm);
+    };
+  
     if (!showEditProductModal || !editingProduct) return null;
-
+  
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -1357,7 +1381,7 @@ const deleteVariant = async (variantId, color, size) => {
               <FiX size={20} />
             </button>
           </div>
-
+  
           <div className="p-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -1366,9 +1390,9 @@ const deleteVariant = async (variantId, color, size) => {
                 </label>
                 <input
                   type="text"
-                  value={editModalForm.product_id}
-                  onChange={(e) => setEditModalForm({...editModalForm, product_id: e.target.value})}
-                  className="w-full p-2 border border-gray-300 rounded text-black"
+                  value={localForm.product_id}
+                  onChange={(e) => setLocalForm({...localForm, product_id: e.target.value})}
+                  className="w-full p-2 border border-gray-300 rounded text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Ex: PROD-001"
                 />
               </div>
@@ -1378,9 +1402,9 @@ const deleteVariant = async (variantId, color, size) => {
                 </label>
                 <input
                   type="text"
-                  value={editModalForm.name}
-                  onChange={(e) => setEditModalForm({...editModalForm, name: e.target.value})}
-                  className="w-full p-2 border border-gray-300 rounded text-black"
+                  value={localForm.name}
+                  onChange={(e) => setLocalForm({...localForm, name: e.target.value})}
+                  className="w-full p-2 border border-gray-300 rounded text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Ex: Camiseta Looping"
                 />
               </div>
@@ -1390,9 +1414,9 @@ const deleteVariant = async (variantId, color, size) => {
                 </label>
                 <input
                   type="text"
-                  value={editModalForm.sku}
-                  onChange={(e) => setEditModalForm({...editModalForm, sku: e.target.value})}
-                  className="w-full p-2 border border-gray-300 rounded text-black"
+                  value={localForm.sku}
+                  onChange={(e) => setLocalForm({...localForm, sku: e.target.value})}
+                  className="w-full p-2 border border-gray-300 rounded text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Ex: CT-LOOPING-WHITE"
                 />
               </div>
@@ -1402,9 +1426,9 @@ const deleteVariant = async (variantId, color, size) => {
                 </label>
                 <input
                   type="text"
-                  value={editModalForm.category}
-                  onChange={(e) => setEditModalForm({...editModalForm, category: e.target.value})}
-                  className="w-full p-2 border border-gray-300 rounded text-black"
+                  value={localForm.category}
+                  onChange={(e) => setLocalForm({...localForm, category: e.target.value})}
+                  className="w-full p-2 border border-gray-300 rounded text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Ex: Roupas"
                 />
               </div>
@@ -1414,9 +1438,9 @@ const deleteVariant = async (variantId, color, size) => {
                 </label>
                 <input
                   type="text"
-                  value={editModalForm.supplier}
-                  onChange={(e) => setEditModalForm({...editModalForm, supplier: e.target.value})}
-                  className="w-full p-2 border border-gray-300 rounded text-black"
+                  value={localForm.supplier}
+                  onChange={(e) => setLocalForm({...localForm, supplier: e.target.value})}
+                  className="w-full p-2 border border-gray-300 rounded text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Ex: Fabricante A"
                 />
               </div>
@@ -1427,9 +1451,9 @@ const deleteVariant = async (variantId, color, size) => {
                 <input
                   type="number"
                   step="0.01"
-                  value={editModalForm.price}
-                  onChange={(e) => setEditModalForm({...editModalForm, price: e.target.value})}
-                  className="w-full p-2 border border-gray-300 rounded text-black"
+                  value={localForm.price}
+                  onChange={(e) => setLocalForm({...localForm, price: e.target.value})}
+                  className="w-full p-2 border border-gray-300 rounded text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Ex: 60.00"
                 />
               </div>
@@ -1440,9 +1464,9 @@ const deleteVariant = async (variantId, color, size) => {
                 <input
                   type="number"
                   step="0.01"
-                  value={editModalForm.profit}
-                  onChange={(e) => setEditModalForm({...editModalForm, profit: e.target.value})}
-                  className="w-full p-2 border border-gray-300 rounded text-black"
+                  value={localForm.profit}
+                  onChange={(e) => setLocalForm({...localForm, profit: e.target.value})}
+                  className="w-full p-2 border border-gray-300 rounded text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Ex: 45.00"
                 />
               </div>
@@ -1453,29 +1477,29 @@ const deleteVariant = async (variantId, color, size) => {
                 <input
                   type="number"
                   step="0.01"
-                  value={editModalForm.sale_price}
-                  onChange={(e) => setEditModalForm({...editModalForm, sale_price: e.target.value})}
-                  className="w-full p-2 border border-gray-300 rounded text-black"
+                  value={localForm.sale_price}
+                  onChange={(e) => setLocalForm({...localForm, sale_price: e.target.value})}
+                  className="w-full p-2 border border-gray-300 rounded text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Ex: 60.90"
                 />
               </div>
             </div>
-
+  
             <div className="bg-blue-50 p-4 rounded-lg">
               <h4 className="font-semibold text-blue-800 mb-2">Resumo das Alterações</h4>
               <div className="text-sm text-blue-700 space-y-1">
-                <p>• ID do Produto: {editModalForm.product_id}</p>
-                <p>• Nome: {editModalForm.name}</p>
-                <p>• SKU: {editModalForm.sku}</p>
-                <p>• Categoria: {editModalForm.category}</p>
-                <p>• Fornecedor: {editModalForm.supplier}</p>
-                <p>• Preço de Custo: R$ {parseFloat(editModalForm.price || 0).toFixed(2)}</p>
-                <p>• Lucro: R$ {parseFloat(editModalForm.profit || 0).toFixed(2)}</p>
-                <p>• Preço de Venda: R$ {parseFloat(editModalForm.sale_price || 0).toFixed(2)}</p>
+                <p>• ID do Produto: {localForm.product_id}</p>
+                <p>• Nome: {localForm.name}</p>
+                <p>• SKU: {localForm.sku}</p>
+                <p>• Categoria: {localForm.category}</p>
+                <p>• Fornecedor: {localForm.supplier}</p>
+                <p>• Preço de Custo: R$ {parseFloat(localForm.price || 0).toFixed(2)}</p>
+                <p>• Lucro: R$ {parseFloat(localForm.profit || 0).toFixed(2)}</p>
+                <p>• Preço de Venda: R$ {parseFloat(localForm.sale_price || 0).toFixed(2)}</p>
               </div>
             </div>
           </div>
-
+  
           <div className="bg-gray-50 px-6 py-4 border-t flex justify-end space-x-3">
             <button
               onClick={closeEditProductModal}
@@ -1484,8 +1508,8 @@ const deleteVariant = async (variantId, color, size) => {
               Cancelar
             </button>
             <button
-              onClick={saveEditProductModal}
-              disabled={!editModalForm.product_id || !editModalForm.name || !editModalForm.sku}
+              onClick={handleSave}
+              disabled={!localForm.product_id || !localForm.name || !localForm.sku}
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               <FiSave className="mr-2 inline" />
