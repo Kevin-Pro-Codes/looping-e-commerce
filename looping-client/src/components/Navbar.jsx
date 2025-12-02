@@ -481,7 +481,7 @@ const Navbar = () => {
                 <input
                   type="text"
                   placeholder="Procurar..."
-                  className="w-full border border-gray-300 rounded-md py-1.5 sm:py-2 pl-10 pr-3 focus:outline-none focus:ring-1 focus:ring-gray-500 text-gray-800 placeholder-gray-500 text-base sm:text-lg bg-white"
+                  className="w-full border border-black rounded-md py-1.5 sm:py-2 pl-10 pr-3 focus:outline-none focus:ring-1 focus:ring-gray-500 text-gray-800 placeholder-gray-500 text-base sm:text-lg bg-white"
                   style={{ fontFamily: "Calibri, Arial, sans-serif" }}
                 />
               </div>
