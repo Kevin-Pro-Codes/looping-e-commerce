@@ -1800,7 +1800,6 @@ const CheckoutPage = () => {
     }
   };
 
-  // ✅ Payment Status Polling
   const startPaymentStatusPolling = (orderId) => {
     const pollInterval = setInterval(async () => {
       try {
