@@ -462,3 +462,24 @@ Route::post('/email/verification-resend', function (Request $request) {
 
 /////
 
+// Stock sync routes
+Route::post('/infos/{id}/confirm-payment', [InfoController::class, 'confirmPayment']);
+Route::post('/infos/check-stock', [InfoController::class, 'checkStock']);
+
+// Optionally add a manual sync endpoint
+Route::post('/infos/{id}/sync-stock', function($id, StockService $stockService) {
+    $order = App\Models\Info::find($id);
+    if (!$order) {
+        return response()->json(['success' => false, 'message' => 'Order not found'], 404);
+    }
+    
+    $success = $stockService->deductStockFromOrder($order);
+    
+    return response()->json([
+        'success' => $success,
+        'message' => $success ? 'Stock synced successfully' : 'Failed to sync stock',
+        'order_id' => $order->id,
+        'stock_updated' => $order->stock_updated
+    ]);
+});
+

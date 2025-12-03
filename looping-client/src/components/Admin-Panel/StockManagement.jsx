@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { 
   FiSearch, FiPlus, FiPackage, FiLayers, FiEdit, FiCheck, FiX,
-  FiSave, FiTrash2, FiDollarSign, FiRefreshCw, FiEye, FiRotateCcw
+  FiSave, FiTrash2, FiDollarSign, FiRefreshCw, FiEye
 } from "react-icons/fi";
 
 // Skeleton Loading Components
@@ -77,8 +77,8 @@ const SkeletonProductCard = () => (
       </div>
 
       {/* Stats Skeleton */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-3">
-        {[1, 2, 3, 4].map((item) => (
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-3">
+        {[1, 2, 3].map((item) => (
           <div key={item} className="text-center">
             <div className="h-6 bg-gray-200 rounded w-8 mx-auto mb-1"></div>
             <div className="h-4 bg-gray-200 rounded w-16 mx-auto"></div>
@@ -92,7 +92,7 @@ const SkeletonProductCard = () => (
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-100">
           <tr>
-            {['Cor', 'Tamanho', 'Estoque', 'Reservado', 'Disponível', 'Em Chegada', 'Status', 'Ações'].map((header) => (
+            {['Cor', 'Tamanho', 'Estoque', 'Status', 'Ações'].map((header) => (
               <th key={header} className="px-4 sm:px-6 py-3 text-left">
                 <div className="h-4 bg-gray-200 rounded w-16"></div>
               </th>
@@ -116,15 +116,6 @@ const SkeletonProductCard = () => (
                   <div className="h-4 bg-gray-200 rounded w-8"></div>
                   <div className="h-6 w-6 bg-gray-200 rounded"></div>
                 </div>
-              </td>
-              <td className="px-4 sm:px-6 py-4">
-                <div className="h-4 bg-gray-200 rounded w-8 mx-auto"></div>
-              </td>
-              <td className="px-4 sm:px-6 py-4">
-                <div className="h-4 bg-gray-200 rounded w-8 mx-auto"></div>
-              </td>
-              <td className="px-4 sm:px-6 py-4">
-                <div className="h-4 bg-gray-200 rounded w-8"></div>
               </td>
               <td className="px-4 sm:px-6 py-4">
                 <div className="h-6 bg-gray-200 rounded w-20"></div>
@@ -157,9 +148,6 @@ const StockManagement = () => {
   const [error, setError] = useState(null);
   const [viewingProduct, setViewingProduct] = useState(null);
   
-  const [orderingVariant, setOrderingVariant] = useState(null);
-  const [orderQuantity, setOrderQuantity] = useState("");
-
   const [showEditProductModal, setShowEditProductModal] = useState(false);
   const [editModalForm, setEditModalForm] = useState({
     product_id: "", name: "", sku: "", category: "", supplier: "", price: "", profit: "", sale_price: "",
@@ -170,12 +158,11 @@ const StockManagement = () => {
   });
 
   const [variantForm, setVariantForm] = useState({
-    color: "", size: "", stock: "", reserved: "", incoming: "",
+    color: "", size: "", stock: "",
   });
 
   const [stockItems, setStockItems] = useState([]);
   const hasFetchedRef = useRef(false);
-
 
   const getCsrfToken = async () => {
     await fetch("http://localhost:8000/sanctum/csrf-cookie", {
@@ -269,9 +256,6 @@ const StockManagement = () => {
           color: variant.color || "Default",
           size: variant.size || "UN",
           stock: variant.stock || 0,
-          reserved: variant.reserved || 0,
-          incoming: variant.incoming || 0,
-          available: (variant.stock || 0) - (variant.reserved || 0)
         }))
       };
     });
@@ -289,7 +273,6 @@ const StockManagement = () => {
 
   const calculateProductValue = (product) => {
     const totalStock = product.variants.reduce((sum, variant) => sum + variant.stock, 0);
-    const totalAvailable = product.variants.reduce((sum, variant) => sum + (variant.stock - variant.reserved), 0);
     const stockValue = totalStock * product.sale_price;
     
     return {
@@ -297,7 +280,6 @@ const StockManagement = () => {
       profitValue: totalStock * product.profit,
       stockValue: stockValue,
       saleValue: totalStock * product.sale_price,
-      availableValue: totalAvailable * product.sale_price,
       profitPercentage: product.profit > 0 ? ((product.sale_price - (product.price - product.profit)) / (product.price - product.profit)) * 100 : 0
     };
   };
@@ -595,139 +577,6 @@ const StockManagement = () => {
     }
   };
 
-  const resetReservedInBackend = async (variantId) => {
-    try {
-      const csrfToken = await getCsrfToken();
-      
-      const response = await fetch(`http://localhost:8000/api/infos/stock/${variantId}/reset-reserved`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'X-XSRF-TOKEN': csrfToken,
-        },
-        body: JSON.stringify({
-          reserved: 0
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Erro ${response.status}: ${errorText}`);
-      }
-
-      const result = await response.json();
-      
-      if (result.success) {
-        return true;
-      } else {
-        throw new Error(result.message || 'Failed to reset reserved stock');
-      }
-      
-    } catch (error) {
-      console.error("❌ Error resetting reserved stock:", error);
-      throw error;
-    }
-  };
-
-  const resetReservedStock = async (variantId, variantColor, variantSize) => {
-    if (confirmDelete(`⚠️ Tem certeza que deseja zerar o estoque reservado da variante ${variantColor} - ${variantSize}?`)) {
-      try {
-        await resetReservedInBackend(variantId);
-        await fetchStockFromBackend();
-        alert('✅ Estoque reservado zerado com sucesso!');
-      } catch (error) {
-        console.error("❌ Error resetting reserved stock:", error);
-        await fetchStockFromBackend();
-        alert(`Erro ao zerar estoque reservado: ${error.message}`);
-      }
-    }
-  };
-
-  const resetAvailableStock = async (variantId, variantColor, variantSize, currentStock, currentReserved) => {
-    if (confirmDelete(`⚠️ Tem certeza que deseja zerar o estoque disponível da variante ${variantColor} - ${variantSize}?`)) {
-      try {
-        const newStock = currentReserved;
-        await updateStockInBackend(variantId, newStock);
-        await fetchStockFromBackend();
-        alert('✅ Estoque disponível zerado com sucesso!');
-      } catch (error) {
-        console.error("❌ Error resetting available stock:", error);
-        alert(`Erro ao zerar estoque disponível: ${error.message}`);
-      }
-    }
-  };
-
-  const addIncomingToBackend = async (variantId, quantity) => {
-    try {
-      const csrfToken = await getCsrfToken();
-      
-      const response = await fetch(`http://localhost:8000/api/infos/stock/${variantId}/add-incoming`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'X-XSRF-TOKEN': csrfToken,
-        },
-        body: JSON.stringify({
-          quantity: quantity
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      
-      if (result.success) {
-        return true;
-      } else {
-        throw new Error(result.message || 'Failed to add incoming stock');
-      }
-      
-    } catch (error) {
-      console.error("❌ Error adding incoming stock:", error);
-      alert(`Erro ao adicionar estoque em chegada: ${error.message}`);
-      return false;
-    }
-  };
-
-  const receiveIncomingFromBackend = async (variantId) => {
-    try {
-      const csrfToken = await getCsrfToken();
-      
-      const response = await fetch(`http://localhost:8000/api/infos/stock/${variantId}/receive-incoming`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'X-XSRF-TOKEN': csrfToken,
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      
-      if (result.success) {
-        return true;
-      } else {
-        throw new Error(result.message || 'Failed to receive incoming stock');
-      }
-      
-    } catch (error) {
-      console.error("❌ Error receiving incoming stock:", error);
-      alert(`Erro ao receber estoque: ${error.message}`);
-      return false;
-    }
-  };
-
   const createStockInBackend = async (stockData) => {
     try {
       const csrfToken = await getCsrfToken();
@@ -745,8 +594,6 @@ const StockManagement = () => {
         color: stockData.color || "Default",
         size: stockData.size || "UN",
         stock: parseInt(stockData.stock) || 0,
-        reserved: parseInt(stockData.reserved) || 0,
-        incoming: parseInt(stockData.incoming) || 0
       };
 
       const response = await fetch(`http://localhost:8000/api/infos/stock/samples`, {
@@ -804,8 +651,6 @@ const StockManagement = () => {
       color: "Default",
       size: "UN",
       stock: 0,
-      reserved: 0,
-      incoming: 0
     };
 
     const createdProduct = await createStockInBackend(newProductData);
@@ -935,8 +780,6 @@ const StockManagement = () => {
       color: variantForm.color,
       size: variantForm.size,
       stock: parseInt(variantForm.stock) || 0,
-      reserved: parseInt(variantForm.reserved) || 0,
-      incoming: parseInt(variantForm.incoming) || 0,
     };
 
     newVariantData.total_value = newVariantData.stock * newVariantData.sale_price;
@@ -994,7 +837,7 @@ const deleteVariant = async (variantId, color, size) => {
   };
 
   const resetVariantForm = () => {
-    setVariantForm({ color: "", size: "", stock: "", reserved: "", incoming: "" });
+    setVariantForm({ color: "", size: "", stock: "" });
   };
 
   const cancelProductForm = () => {
@@ -1038,62 +881,16 @@ const deleteVariant = async (variantId, color, size) => {
     setEditValue("");
   };
 
-  const startOrdering = (productId, variantId) => {
-    setOrderingVariant({ productId, variantId });
-    setOrderQuantity("");
-  };
-
-  const cancelOrdering = () => {
-    setOrderingVariant(null);
-    setOrderQuantity("");
-  };
-
-  const confirmOrder = async () => {
-    if (orderingVariant && orderQuantity !== "") {
-      const quantity = parseInt(orderQuantity) || 0;
-      
-      if (quantity <= 0) {
-        alert("Por favor, insira uma quantidade válida maior que zero.");
-        return;
-      }
-
-      const success = await addIncomingToBackend(orderingVariant.variantId, quantity);
-      
-      if (success) {
-        await fetchStockFromBackend();
-        alert(`✅ Pedido de ${quantity} unidades adicionado ao estoque em chegada!`);
-      }
-    }
-    cancelOrdering();
-  };
-
-  const receiveIncomingStock = async (variantId) => {
-    const success = await receiveIncomingFromBackend(variantId);
-    
-    if (success) {
-      await fetchStockFromBackend();
-      alert('✅ Estoque em chegada recebido com sucesso!');
-    }
-  };
-
   const isEditing = (productId, variantId) => {
     return editingVariant && 
            editingVariant.productId === productId && 
            editingVariant.variantId === variantId;
   };
 
-  const isOrdering = (productId, variantId) => {
-    return orderingVariant && 
-           orderingVariant.productId === productId && 
-           orderingVariant.variantId === variantId;
-  };
-
   const getProductStatus = (variants) => {
     const totalStock = variants.reduce((sum, variant) => sum + variant.stock, 0);
-    const totalIncoming = variants.reduce((sum, variant) => sum + variant.incoming, 0);
     
-    if (totalStock === 0 && totalIncoming === 0) return "Sem Estoque";
-    if (totalStock === 0 && totalIncoming > 0) return "Estoque em Chegada";
+    if (totalStock === 0) return "Sem Estoque";
     if (totalStock > 0) return "Em Estoque";
     return "Sem Estoque";
   };
@@ -1102,7 +899,6 @@ const deleteVariant = async (variantId, color, size) => {
     switch (status) {
       case "Em Estoque": return "bg-green-100 text-green-800 border border-green-200";
       case "Baixo Estoque": return "bg-yellow-100 text-yellow-800 border border-yellow-200";
-      case "Estoque em Chegada": return "bg-blue-100 text-blue-800 border border-blue-200";
       case "Sem Estoque": return "bg-red-100 text-red-800 border border-red-200";
       default: return "bg-gray-100 text-gray-800 border border-gray-200";
     }
@@ -1111,9 +907,6 @@ const deleteVariant = async (variantId, color, size) => {
   const calculateProductTotals = (variants) => {
     return {
       totalStock: variants.reduce((sum, v) => sum + v.stock, 0),
-      totalReserved: variants.reduce((sum, v) => sum + v.reserved, 0),
-      totalIncoming: variants.reduce((sum, v) => sum + v.incoming, 0),
-      availableStock: variants.reduce((sum, v) => sum + (v.stock - v.reserved), 0)
     };
   };
 
@@ -1181,22 +974,10 @@ const deleteVariant = async (variantId, color, size) => {
 
             <div className="bg-white border rounded-lg p-4">
               <h5 className="font-semibold mb-3 text-gray-700">Resumo de Estoque</h5>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+              <div className="grid grid-cols-1 gap-4 text-center">
                 <div>
                   <p className="text-2xl font-bold text-gray-900">{totals.totalStock}</p>
                   <p className="text-sm text-gray-600">Estoque Total</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-yellow-600">{totals.totalReserved}</p>
-                  <p className="text-sm text-gray-600">Reservado</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-green-600">{totals.availableStock}</p>
-                  <p className="text-sm text-gray-600">Disponível</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-blue-600">{totals.totalIncoming}</p>
-                  <p className="text-sm text-gray-600">Em Chegada</p>
                 </div>
               </div>
             </div>
@@ -1232,14 +1013,6 @@ const deleteVariant = async (variantId, color, size) => {
                       <span className={variant.stock > 0 ? "text-green-600" : "text-red-600"}>
                         Estoque: {variant.stock}
                       </span>
-                      <span className="text-blue-600">
-                        Disponível: {variant.available}
-                      </span>
-                      {variant.incoming > 0 && (
-                        <span className="text-orange-600">
-                          Chegando: {variant.incoming}
-                        </span>
-                      )}
                     </div>
                   </div>
                 ))}
@@ -1264,81 +1037,6 @@ const deleteVariant = async (variantId, color, size) => {
             >
               Fechar
             </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const OrderQuantityModal = () => {
-    if (!orderingVariant) return null;
-
-    const variant = stockItems
-      .find(p => p.id === orderingVariant.productId)
-      ?.variants.find(v => v.id === orderingVariant.variantId);
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-          <div className="bg-blue-50 px-6 py-4 border-b border-blue-200">
-            <h3 className="text-lg font-semibold text-blue-800">Fazer Pedido</h3>
-          </div>
-
-          <div className="p-6">
-            <div className="mb-4">
-              <p className="text-sm text-gray-600 mb-2">Variante selecionada:</p>
-              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                <div 
-                  className="w-4 h-4 rounded-full border border-gray-300"
-                  style={{ 
-                    backgroundColor: variant?.color === 'Branco' ? '#FFFFFF' :
-                                  variant?.color === 'Preto' ? '#000000' :
-                                  variant?.color === 'Cinza' ? '#808080' : '#D3D3D3'
-                  }}
-                />
-                <span className="font-medium text-gray-900">
-                  {variant?.color} - {variant?.size}
-                </span>
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Quantidade a pedir *
-              </label>
-              <input
-                type="number"
-                value={orderQuantity}
-                onChange={(e) => setOrderQuantity(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg text-black text-center text-lg font-semibold"
-                placeholder="0"
-                min="1"
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') confirmOrder();
-                  if (e.key === 'Escape') cancelOrdering();
-                }}
-              />
-              <p className="text-xs text-gray-500 mt-2">
-                Esta quantidade será adicionada ao "Estoque em Chegada"
-              </p>
-            </div>
-
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={cancelOrdering}
-                className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={confirmOrder}
-                disabled={!orderQuantity || parseInt(orderQuantity) <= 0}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-              >
-                Confirmar Pedido
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -1581,7 +1279,6 @@ const deleteVariant = async (variantId, color, size) => {
               className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center justify-center whitespace-nowrap text-sm"
             >
               <FiRefreshCw size={22} className="mb-0.5" />
-            
             </button>
           </div>
           
@@ -1775,7 +1472,7 @@ const deleteVariant = async (variantId, color, size) => {
                         currentValue={product.sale_price}
                         label="Preço de Venda"
                       />
-                        <PriceEditor 
+                      <PriceEditor 
                         productId={product.product_id}
                         field="total_value"
                         currentValue={productValue.stockValue}
@@ -1784,22 +1481,14 @@ const deleteVariant = async (variantId, color, size) => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-3 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3 text-sm">
                     <div className="text-center">
                       <div className="font-semibold">{totals.totalStock}</div>
                       <div className="text-gray-500">Estoque Total</div>
                     </div>
                     <div className="text-center">
-                      <div className="font-semibold">{totals.totalReserved}</div>
-                      <div className="text-gray-500">Reservado</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-semibold">{totals.availableStock}</div>
-                      <div className="text-gray-500">Disponível</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-semibold">{totals.totalIncoming}</div>
-                      <div className="text-gray-500">Em Chegada</div>
+                      <div className="font-semibold">{product.variants.length}</div>
+                      <div className="text-gray-500">Variantes</div>
                     </div>
                   </div>
                 </div>
@@ -1811,22 +1500,14 @@ const deleteVariant = async (variantId, color, size) => {
                         <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cor</th>
                         <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tamanho</th>
                         <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estoque Atual</th>
-                        <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reservado</th>
-                        <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Disponível</th>
-                        <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Em Chegada</th>
                         <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {product.variants.map((variant) => {
-                        const available = variant.stock - variant.reserved;
-                        const variantStatus = variant.stock === 0 
-                          ? (variant.incoming > 0 ? "Em Chegada" : "Sem Estoque")
-                          : "Em Estoque";
-                        
+                        const variantStatus = variant.stock === 0 ? "Sem Estoque" : "Em Estoque";
                         const isVariantEditing = isEditing(product.id, variant.id);
-                        const isVariantOrdering = isOrdering(product.id, variant.id);
                         
                         return (
                           <tr key={variant.id} className="hover:bg-gray-50">
@@ -1893,68 +1574,16 @@ const deleteVariant = async (variantId, color, size) => {
                               )}
                             </td>
                             
-                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
-                              <div className="flex items-center justify-center space-x-2">
-                                <span>{variant.reserved}</span>
-                                {variant.reserved > 0 && (
-                                  <button
-                                    onClick={() => resetReservedStock(variant.id, variant.color, variant.size)}
-                                    className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 w-6 h-6 flex items-center justify-center"
-                                    title="Zerar estoque reservado"
-                                  >
-                                    <FiRotateCcw size={12} />
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                            
-                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
-                              <div className="flex items-center justify-center space-x-2">
-                                <span className={available <= 0 ? "text-red-600" : "text-green-600"}>
-                                  {available}
-                                </span>
-                                {available > 0 && (
-                                  <button
-                                    onClick={() => resetAvailableStock(variant.id, variant.color, variant.size, variant.stock, variant.reserved)}
-                                    className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 w-6 h-6 flex items-center justify-center"
-                                    title="Zerar estoque disponível"
-                                  >
-                                    <FiRotateCcw size={12} />
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                            
-                            <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                              <div className="flex items-center space-x-2">
-                                <span className="text-sm text-gray-900">{variant.incoming}</span>
-                                {variant.incoming > 0 && (
-                                  <button
-                                    onClick={() => receiveIncomingStock(variant.id)}
-                                    className="text-green-600 hover:text-green-800 text-xs bg-green-100 px-2 py-1 rounded"
-                                  >
-                                    Receber
-                                  </button>
-                                )}
-                              </div>
-                            </td>
                             <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                               <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium ${
                                 variantStatus === "Em Estoque" ? "bg-green-100 text-green-800" :
                                 variantStatus === "Baixo Estoque" ? "bg-yellow-100 text-yellow-800" :
-                                variantStatus === "Em Chegada" ? "bg-blue-100 text-blue-800" :
                                 "bg-red-100 text-red-800"
                               }`}>
                                 {variantStatus}
                               </span>
                             </td>
                             <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                              <button 
-                                onClick={() => startOrdering(product.id, variant.id)}
-                                className="text-blue-600 hover:text-blue-900 text-xs bg-blue-100 px-2 py-1 rounded"
-                              >
-                                Pedir +
-                              </button>
                               <button 
                                 onClick={() => deleteVariant(variant.id, variant.color, variant.size)}
                                 className="text-red-600 hover:text-red-900 text-xs bg-red-100 px-2 py-1 rounded"
@@ -1997,8 +1626,6 @@ const deleteVariant = async (variantId, color, size) => {
           onClose={() => setViewingProduct(null)} 
         />
       )}
-
-      <OrderQuantityModal />
 
       <EditProductModal />
 
@@ -2191,32 +1818,6 @@ const deleteVariant = async (variantId, color, size) => {
                   type="number"
                   value={variantForm.stock}
                   onChange={(e) => setVariantForm({...variantForm, stock: e.target.value})}
-                  className="w-full p-2 border border-gray-300 rounded text-black"
-                  placeholder="0"
-                  min="0"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Reservado
-                </label>
-                <input
-                  type="number"
-                  value={variantForm.reserved}
-                  onChange={(e) => setVariantForm({...variantForm, reserved: e.target.value})}
-                  className="w-full p-2 border border-gray-300 rounded text-black"
-                  placeholder="0"
-                  min="0"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Em Chegada
-                </label>
-                <input
-                  type="number"
-                  value={variantForm.incoming}
-                  onChange={(e) => setVariantForm({...variantForm, incoming: e.target.value})}
                   className="w-full p-2 border border-gray-300 rounded text-black"
                   placeholder="0"
                   min="0"

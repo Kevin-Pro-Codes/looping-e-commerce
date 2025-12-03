@@ -44,55 +44,6 @@ class StockController extends Controller
         }
     }
 
- 
-    /**
-     * Reset reserved stock to zero for a specific variant
-     */
-    public function resetReservedStock(Request $request, $id): JsonResponse
-    {
-        try {
-            $validator = Validator::make($request->all(), [
-                'reserved' => 'required|integer|min:0'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation error',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $stock = Stock::find($id);
-            
-            if (!$stock) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Stock item not found'
-                ], 404);
-            }
-
-            // Reset reserved to 0
-            $stock->update([
-                'reserved' => 0, // Always set to 0 for reset
-                'last_updated' => now()->format('Y-m-d')
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Reserved stock reset to zero successfully',
-                'data' => $stock
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Reset reserved stock error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to reset reserved stock'
-            ], 500);
-        }
-    }
-
     /**
      * Update specific field for a product (supplier, category, etc.)
      */
@@ -255,9 +206,7 @@ class StockController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'stock' => 'sometimes|integer|min:0',
-                'reserved' => 'sometimes|integer|min:0',
-                'incoming' => 'sometimes|integer|min:0'
+                'stock' => 'required|integer|min:0'
             ]);
 
             if ($validator->fails()) {
@@ -277,20 +226,10 @@ class StockController extends Controller
                 ], 404);
             }
 
-            $updateData = ['last_updated' => now()->format('Y-m-d')];
-
-            // Only update fields that are provided
-            if ($request->has('stock')) {
-                $updateData['stock'] = $request->stock;
-            }
-            if ($request->has('reserved')) {
-                $updateData['reserved'] = $request->reserved;
-            }
-            if ($request->has('incoming')) {
-                $updateData['incoming'] = $request->incoming;
-            }
-
-            $stock->update($updateData);
+            $stock->update([
+                'stock' => $request->stock,
+                'last_updated' => now()->format('Y-m-d')
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -303,82 +242,6 @@ class StockController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update stock'
-            ], 500);
-        }
-    }
-
-    public function addIncoming(Request $request, $id): JsonResponse
-    {
-        try {
-            $validator = Validator::make($request->all(), [
-                'quantity' => 'required|integer|min:1'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation error',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $stock = Stock::find($id);
-            
-            if (!$stock) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Stock item not found'
-                ], 404);
-            }
-
-            $stock->increment('incoming', $request->quantity);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Incoming stock added successfully',
-                'data' => $stock
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Add incoming stock error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to add incoming stock'
-            ], 500);
-        }
-    }
-
-    public function receiveIncoming($id): JsonResponse
-    {
-        try {
-            $stock = Stock::find($id);
-            
-            if (!$stock) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Stock item not found'
-                ], 404);
-            }
-
-            DB::transaction(function () use ($stock) {
-                $stock->increment('stock', $stock->incoming);
-                $stock->update([
-                    'incoming' => 0,
-                    'last_updated' => now()->format('Y-m-d')
-                ]);
-            });
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Incoming stock received successfully',
-                'data' => $stock
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Receive incoming stock error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to receive incoming stock'
             ], 500);
         }
     }
@@ -398,9 +261,7 @@ class StockController extends Controller
                 'total_value' => 'required|numeric|min:0',
                 'color' => 'required|string',
                 'size' => 'required|string',
-                'stock' => 'required|integer|min:0',
-                'reserved' => 'integer|min:0',
-                'incoming' => 'integer|min:0'
+                'stock' => 'required|integer|min:0'
             ]);
 
             if ($validator->fails()) {
@@ -424,8 +285,6 @@ class StockController extends Controller
                 'color' => $request->color,
                 'size' => $request->size,
                 'stock' => $request->stock,
-                'reserved' => $request->reserved ?? 0,
-                'incoming' => $request->incoming ?? 0,
                 'last_updated' => now()->format('Y-m-d')
             ]);
 

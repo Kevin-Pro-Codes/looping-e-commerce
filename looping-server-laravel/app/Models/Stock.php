@@ -15,7 +15,7 @@ class Stock extends Model
     protected $fillable = [
         'product_id', 'name', 'sku', 'category', 'supplier',
         'cost', 'profit', 'sale_price', 'total_value',
-        'color', 'size', 'stock', 'reserved', 'incoming', 'last_updated'
+        'color', 'size', 'stock', 'last_updated'
     ];
 
     protected $casts = [
@@ -24,8 +24,6 @@ class Stock extends Model
         'sale_price' => 'decimal:2',
         'total_value' => 'decimal:2',
         'stock' => 'integer',
-        'reserved' => 'integer',
-        'incoming' => 'integer',
         'last_updated' => 'date'
     ];
 
@@ -62,10 +60,7 @@ class Stock extends Model
                             'color' => $item->color,
                             'size' => $item->size,
                             'stock' => $item->stock,
-                            'reserved' => $item->reserved,
-                            'incoming' => $item->incoming,
                             'sku' => $item->sku,
-                            'available' => $item->stock - $item->reserved
                         ];
                     })->values()->toArray()
                 ];
