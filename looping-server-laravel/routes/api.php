@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\UserController;
@@ -9,61 +10,22 @@ use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\AddressController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProductController;
-use Illuminate\Support\Facades\DB;
-use MongoDB\Client; 
-use MongoDB\BSON\ObjectId;
-use App\Http\Controllers\UploadController;
-use App\Http\Controllers\WishlistController;
-use App\Http\Controllers\CartController;
-use App\Models\Wishlist;
-
 use App\Http\Controllers\PixPaymentController;
 use App\Http\Controllers\InfoController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\Auth\ResendVerificationController;
 use App\Http\Controllers\VerifyEmail;
+use App\Http\Controllers\UploadController;
+use App\Http\Controllers\WishlistController;
+use App\Http\Controllers\CartController;
+use MongoDB\Client; 
+use MongoDB\BSON\ObjectId;
+use App\Models\Wishlist;
 
 
-{/*
-Route::get('/test', function (Request $request) {
-    return response()->json([
-        'message' => 'Done!',
-        'data' => $request->all(),
-    ]);});
 
 
-Route::get('/test-mongodb-connection', function () {
-    try {
-        // Test MongoDB connection specifically
-        $mongo = DB::connection('mongodb');
-        $mongo->getMongoClient()->listDatabases();
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'MongoDB connection successful',
-            'database' => config('database.connections.mongodb.database')
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'MongoDB connection failed',
-            'error' => $e->getMessage()
-        ], 500);
-    }
-});
-
-Route::get('/test-mongo', function() {
-    try {
-        $client = new MongoDB\Client(env('MONGO_URI'));
-        $db = $client->selectDatabase(env('MONGO_DB'));
-        return response()->json(['collections' => $db->listCollections()]);
-    } catch (\Exception $e) {
-        return response()->json(['error' => $e->getMessage()], 500);
-    }
-});
-
-*/} 
 
 Route::get('/test-mongodb', function() {
     try {
