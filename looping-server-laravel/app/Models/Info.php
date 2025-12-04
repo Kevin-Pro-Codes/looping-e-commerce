@@ -24,8 +24,8 @@ class Info extends Model
         'discount',
         'payment_method',
         'payment_status',
-        'stock_updated',           // ✅ ADDED
-        'stock_updated_at',        // ✅ ADDED
+        'stock_updated',           // ✅ TRACKS IF STOCK WAS DEDUCTED
+        'stock_updated_at',        // ✅ WHEN STOCK WAS DEDUCTED
         'status',
         'shipping_street',
         'shipping_number',
@@ -34,7 +34,7 @@ class Info extends Model
         'shipping_city',
         'shipping_state',
         'shipping_zip_code',
-        'items',       
+        'items',                   // ✅ CONTAINS ORDERED QUANTITIES
         'metadata'
     ];
 
@@ -43,23 +43,22 @@ class Info extends Model
         'subtotal' => 'decimal:2',
         'shipping' => 'decimal:2',
         'discount' => 'decimal:2',
-        'stock_updated' => 'boolean',  // ✅ ADDED
-        'items' => 'array',
+        'stock_updated' => 'boolean',  // ✅ Cast as boolean
+        'items' => 'array',            // ✅ Cast as array (contains quantities)
         'metadata' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
-        'stock_updated_at' => 'datetime',  // ✅ ADDED
+        'stock_updated_at' => 'datetime',  // ✅ Cast as datetime
     ];
 
     /**
-     * Boot method to handle JSON encoding issues
+     * Boot method
      */
     protected static function boot()
     {
         parent::boot();
 
         static::retrieved(function ($info) {
-            // Ensure JSON fields are properly handled
             try {
                 if ($info->items && is_string($info->items)) {
                     $info->items = json_decode($info->items, true);
@@ -72,16 +71,10 @@ class Info extends Model
                 Log::error('Error decoding JSON fields for info ' . $info->id . ': ' . $e->getMessage());
             }
         });
-
-        // ✅ OPTIONAL: Add this to automatically update stock when payment status changes
-        static::updated(function ($info) {
-            // You can add stock synchronization logic here if you want
-            // but it's better to handle it in the controller or service
-        });
     }
 
     /**
-     * ✅ ADDED: Check if stock needs to be updated
+     * ✅ Check if stock needs to be updated
      */
     public function needsStockUpdate(): bool
     {
@@ -89,7 +82,7 @@ class Info extends Model
     }
 
     /**
-     * ✅ ADDED: Mark stock as updated
+     * ✅ Mark stock as updated
      */
     public function markStockAsUpdated(): void
     {
@@ -99,7 +92,7 @@ class Info extends Model
     }
 
     /**
-     * ✅ ADDED: Check if order is eligible for stock deduction
+     * ✅ Check if order is eligible for stock deduction
      */
     public function canDeductStock(): bool
     {
@@ -109,7 +102,16 @@ class Info extends Model
     }
 
     /**
-     * ✅ ADDED: Scope for orders that need stock update
+     * ✅ Check if order should restore stock
+     */
+    public function shouldRestoreStock(): bool
+    {
+        return ($this->payment_status === 'refunded' || $this->status === 'cancelled')
+            && $this->stock_updated;
+    }
+
+    /**
+     * ✅ Scope for orders that need stock update
      */
     public function scopeNeedsStockUpdate($query)
     {
@@ -118,7 +120,7 @@ class Info extends Model
     }
 
     /**
-     * ✅ ADDED: Scope for paid orders
+     * ✅ Scope for paid orders
      */
     public function scopePaid($query)
     {
@@ -126,7 +128,7 @@ class Info extends Model
     }
 
     /**
-     * ✅ ADDED: Get items array with proper parsing
+     * ✅ Get parsed items with quantities
      */
     public function getParsedItemsAttribute(): array
     {
@@ -139,5 +141,17 @@ class Info extends Model
         }
 
         return [];
+    }
+
+    /**
+     * ✅ Get total quantity of items in order
+     */
+    public function getTotalQuantityAttribute(): int
+    {
+        $total = 0;
+        foreach ($this->parsed_items as $item) {
+            $total += $item['quantity'] ?? 0;
+        }
+        return $total;
     }
 }

@@ -13,9 +13,19 @@ class Stock extends Model
     protected $table = 'stock';
     
     protected $fillable = [
-        'product_id', 'name', 'sku', 'category', 'supplier',
-        'cost', 'profit', 'sale_price', 'total_value',
-        'color', 'size', 'stock', 'last_updated'
+        'product_id', 
+        'name', 
+        'sku', 
+        'category', 
+        'supplier',
+        'cost', 
+        'profit', 
+        'sale_price', 
+        'total_value',
+        'color', 
+        'size', 
+        'stock',           // ✅ AVAILABLE QUANTITY
+        'last_updated'
     ];
 
     protected $casts = [
@@ -23,10 +33,13 @@ class Stock extends Model
         'profit' => 'decimal:2',
         'sale_price' => 'decimal:2',
         'total_value' => 'decimal:2',
-        'stock' => 'integer',
+        'stock' => 'integer',      // ✅ Cast as integer
         'last_updated' => 'date'
     ];
 
+    /**
+     * Get grouped stock by product
+     */
     public static function getGroupedStock()
     {
         if (!Schema::hasTable('stock')) {
@@ -59,7 +72,7 @@ class Stock extends Model
                             'id' => $item->id,
                             'color' => $item->color,
                             'size' => $item->size,
-                            'stock' => $item->stock,
+                            'stock' => $item->stock, // ✅ AVAILABLE QUANTITY
                             'sku' => $item->sku,
                         ];
                     })->values()->toArray()

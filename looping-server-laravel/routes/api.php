@@ -449,19 +449,6 @@ Route::post('/email/verification-resend', function (Request $request) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-/////
-
 // Stock sync routes
 Route::post('/infos/{id}/confirm-payment', [InfoController::class, 'confirmPayment']);
 Route::post('/infos/check-stock', [InfoController::class, 'checkStock']);
@@ -482,4 +469,6 @@ Route::post('/infos/{id}/sync-stock', function($id, StockService $stockService) 
         'stock_updated' => $order->stock_updated
     ]);
 });
+
+
 
