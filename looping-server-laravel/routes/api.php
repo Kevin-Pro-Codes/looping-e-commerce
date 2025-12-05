@@ -3,54 +3,29 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
-use App\Http\Controllers\RegisterController;
-use App\Http\Controllers\LoginController;
-use App\Http\Controllers\UserController;
+use App\Http\Controllers\Basic\RegisterController;
+use App\Http\Controllers\Basic\LoginController;
+use App\Http\Controllers\Basic\UserController;
 use App\Http\Controllers\Auth\GoogleAuthController;
-use App\Http\Controllers\AddressController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\ProductController;
-use App\Http\Controllers\PixPaymentController;
-use App\Http\Controllers\InfoController;
-use App\Http\Controllers\StockController;
-use App\Http\Controllers\PasswordResetController;
-use App\Http\Controllers\Auth\ResendVerificationController;
-use App\Http\Controllers\VerifyEmail;
-use App\Http\Controllers\UploadController;
-use App\Http\Controllers\WishlistController;
-use App\Http\Controllers\CartController;
+use App\Http\Controllers\Basic\AddressController;
+use App\Http\Controllers\Basic\ProfileController;
+use App\Http\Controllers\Basic\ProductController;
+use App\Http\Controllers\Basic\PixPaymentController;
+use App\Http\Controllers\Basic\InfoController;
+use App\Http\Controllers\Basic\StockController;
+use App\Http\Controllers\Basic\PasswordResetController;
+use App\Http\Controllers\Basic\ResendVerificationController;
+use App\Http\Controllers\Basic\VerifyEmail;
+use App\Http\Controllers\Basic\UploadController;
+use App\Http\Controllers\Basic\WishlistController;
+use App\Http\Controllers\Basic\CartController;
 use MongoDB\Client; 
 use MongoDB\BSON\ObjectId;
 use App\Models\Wishlist;
 
-
-
-
-
-Route::get('/test-mongodb', function() {
-    try {
-        // Test MongoDB connection
-        $mongo = DB::connection('mongodb');
-        $status = $mongo->getMongoClient()->listDatabases();
-        echo "MongoDB Connection: ✅ WORKING<br>";
-        
-        // Test collections
-        $collections = $mongo->getCollection('wishlist');
-        echo "Wishlist collection: ✅ ACCESSIBLE<br>";
-        
-        // Test Product model
-        $productCount = \App\Models\Product::count();
-        echo "Products in database: " . $productCount . "<br>";
-        
-        // Test Wishlist model
-        $wishlistCount = \App\Models\Wishlist::count();
-        echo "Wishlist items: " . $wishlistCount . "<br>";
-        
-    } catch (\Exception $e) {
-        echo "❌ MongoDB Error: " . $e->getMessage() . "<br>";
-        echo "File: " . $e->getFile() . " Line: " . $e->getLine() . "<br>";
-    }
-});
+// ==============================================
+// ORIGINAL ROUTES (Maintained for backward compatibility)
+// ==============================================
 
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
@@ -58,11 +33,10 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 Route::middleware('auth:sanctum')->put('/user/{id}', function (Request $request, $id) {
-   
     if ($request->user()->id != $id) {
         return response()->json(['error' => 'Unauthorized'], 403);
     }
-  
+    
     $request->user()->update($request->only([
         'nome',
         'email',
@@ -76,6 +50,7 @@ Route::middleware('auth:sanctum')->put('/user/{id}', function (Request $request,
     return response()->json($request->user());
 });
 
+// Product routes (MongoDB closures)
 Route::get('/products', function () {
     try {
         $client = new MongoDB\Client(env('MONGO_URI'));
@@ -174,6 +149,7 @@ Route::middleware(['auth:sanctum', 'admin'])->get('/admin/products', function ()
     }
 });
 
+// Upload routes
 Route::post('/upload', [UploadController::class, 'store']);
 
 Route::post('/debug-upload', function (Request $request) {
@@ -204,197 +180,27 @@ Route::post('/debug-upload', function (Request $request) {
     ]);
 });
 
+// Authenticated routes
 Route::middleware('auth:sanctum')->group(function () {
-    // MongoDB wishlist routes using your WishlistController
+    // MongoDB wishlist routes
     Route::get('/wishlist', [WishlistController::class, 'index']);
     Route::post('/wishlist/toggle', [WishlistController::class, 'toggle']);
     Route::delete('/wishlist/{productId}', [WishlistController::class, 'destroy']);
     Route::get('/wishlist/check/{productId}', [WishlistController::class, 'check']);
     Route::get('/wishlist/count', [WishlistController::class, 'count']);
 
+    // Cart routes
     Route::get('/cart', [CartController::class, 'index']);
     Route::get('/cart/debug', [CartController::class, 'debug']);
     Route::get('/cart/count', [CartController::class, 'count']);
     Route::post('/cart/add', [CartController::class, 'addToCart']);
     Route::put('/cart/{productId}', [CartController::class, 'updateQuantity']);
     Route::delete('/cart/{productId}', [CartController::class, 'removeFromCart']);
-Route::delete('/cart', [CartController::class, 'clearCart']);
+    Route::delete('/cart', [CartController::class, 'clearCart']);
 });
 
 
-// Test MongoProduct directly
-Route::middleware('auth:sanctum')->get('/debug/mongo-product/{productId?}', function($productId = null) {
-    try {
-        $mongoProduct = new \App\Models\MongoProduct();
-        
-        if ($productId) {
-            $product = $mongoProduct->find($productId);
-            return response()->json([
-                'product' => $product,
-                'product_id' => $productId
-            ]);
-        } else {
-            // Get some product IDs from wishlist to test
-            $user = Auth::user();
-            $client = new \MongoDB\Client(env('MONGODB_URI', 'mongodb://localhost:27017'));
-            $database = env('MONGODB_DATABASE', 'finito');
-            $wishlistCollection = $client->$database->wishlists;
-            
-            $wishlistItems = $wishlistCollection->find(['user_id' => (int)$user->id])->toArray();
-            $productIds = array_map(function($item) {
-                return $item['product_id'];
-            }, $wishlistItems);
-            
-            $products = $mongoProduct->getByIds($productIds);
-            
-            return response()->json([
-                'product_ids_from_wishlist' => $productIds,
-                'products_found' => $products
-            ]);
-        }
-        
-    } catch (\Exception $e) {
-        return response()->json([
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ], 500);
-    }
-});
-
-// In api.php
-Route::middleware('auth:sanctum')->get('/wishlist/debug-detailed', function() {
-    try {
-        $user = Auth::user();
-        
-        // Test MongoDB connection
-        $client = new \MongoDB\Client(env('MONGODB_URI', 'mongodb://localhost:27017'));
-        $database = env('MONGODB_DATABASE', 'finito');
-        
-        // Check collections
-        $collections = iterator_to_array($client->$database->listCollections());
-        $collectionNames = array_map(function($col) { return $col->getName(); }, $collections);
-        
-        // Check wishlist data
-        $wishlistCollection = $client->$database->wishlists;
-        $userWishlist = $wishlistCollection->find(['user_id' => (int)$user->id])->toArray();
-        
-        // Check products collection
-        $productsCollection = $client->$database->products;
-        $productCount = $productsCollection->countDocuments();
-        
-        return response()->json([
-            'user_id' => $user->id,
-            'mongodb_connected' => true,
-            'database' => $database,
-            'collections' => $collectionNames,
-            'wishlist_items_raw' => $userWishlist,
-            'wishlist_count' => count($userWishlist),
-            'products_count' => $productCount,
-            'env_mongodb_uri' => env('MONGODB_URI'),
-            'env_mongodb_database' => env('MONGODB_DATABASE')
-        ]);
-        
-    } catch (\Exception $e) {
-        return response()->json([
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ], 500);
-    }
-});
-
-Route::post('/wishlist/debug', function(Request $request) {
-    \Log::info('=== WISHLIST DEBUG START ===');
-    
-    // Check authentication
-    $user = Auth::user();
-    \Log::info('User status:', ['user' => $user ? $user->id : 'null']);
-    
-    // Check request data
-    \Log::info('Request data:', $request->all());
-    \Log::info('Headers:', $request->headers->all());
-    
-    // Check database connection
-    try {
-        \Log::info('MongoDB connection:', ['status' => 'testing']);
-        $test = DB::connection('mongodb')->getMongoClient()->listDatabases();
-        \Log::info('MongoDB connection successful');
-    } catch (\Exception $e) {
-        \Log::error('MongoDB connection failed:', ['error' => $e->getMessage()]);
-    }
-    
-    // Check if Wishlist model works
-    try {
-        if ($user) {
-            $count = \App\Models\Wishlist::where('user_id', $user->id)->count();
-            \Log::info('Wishlist count:', ['count' => $count]);
-        }
-    } catch (\Exception $e) {
-        \Log::error('Wishlist model error:', ['error' => $e->getMessage()]);
-    }
-    
-    \Log::info('=== WISHLIST DEBUG END ===');
-    
-    return response()->json([
-        'authenticated' => (bool)$user,
-        'user_id' => $user ? $user->id : null,
-        'message' => 'Debug completed'
-    ]);
-});
-
-{/*
-
-Route::prefix('payments')->group(function () {
-    Route::post('/create-pix-payment', [PaymentController::class, 'createPixPayment']);
-    Route::get('/payment-status/{paymentIntentId}', [PaymentController::class, 'checkPaymentStatus']);
-    Route::post('/webhook', [PaymentController::class, 'handleWebhook']);
-});
-
-*/}
-
-Route::get('/test-pix', function () {
-    \Stripe\Stripe::setApiKey(config('services.stripe.secret'));
-    
-    try {
-        $paymentIntent = \Stripe\PaymentIntent::create([
-            'amount' => 1000, // R$ 10.00
-            'currency' => 'brl',
-            'payment_method_types' => ['pix'],
-        ]);
-        
-        return response()->json([
-            'success' => true,
-            'payment_intent' => $paymentIntent
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'error' => $e->getMessage()
-        ], 500);
-    }
-});
-
-// Test route to verify API is working
-Route::get('/test', function () {
-    return response()->json([
-        'status' => 'success',
-        'message' => 'API is working!',
-        'timestamp' => now(),
-        'laravel_version' => app()->version(),
-        'php_version' => PHP_VERSION,
-    ]);
-});
-
-{/*
-// Orders routes without authentication for development
-Route::get('/orders', [OrderController::class, 'index']);
-Route::get('/orders/{id}', [OrderController::class, 'show']);
-Route::put('/orders/{id}/status', [OrderController::class, 'updateStatus']);
-Route::delete('/orders/{id}', [OrderController::class, 'destroy']);
-Route::post('/orders', [OrderController::class, 'store']);
-Route::post('/orders/generate-samples', [OrderController::class, 'generateSamples']);
-Route::delete('/admin/orders/clear', [OrderController::class, 'clearAll']);
-*/}
-
-
+// Info routes
 Route::get('/infos', [InfoController::class, 'index']);
 Route::put('/infos/{id}/status', [InfoController::class, 'updateStatus']);
 Route::delete('/infos/{id}', [InfoController::class, 'destroy']);
@@ -406,6 +212,7 @@ Route::get('/infos/stats', [InfoController::class, 'getCustomerStats']);
 Route::get('/infos/{email}', [InfoController::class, 'getCustomerByEmail']);
 Route::get('/infos/search/customers', [InfoController::class, 'searchCustomers']);
 
+// Stock routes
 Route::put('/infos/stock/sync-order', [StockController::class, 'syncOrderStock'])->name('stock.sync-order');
 Route::put('/infos/stock/reverse-order', [StockController::class, 'reverseOrderStock'])->name('stock.reverse-order');
 Route::put('/infos/stock/{id}/reset-reserved', [StockController::class, 'resetReservedStock'])->name('stock.reset-reserved');
@@ -421,14 +228,17 @@ Route::post('/infos/stock/samples', [StockController::class, 'store'])->name('st
 Route::delete('/infos/stock/variant/{id}', [StockController::class, 'destroy'])->name('stock.destroy-variant');
 Route::delete('/infos/stock/product/{productId}', [StockController::class, 'destroyByProductId'])->name('stock.destroy-product');
 
+// PIX routes
 Route::post('/pix/generate', [PixPaymentController::class, 'generatePix']);
 Route::get('/pix/status/{orderId}', [PixPaymentController::class, 'checkPaymentStatus']);
 Route::post('/pix/webhook', [PixPaymentController::class, 'handleWebhook']);
 
+// Password reset routes
 Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink']);
 Route::post('/reset-password', [PasswordResetController::class, 'resetPassword']);
 Route::post('/check-reset-token', [PasswordResetController::class, 'checkToken']);
 
+// Email verification
 Route::post('/email/verification-resend', function (Request $request) {
     $request->validate(['email' => 'required|email']);
     
@@ -447,28 +257,106 @@ Route::post('/email/verification-resend', function (Request $request) {
     return response()->json(['message' => 'Email de verificação reenviado!']);
 });
 
+// ==============================================
+// BASIC ROUTES (New routes with /basic prefix)
+// ==============================================
 
-
-// Stock sync routes
-Route::post('/infos/{id}/confirm-payment', [InfoController::class, 'confirmPayment']);
-Route::post('/infos/check-stock', [InfoController::class, 'checkStock']);
-
-// Optionally add a manual sync endpoint
-Route::post('/infos/{id}/sync-stock', function($id, StockService $stockService) {
-    $order = App\Models\Info::find($id);
-    if (!$order) {
-        return response()->json(['success' => false, 'message' => 'Order not found'], 404);
-    }
+Route::prefix('basic')->group(function () {
+    // Authentication routes
+    Route::post('/register', [RegisterController::class, 'register']);
+    Route::post('/login', [LoginController::class, 'login']);
+    Route::post('/logout', [LoginController::class, 'logout']);
     
-    $success = $stockService->deductStockFromOrder($order);
+    // User routes
+    Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+        return response()->json($request->user());
+    });
     
-    return response()->json([
-        'success' => $success,
-        'message' => $success ? 'Stock synced successfully' : 'Failed to sync stock',
-        'order_id' => $order->id,
-        'stock_updated' => $order->stock_updated
-    ]);
+    Route::middleware('auth:sanctum')->put('/user/{id}', function (Request $request, $id) {
+        if ($request->user()->id != $id) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+        
+        $request->user()->update($request->only([
+            'nome',
+            'email',
+            'telefone',
+            'cpf',
+            'data_nascimento',
+            'avatar',
+            'receber_marketing',
+        ]));
+
+        return response()->json($request->user());
+    });
+    
+    // Address routes
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/addresses', [AddressController::class, 'index']);
+        Route::post('/addresses', [AddressController::class, 'store']);
+        Route::put('/addresses/{id}', [AddressController::class, 'update']);
+        Route::delete('/addresses/{id}', [AddressController::class, 'destroy']);
+    });
+    
+    // Wishlist routes
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/wishlist', [WishlistController::class, 'index']);
+        Route::post('/wishlist/toggle', [WishlistController::class, 'toggle']);
+        Route::delete('/wishlist/{productId}', [WishlistController::class, 'destroy']);
+        Route::get('/wishlist/check/{productId}', [WishlistController::class, 'check']);
+        Route::get('/wishlist/count', [WishlistController::class, 'count']);
+    });
+    
+    // Cart routes
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/cart', [CartController::class, 'index']);
+        Route::get('/cart/debug', [CartController::class, 'debug']);
+        Route::get('/cart/count', [CartController::class, 'count']);
+        Route::post('/cart/add', [CartController::class, 'addToCart']);
+        Route::put('/cart/{productId}', [CartController::class, 'updateQuantity']);
+        Route::delete('/cart/{productId}', [CartController::class, 'removeFromCart']);
+        Route::delete('/cart', [CartController::class, 'clearCart']);
+    });
+    
+    // Info routes
+    Route::get('/infos', [InfoController::class, 'index']);
+    Route::put('/infos/{id}/status', [InfoController::class, 'updateStatus']);
+    Route::delete('/infos/{id}', [InfoController::class, 'destroy']);
+    Route::post('/infos', [InfoController::class, 'store']);
+    Route::post('/infos/generate-samples', [InfoController::class, 'generateSamples']);
+    Route::delete('/admin/infos/clear', [InfoController::class, 'clearAll']);
+    Route::get('/infos/all', [InfoController::class, 'getCustomersFromInfos']); 
+    Route::get('/infos/stats', [InfoController::class, 'getCustomerStats']); 
+    Route::get('/infos/{email}', [InfoController::class, 'getCustomerByEmail']);
+    Route::get('/infos/search/customers', [InfoController::class, 'searchCustomers']);
+    
+    // Stock routes
+    Route::put('/stock/sync-order', [StockController::class, 'syncOrderStock'])->name('stock.sync-order');
+    Route::put('/stock/reverse-order', [StockController::class, 'reverseOrderStock'])->name('stock.reverse-order');
+    Route::put('/stock/{id}/reset-reserved', [StockController::class, 'resetReservedStock'])->name('stock.reset-reserved');
+    Route::put('/stock/product/{productId}/update-field', [StockController::class, 'updateProductField'])->name('stock.update-field');
+    Route::put('/stock/product/{productId}/pricing', [StockController::class, 'updateProductPricing'])->name('stock.update-pricing');
+    Route::put('/stock/{id}/update', [StockController::class, 'updateStock'])->name('stock.update');
+    Route::post('/stock/{id}/add-incoming', [StockController::class, 'addIncoming'])->name('stock.add-incoming');
+    Route::post('/stock/{id}/receive-incoming', [StockController::class, 'receiveIncoming'])->name('stock.receive-incoming');
+    Route::get('/stock/low-stock', [StockController::class, 'lowStock'])->name('stock.low-stock');
+    Route::get('/stock/out-of-stock', [StockController::class, 'outOfStock'])->name('stock.out-of-stock');
+    Route::get('/stock/fetch', [StockController::class, 'index'])->name('stock.fetch');
+    Route::post('/stock/samples', [StockController::class, 'store'])->name('stock.store');
+    Route::delete('/stock/variant/{id}', [StockController::class, 'destroy'])->name('stock.destroy-variant');
+    Route::delete('/stock/product/{productId}', [StockController::class, 'destroyByProductId'])->name('stock.destroy-product');
+    
+    // PIX routes
+    Route::post('/pix/generate', [PixPaymentController::class, 'generatePix']);
+    Route::get('/pix/status/{orderId}', [PixPaymentController::class, 'checkPaymentStatus']);
+    Route::post('/pix/webhook', [PixPaymentController::class, 'handleWebhook']);
+    
+    // Password reset routes
+    Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink']);
+    Route::post('/reset-password', [PasswordResetController::class, 'resetPassword']);
+    Route::post('/check-reset-token', [PasswordResetController::class, 'checkToken']);
+    
+    // Upload routes
+    Route::post('/upload', [UploadController::class, 'store']);
+     
 });
-
-
-
