@@ -1,1 +1,0 @@
-I need to fix on my profile > desejos to fetch the image, title and price of products as im logged in

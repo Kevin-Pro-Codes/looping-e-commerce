@@ -1,2 +1,0 @@
-I have an issue implementing my stock system converting from localstorage based to endpoint/database based 
-

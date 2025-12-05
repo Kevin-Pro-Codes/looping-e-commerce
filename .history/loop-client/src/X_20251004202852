@@ -1,4 +1,0 @@
- <button className="w-full flex items-center justify-center bg-white border border-black text-black py-2 rounded-md hover:bg-gray-100 transition" style={{ fontFamily: "Calibri, sans-serif" }}>
-            <img src={gmailLogo} alt="Google" className="w-5 h-5 mr-3" />
-            Continuar com Google
-          </button>

@@ -1,1 +1,0 @@
-Login + Products + Profile + Admin Panel
