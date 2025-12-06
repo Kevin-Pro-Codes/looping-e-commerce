@@ -43,11 +43,11 @@ class OrderInfoController extends Controller
             }
 
             // Always use a Collection → safe ->count()
-            $infos = collect();
+            $orders = collect();
 
             if ($tableExists) {
                 try {
-                    $infos = Info::select([
+                    $orders = Info::select([
                         'id',
                         'order_number',
                         'customer_name',
@@ -76,22 +76,22 @@ class OrderInfoController extends Controller
                         'updated_at'
                     ])->get();
 
-                    Log::info('Fetched ' . $infos->count() . ' orders from database');
+                    Log::info('Fetched ' . $orders->count() . ' orders from database');
                 } catch (Exception $e) {
                     Log::error('Failed to fetch orders: ' . $e->getMessage());
-                    $infos = collect(); // Keep as Collection even on error
+                    $orders = collect(); // Keep as Collection even on error
                 }
             }
 
             return response()->json([
                 'success' => true,
                 'message' => 'Orders fetched successfully',
-                'data' => $infos,
+                'data' => $orders,
                 'debug' => [
                     'server' => 'running',
                     'database_connected' => $dbConnected,
                     'orders_table_exists' => $tableExists, // Fixed key
-                    'total_orders' => $infos->count(), // Fixed key
+                    'total_orders' => $orders->count(), // Fixed key
                     'timestamp' => now()->format('c')
                 ]
             ]);
@@ -768,7 +768,7 @@ public function store(Request $request, StockService $stockService): JsonRespons
                 ], 500);
             }
 
-            $sampleInfos = [
+            $sampleOrders = [
                 [
                     'order_number' => 'ORD-' . strtoupper(substr(uniqid(), -6)),
                     'customer_name' => 'João Silva',
@@ -839,7 +839,7 @@ public function store(Request $request, StockService $stockService): JsonRespons
             ];
 
             $created = [];
-            foreach ($sampleInfos as $data) {
+            foreach ($sampleOrders as $data) {
                 try {
                     $info = Info::create($data);
                     
@@ -879,7 +879,7 @@ public function store(Request $request, StockService $stockService): JsonRespons
     /**
      * Get customers from orders table - FIXED VERSION
      */
-    public function getCustomersFromInfos(): JsonResponse
+    public function getCustomersFromOrders(): JsonResponse
     {
         try {
             Log::info('=== GET CUSTOMERS FROM ORDERS START ===');
