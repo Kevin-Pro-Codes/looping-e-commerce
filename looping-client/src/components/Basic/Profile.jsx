@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
-import ProfileTab from './Profile/ProfileTab';
-import AddressesTab from './Profile/AddressesTab';
-import OrdersTab from './Profile/OrdersTab';
-import WishlistTab from './Profile/WishlistTab';
-import CartTab from './Profile/CartTab';
-import CouponsTab from './Profile/CouponsTab';
-import PaymentTab from './Profile/PaymentTab';
-import ConfigurationTab from './Profile/ConfigurationTab';
-import HelpTab from './Profile/HelpTab';
-import MobileNavigation from './Profile/MobileNavigation';
-import DesktopSidebar from './Profile/DesktopSidebar';
-import { ResponsiveContainer, Card } from './Profile/SharedComponents';
+import ProfileTab from '../User/ProfileTab';
+import AddressesTab from '../User/AddressesTab';
+import OrdersTab from '../User/OrdersTab';
+import WishlistTab from '../User/WishlistTab';
+import CartTab from '../User/CartTab';
+import CouponsTab from '../User/CouponsTab';
+import PaymentTab from '../User/PaymentTab';
+import ConfigurationTab from '../User/ConfigurationTab';
+import HelpTab from '../User/HelpTab';
+import MobileNavigation from '../User/MobileNavigation';
+import DesktopSidebar from '../User/DesktopSidebar';
+import { ResponsiveContainer, Card } from '../User/SharedComponents';
 
 const recoverSession = async () => {
   try {

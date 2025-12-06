@@ -43,7 +43,7 @@ class ProfileController extends Controller
 
             'addresses' => [], // you can load real addresses if needed
 
-            'payment' => [],   // you can load real payment info if needed
+            'payment' => [],   // you can load real payment order if needed
         ]);
     }
 
@@ -85,7 +85,7 @@ class ProfileController extends Controller
 
             'addresses' => [], // load real addresses if needed
 
-            'payment' => [],   // load real payment info if needed
+            'payment' => [],   // load real payment order if needed
         ]);
     }
 }

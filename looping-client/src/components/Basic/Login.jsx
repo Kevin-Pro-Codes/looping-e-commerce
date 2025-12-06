@@ -2,9 +2,9 @@ import React, { useState } from "react";
 import { useGoogleLogin } from "@react-oauth/google";
 import { useNavigate } from "react-router-dom";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
-import gmailLogo from "../assets/gmail.png";
-import microsoftLogo from "../assets/microsoft.png";
-import yahooLogo from "../assets/yahoo.png";
+import gmailLogo from "../../assets/gmail.png";
+import microsoftLogo from "../../assets/microsoft.png";
+import yahooLogo from "../../assets/yahoo.png";
 
 export default function Login() {
   const [email, setEmail] = useState("");

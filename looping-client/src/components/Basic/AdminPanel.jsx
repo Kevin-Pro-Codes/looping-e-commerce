@@ -7,15 +7,15 @@ import {
 } from "react-icons/fi";
 import { LuDatabaseBackup } from "react-icons/lu";
 
-import Dashboard from './Admin-Panel/Dashboard';
-import SaleProducts from './Admin-Panel/SaleProducts';
-import StockManagement from './Admin-Panel/StockManagement';
-import OrdersManagement from './Admin-Panel/OrdersManagement';
-import CustomersManagement from './Admin-Panel/CustomersManagement';
-import DeliveryManagement from './Admin-Panel/DeliveryManagement';
-import PromotionsManagement from './Admin-Panel/PromotionsManagement';
-import BackupsManagement from './Admin-Panel/BackupsManagement';
-import SettingsManagement from './Admin-Panel/SettingsManagement';
+import Dashboard from '../Admin/Dashboard';
+import SaleProducts from '../Admin/SaleProducts';
+import StockManagement from '../Admin/StockManagement';
+import OrdersManagement from '../Admin/OrdersManagement';
+import CustomersManagement from '../Admin/CustomersManagement';
+import DeliveryManagement from '../Admin/DeliveryManagement';
+import PromotionsManagement from '../Admin/PromotionsManagement';
+import BackupsManagement from '../Admin/BackupsManagement';
+import SettingsManagement from '../Admin/SettingsManagement';
 
 const AdminPanel = () => {
   const navigate = useNavigate();

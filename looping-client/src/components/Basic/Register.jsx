@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useGoogleLogin } from "@react-oauth/google";
 import { useNavigate } from "react-router-dom";
-import gmailLogo from "../assets/gmail.png";
-import microsoftLogo from "../assets/microsoft.png";
-import yahooLogo from "../assets/yahoo.png";
+import gmailLogo from "../../assets/gmail.png";
+import microsoftLogo from "../../assets/microsoft.png";
+import yahooLogo from "../../assets/yahoo.png";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 
 export default function Register() {

@@ -11,7 +11,7 @@ use App\Http\Controllers\Basic\AddressController;
 use App\Http\Controllers\Basic\ProfileController;
 use App\Http\Controllers\Basic\ProductController;
 use App\Http\Controllers\Basic\PixPaymentController;
-use App\Http\Controllers\Basic\InfoController;
+use App\Http\Controllers\Basic\OrderInfoController;
 use App\Http\Controllers\Basic\StockController;
 use App\Http\Controllers\Basic\PasswordResetController;
 use App\Http\Controllers\Basic\ResendVerificationController;
@@ -201,16 +201,16 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
 // Info routes
-Route::get('/infos', [InfoController::class, 'index']);
-Route::put('/infos/{id}/status', [InfoController::class, 'updateStatus']);
-Route::delete('/infos/{id}', [InfoController::class, 'destroy']);
-Route::post('/infos', [InfoController::class, 'store']);
-Route::post('/infos/generate-samples', [InfoController::class, 'generateSamples']);
-Route::delete('/admin/infos/clear', [InfoController::class, 'clearAll']);
-Route::get('/infos/all', [InfoController::class, 'getCustomersFromInfos']); 
-Route::get('/infos/stats', [InfoController::class, 'getCustomerStats']); 
-Route::get('/infos/{email}', [InfoController::class, 'getCustomerByEmail']);
-Route::get('/infos/search/customers', [InfoController::class, 'searchCustomers']);
+Route::get('/infos', [OrderInfoController::class, 'index']);
+Route::put('/infos/{id}/status', [OrderInfoController::class, 'updateStatus']);
+Route::delete('/infos/{id}', [OrderInfoController::class, 'destroy']);
+Route::post('/infos', [OrderInfoController::class, 'store']);
+Route::post('/infos/generate-samples', [OrderInfoController::class, 'generateSamples']);
+Route::delete('/admin/infos/clear', [OrderInfoController::class, 'clearAll']);
+Route::get('/infos/all', [OrderInfoController::class, 'getCustomersFromInfos']); 
+Route::get('/infos/stats', [OrderInfoController::class, 'getCustomerStats']); 
+Route::get('/infos/{email}', [OrderInfoController::class, 'getCustomerByEmail']);
+Route::get('/infos/search/customers', [OrderInfoController::class, 'searchCustomers']);
 
 // Stock routes
 Route::put('/infos/stock/sync-order', [StockController::class, 'syncOrderStock'])->name('stock.sync-order');
@@ -318,17 +318,7 @@ Route::prefix('basic')->group(function () {
         Route::delete('/cart', [CartController::class, 'clearCart']);
     });
     
-    // Info routes
-    Route::get('/infos', [InfoController::class, 'index']);
-    Route::put('/infos/{id}/status', [InfoController::class, 'updateStatus']);
-    Route::delete('/infos/{id}', [InfoController::class, 'destroy']);
-    Route::post('/infos', [InfoController::class, 'store']);
-    Route::post('/infos/generate-samples', [InfoController::class, 'generateSamples']);
-    Route::delete('/admin/infos/clear', [InfoController::class, 'clearAll']);
-    Route::get('/infos/all', [InfoController::class, 'getCustomersFromInfos']); 
-    Route::get('/infos/stats', [InfoController::class, 'getCustomerStats']); 
-    Route::get('/infos/{email}', [InfoController::class, 'getCustomerByEmail']);
-    Route::get('/infos/search/customers', [InfoController::class, 'searchCustomers']);
+
     
     // Stock routes
     Route::put('/stock/sync-order', [StockController::class, 'syncOrderStock'])->name('stock.sync-order');

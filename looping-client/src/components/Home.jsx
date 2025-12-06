@@ -5,7 +5,7 @@ import { FiHeart, FiShoppingCart } from "react-icons/fi";
 import { FaWhatsapp, FaInstagram, FaFacebook } from "react-icons/fa";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
-import PaymentAd from "./PaymentAd";
+import PaymentAd from "./Basic/PaymentAd";
 import showImage from "../assets/bg.png";
 import kt from "../assets/kurt.png";
 import rnr from "../assets/rnr.png";
@@ -22,8 +22,8 @@ import loopingBanner from "../assets/looping-banner.png";
 import loopingAd from "../assets/looping-ad.png";
 import logo from "../assets/logo.png";
 import mnq from "../assets/mnq.png";
-import BannerTimer from "./BannerTimer";
-import Products from "./Products";
+import BannerTimer from "./Basic/BannerTimer";
+import Products from "./Basic/Products";
 
 // REORDERED bannerCombos array - Python RIGHT AFTER FClub
 const bannerCombos = [

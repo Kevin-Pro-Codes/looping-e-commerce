@@ -8,9 +8,9 @@ import {
   FaApplePay,
   FaGooglePay,
 } from "react-icons/fa";
-import sslImg from "../assets/ssl.png";
-import pixImg from "../assets/pix.png";
-import boletoImg from "../assets/boleto.png";
+import sslImg from "../../assets/ssl.png";
+import pixImg from "../../assets/pix.png";
+import boletoImg from "../../assets/boleto.png";
 
 const PaymentAd = () => {
   return (

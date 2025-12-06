@@ -4,17 +4,17 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Navbar from "./Navbar";
 import Footer from "./Footer";
-import PaymentAd from "./PaymentAd";
-import Profile from "./Profile";
+import PaymentAd from "./Basic/PaymentAd";
+import Profile from "./Basic/Profile";
 import Home from "./Home";
-import Login from "./Login";
-import Register from "./Register";
-import VerifyEmail from './VerifyEmail';
-import Loading from "./Loading";
-import AdminPanel from "./AdminPanel";
-import ProductDetail from "./ProductDetail";
-import CheckoutPage from './CheckoutPage';
-import ResetPassword from './ResetPassword';
+import Login from "./Basic/Login";
+import Register from "./Basic/Register";
+import VerifyEmail from './Basic/VerifyEmail';
+import Loading from "./Basic/Loading";
+import AdminPanel from "./Basic/AdminPanel";
+import ProductDetail from "./Basic/ProductDetail";
+import CheckoutPage from './Basic/CheckoutPage';
+import ResetPassword from './Basic/ResetPassword';
 
 function App() {
   return (

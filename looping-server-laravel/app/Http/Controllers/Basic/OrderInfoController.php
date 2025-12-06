@@ -14,7 +14,7 @@ use Exception;
 use Illuminate\Support\Collection;
 use App\Services\StockService;
 
-class InfoController extends Controller
+class OrderInfoController extends Controller
 {
     /**
      * Display a listing of the infos.
