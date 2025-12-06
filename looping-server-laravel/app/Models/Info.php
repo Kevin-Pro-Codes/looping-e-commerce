@@ -10,7 +10,7 @@ class Info extends Model
 {
     use HasFactory;
 
-    protected $table = 'infos';
+    protected $table = 'orders';
 
     protected $fillable = [
         'order_number',
@@ -58,17 +58,17 @@ class Info extends Model
     {
         parent::boot();
 
-        static::retrieved(function ($info) {
+        static::retrieved(function ($order) {
             try {
-                if ($info->items && is_string($info->items)) {
-                    $info->items = json_decode($info->items, true);
+                if ($order->items && is_string($order->items)) {
+                    $order->items = json_decode($order->items, true);
                 }
             
-                if ($info->metadata && is_string($info->metadata)) {
-                    $info->metadata = json_decode($info->metadata, true);
+                if ($order->metadata && is_string($order->metadata)) {
+                    $order->metadata = json_decode($order->metadata, true);
                 }
             } catch (\Exception $e) {
-                Log::error('Error decoding JSON fields for info ' . $info->id . ': ' . $e->getMessage());
+                Log::error('Error decoding JSON fields for order ' . $order->id . ': ' . $e->getMessage());
             }
         });
     }

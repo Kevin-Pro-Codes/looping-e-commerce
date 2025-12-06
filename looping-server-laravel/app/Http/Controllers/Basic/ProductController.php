@@ -58,7 +58,7 @@ class ProductController extends Controller
             // Store the relative path in database
             $product = Product::create($validated);
             
-            \Log::info('Product created with image path:', [
+            \Log::order('Product created with image path:', [
                 'id' => $product->_id,
                 'image_path' => $product->image,
                 'image_type' => gettype($product->image)

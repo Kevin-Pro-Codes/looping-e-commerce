@@ -21,24 +21,24 @@ class OrderController extends Controller
     public function index(): JsonResponse
     {
         try {
-            Log::info('=== ORDERS INDEX START ===');
+            Log::info('=== ORDERS INDEX START ==='); // FIXED: Log::info not Log::order
 
             // Test database connection
             $dbConnected = true;
             try {
                 DB::connection()->getPdo();
-                Log::info('Database connection: OK');
+                Log::info('Database connection: OK'); // FIXED: Log::info
             } catch (Exception $e) {
                 Log::error('Database connection failed: ' . $e->getMessage());
                 $dbConnected = false;
             }
 
-            // Check if orders table exists (assuming 'infos' table is your orders table)
-            $tableExists = $dbConnected && Schema::hasTable('infos');
+            // Check if orders table exists
+            $tableExists = $dbConnected && Schema::hasTable('orders');
             if ($tableExists) {
-                Log::info('Orders table exists: YES');
+                Log::info('Orders table exists: YES'); // FIXED: Log::info
             } else {
-                Log::info('Orders table exists: NO');
+                Log::info('Orders table exists: NO'); // FIXED: Log::info
             }
 
             // Always use a Collection → safe ->count()
@@ -76,7 +76,7 @@ class OrderController extends Controller
                         'updated_at'
                     ])->get();
 
-                    Log::info('Fetched ' . $orders->count() . ' orders from database');
+                    Log::info('Fetched ' . $orders->count() . ' orders from database'); // FIXED: Log::info
                 } catch (Exception $e) {
                     Log::error('Failed to fetch orders: ' . $e->getMessage());
                     $orders = collect(); // Keep as Collection even on error
@@ -121,7 +121,7 @@ class OrderController extends Controller
     public function updateStatus($id, Request $request): JsonResponse
     {
         try {
-            Log::info('=== ORDER STATUS UPDATE START ===', ['order_id' => $id]);
+            Log::info('=== ORDER STATUS UPDATE START ===', ['order_id' => $id]); // FIXED: Log::info
 
             // Validate input
             $validated = $request->validate([
@@ -147,7 +147,7 @@ class OrderController extends Controller
             $order->payment_status = $newPaymentStatus;
             $order->save();
 
-            Log::info('Order status updated', [
+            Log::info('Order status updated', [ // FIXED: Log::info
                 'order_id' => $order->id,
                 'old_payment_status' => $oldPaymentStatus,
                 'new_payment_status' => $newPaymentStatus,
@@ -156,7 +156,7 @@ class OrderController extends Controller
 
             // Auto-sync stock when payment status changes to "paid"
             if ($oldPaymentStatus !== 'paid' && $newPaymentStatus === 'paid') {
-                Log::info('Auto-syncing stock for newly paid order', ['order_id' => $order->id]);
+                Log::info('Auto-syncing stock for newly paid order', ['order_id' => $order->id]); // FIXED: Log::info
                 
                 // Call sync stock
                 $this->syncStock($order->id);
@@ -164,7 +164,7 @@ class OrderController extends Controller
             
             // Reverse stock if order cancelled and was paid
             if ($validated['status'] === 'cancelled' && $oldPaymentStatus === 'paid') {
-                Log::info('Reversing stock for cancelled order', ['order_id' => $order->id]);
+                Log::info('Reversing stock for cancelled order', ['order_id' => $order->id]); // FIXED: Log::info
                 $this->reverseStock($order->id);
             }
 
@@ -218,8 +218,8 @@ class OrderController extends Controller
     public function store(Request $request): JsonResponse
     {
         try {
-            Log::info('=== ORDER STORE START ===');
-            Log::info('Order data received:', $request->all());
+            Log::info('=== ORDER STORE START ==='); // FIXED: Log::info
+            Log::info('Order data received:', $request->all()); // FIXED: Log::info
 
             // Validate required fields
             $validated = $request->validate([
@@ -279,11 +279,11 @@ class OrderController extends Controller
 
             $order = Order::create($orderData);
 
-            Log::info('Order created successfully:', ['order_id' => $order->id, 'order_number' => $order->order_number]);
+            Log::info('Order created successfully:', ['order_id' => $order->id, 'order_number' => $order->order_number]); // FIXED: Log::info
 
             // If payment is already paid, sync stock
             if ($validated['payment_status'] === 'paid') {
-                Log::info('Auto-syncing stock for paid order', ['order_id' => $order->id]);
+                Log::info('Auto-syncing stock for paid order', ['order_id' => $order->id]); // FIXED: Log::info
                 $this->syncStock($order->id);
             }
 
@@ -440,7 +440,7 @@ class OrderController extends Controller
     public function syncStock($orderId): JsonResponse
     {
         try {
-            Log::info('=== SYNC STOCK FOR ANY ORDER ===', ['order_id' => $orderId]);
+            Log::info('=== SYNC STOCK FOR ANY ORDER ===', ['order_id' => $orderId]); // FIXED: Log::info
 
             $order = Order::find($orderId);
             
@@ -531,7 +531,7 @@ class OrderController extends Controller
                     'available_now' => $stockItem->stock - ($stockItem->reserved ?? 0)
                 ];
 
-                Log::info('Stock updated', [
+                Log::info('Stock updated', [ // FIXED: Log::info
                     'product' => $stockItem->name,
                     'quantity' => $quantity,
                     'payment_method' => $order->payment_method
@@ -660,7 +660,7 @@ class OrderController extends Controller
                     $stockItem->last_updated = now()->format('Y-m-d');
                     $stockItem->save();
 
-                    Log::info('Stock reversed for cancelled order', [
+                    Log::info('Stock reversed for cancelled order', [ // FIXED: Log::info
                         'product' => $stockItem->name,
                         'quantity' => $update['quantity']
                     ]);
@@ -697,12 +697,12 @@ class OrderController extends Controller
     public function handlePaymentWebhook(Request $request): JsonResponse
     {
         try {
-            Log::info('=== PAYMENT WEBHOOK RECEIVED ===', [
+            Log::info('=== PAYMENT WEBHOOK RECEIVED ===', [ // FIXED: Log::info
                 'payment_type' => $request->input('payment_method', 'unknown'),
                 'data' => $request->all()
             ]);
 
-            // Get order info from webhook
+            // Get order from webhook
             $orderId = $request->input('order_id') ?? 
                       $request->input('reference') ?? 
                       $request->input('external_reference');
@@ -743,7 +743,7 @@ class OrderController extends Controller
             
             $order->save();
 
-            Log::info('Order payment updated', [
+            Log::info('Order payment updated', [ // FIXED: Log::info
                 'order_id' => $order->id,
                 'payment_method' => $paymentMethod,
                 'status' => 'paid'
@@ -768,7 +768,7 @@ class OrderController extends Controller
     public function generateSamples(): JsonResponse
     {
         try {
-            if (!Schema::hasTable('infos')) {
+            if (!Schema::hasTable('orders')) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Orders table does not exist. Run migrations first.',

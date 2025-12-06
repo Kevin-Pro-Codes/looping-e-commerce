@@ -312,7 +312,7 @@ class StockController extends Controller
     public function destroy($id): JsonResponse
     {
         try {
-            Log::info("Attempting to delete stock item with ID: {$id}");
+            Log::order("Attempting to delete stock item with ID: {$id}");
 
             $stock = Stock::find($id);
             
@@ -324,7 +324,7 @@ class StockController extends Controller
                 ], 404);
             }
 
-            // Store info for logging before deletion
+            // Store order for logging before deletion
             $productInfo = [
                 'id' => $stock->id,
                 'product_id' => $stock->product_id,
@@ -335,7 +335,7 @@ class StockController extends Controller
 
             $stock->delete();
 
-            Log::info("Stock item deleted successfully", $productInfo);
+            Log::order("Stock item deleted successfully", $productInfo);
 
             return response()->json([
                 'success' => true,
@@ -362,7 +362,7 @@ class StockController extends Controller
     public function destroyByProductId($productId): JsonResponse
     {
         try {
-            Log::info("Attempting to delete all stock items for product_id: {$productId}");
+            Log::order("Attempting to delete all stock items for product_id: {$productId}");
 
             // First, check if any items exist with this product_id
             $existingItems = Stock::where('product_id', $productId)->get();
@@ -375,7 +375,7 @@ class StockController extends Controller
                 ], 404);
             }
 
-            // Store info for logging before deletion
+            // Store order for logging before deletion
             $itemsInfo = $existingItems->map(function ($item) {
                 return [
                     'id' => $item->id,
@@ -388,7 +388,7 @@ class StockController extends Controller
 
             $deletedCount = Stock::where('product_id', $productId)->delete();
 
-            Log::info("Product and all variants deleted successfully", [
+            Log::order("Product and all variants deleted successfully", [
                 'product_id' => $productId,
                 'deleted_count' => $deletedCount,
                 'deleted_items' => $itemsInfo

@@ -26,15 +26,15 @@ class PixPaymentController extends Controller
             Log::info('=== PIX GENERATE START ===');
             Log::info('PIX request data:', $request->all());
 
-            // Validate input - use 'infos' table instead of 'orders'
+            // Validate input - use 'orders' table instead of 'orders'
             $validated = $request->validate([
-                'order_id' => 'required|integer|exists:infos,id',
+                'order_id' => 'required|integer|exists:orders,id',
                 'amount' => 'required|numeric|min:0.01',
                 'payer_name' => 'required|string|max:150',
                 'payer_cpf' => 'required|string|max:14',
             ]);
 
-            // Get the order from infos table
+            // Get the order from orders table
             $order = Order::findOrFail($validated['order_id']);
             
             // Check if PIX details already exist
@@ -63,7 +63,7 @@ class PixPaymentController extends Controller
                 // NO expires_at field - your table doesn't have it
             ]);
 
-            // Update order payment status in infos table
+            // Update order payment status in orders table
             $order->update([
                 'payment_status' => 'pending',
                 'status' => 'awaiting_payment'

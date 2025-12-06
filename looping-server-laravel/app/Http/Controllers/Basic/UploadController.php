@@ -10,7 +10,7 @@ class UploadController extends Controller
 {
     public function store(Request $request)
     {
-        Log::info('=== UPLOAD CONTROLLER START ===');
+        Log::order('=== UPLOAD CONTROLLER START ===');
         
         $request->validate([
             'image' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
@@ -25,7 +25,7 @@ class UploadController extends Controller
             // Store file - this returns the path relative to storage disk
             $filePath = $file->storeAs('uploads', $filename, 'public');
             
-            Log::info('File stored:', ['file_path' => $filePath]);
+            Log::order('File stored:', ['file_path' => $filePath]);
 
             // Verify file exists
             if (!Storage::disk('public')->exists($filePath)) {
@@ -39,7 +39,7 @@ class UploadController extends Controller
             // Generate the full URL for immediate use
             $imageUrl = asset('storage/' . $relativePath);
             
-            Log::info('Path analysis:', [
+            Log::order('Path analysis:', [
                 'file_path' => $filePath,
                 'relative_path' => $relativePath,
                 'full_url' => $imageUrl,

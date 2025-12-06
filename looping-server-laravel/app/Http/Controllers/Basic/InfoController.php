@@ -34,11 +34,12 @@ class InfoController extends Controller
                 $dbConnected = false;
             }
 
-            $tableExists = $dbConnected && Schema::hasTable('infos');
+            // FIXED: Check for 'orders' table instead of 'infos'
+            $tableExists = $dbConnected && Schema::hasTable('orders');
             if ($tableExists) {
-                Log::info('Infos table exists: YES');
+                Log::info('Orders table exists: YES');
             } else {
-                Log::info('Infos table exists: NO');
+                Log::info('Orders table exists: NO');
             }
 
             // Always use a Collection → safe ->count()
@@ -59,8 +60,8 @@ class InfoController extends Controller
                         'discount',
                         'payment_method',
                         'payment_status',
-                        'stock_updated',      // ✅ ADDED
-                        'stock_updated_at',   // ✅ ADDED
+                        'stock_updated',
+                        'stock_updated_at',
                         'status',
                         'shipping_street',
                         'shipping_number',
@@ -75,22 +76,22 @@ class InfoController extends Controller
                         'updated_at'
                     ])->get();
 
-                    Log::info('Fetched ' . $infos->count() . ' infos from database');
+                    Log::info('Fetched ' . $infos->count() . ' orders from database');
                 } catch (Exception $e) {
-                    Log::error('Failed to fetch infos: ' . $e->getMessage());
+                    Log::error('Failed to fetch orders: ' . $e->getMessage());
                     $infos = collect(); // Keep as Collection even on error
                 }
             }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Infos fetched successfully',
+                'message' => 'Orders fetched successfully',
                 'data' => $infos,
                 'debug' => [
                     'server' => 'running',
                     'database_connected' => $dbConnected,
-                    'infos_table_exists' => $tableExists,
-                    'total_infos' => $infos->count(),
+                    'orders_table_exists' => $tableExists, // Fixed key
+                    'total_orders' => $infos->count(), // Fixed key
                     'timestamp' => now()->format('c')
                 ]
             ]);
@@ -133,8 +134,8 @@ class InfoController extends Controller
             if (!$info) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Info not found',
-                    'debug' => ['info_id' => $id]
+                    'message' => 'Order not found',
+                    'debug' => ['order_id' => $id]
                 ], 404);
             }
 
@@ -159,7 +160,7 @@ class InfoController extends Controller
                         'success' => false,
                         'message' => 'Failed to update stock. Insufficient stock available.',
                         'debug' => [
-                            'info_id' => $info->id,
+                            'order_id' => $info->id,
                             'order_number' => $info->order_number
                         ]
                     ], 400);
@@ -181,8 +182,8 @@ class InfoController extends Controller
             $info->payment_status = $validated['payment_status'];
             $info->save();
 
-            Log::info('Info status updated successfully', [
-                'info_id' => $info->id,
+            Log::info('Order status updated successfully', [
+                'order_id' => $info->id,
                 'status' => $info->status,
                 'payment_status' => $info->payment_status,
                 'stock_updated' => $info->stock_updated,
@@ -191,9 +192,9 @@ class InfoController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Info status updated successfully',
+                'message' => 'Order status updated successfully',
                 'data' => [
-                    'info_id' => $info->id,
+                    'order_id' => $info->id,
                     'order_number' => $info->order_number,
                     'status' => $info->status,
                     'payment_status' => $info->payment_status,
@@ -213,7 +214,7 @@ class InfoController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update info status',
+                'message' => 'Failed to update order status',
                 'error' => $e->getMessage(),
                 'debug' => [
                     'exception' => get_class($e),
@@ -238,12 +239,12 @@ class InfoController extends Controller
     }
 
   /**
- * Store a newly created info (POST /api/infos) WITH STOCK CHECK
+ * Store a newly created order (POST /api/infos) WITH STOCK CHECK
  */
 public function store(Request $request, StockService $stockService): JsonResponse
 {
     try {
-        Log::info('=== INFO STORE START ===');
+        Log::info('=== ORDER STORE START ===');
 
         // Validation
         $validated = $request->validate([
@@ -266,7 +267,7 @@ public function store(Request $request, StockService $stockService): JsonRespons
             'shipping_state' => 'required|string|size:2',
             'shipping_zip_code' => 'required|string',
             'items' => 'required|array|min:1',
-            'items.*.product_name' => 'required|string', // ✅ PRODUCT NAME IS REQUIRED
+            'items.*.product_name' => 'required|string',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.price' => 'required|numeric|min:0',
             'items.*.total' => 'required|numeric|min:0',
@@ -285,9 +286,8 @@ public function store(Request $request, StockService $stockService): JsonRespons
                 ], 400);
             }
             
-            // ✅ Add product_name explicitly to each item
             $itemsWithProductName[] = [
-                'product_name' => $item['product_name'], // ✅ ENSURED
+                'product_name' => $item['product_name'],
                 'quantity' => $item['quantity'],
                 'price' => $item['price'],
                 'total' => $item['total'],
@@ -340,7 +340,7 @@ public function store(Request $request, StockService $stockService): JsonRespons
             'shipping_city' => $validated['shipping_city'],
             'shipping_state' => $validated['shipping_state'],
             'shipping_zip_code' => $validated['shipping_zip_code'],
-            'items' => json_encode($itemsWithProductName), // ✅ NOW INCLUDES PRODUCT NAME
+            'items' => json_encode($itemsWithProductName),
             'metadata' => $request->metadata ? json_encode($request->metadata) : null,
         ];
 
@@ -370,13 +370,13 @@ public function store(Request $request, StockService $stockService): JsonRespons
             'data' => [
                 'order_id' => $info->id,
                 'order_number' => $info->order_number,
-                'items' => $info->parsed_items, // ✅ WILL SHOW PRODUCT NAMES
+                'items' => $info->parsed_items,
                 'stock_updated' => $info->stock_updated
             ]
         ], 201);
 
     } catch (\Illuminate\Validation\ValidationException $e) {
-        Log::error('=== INFO STORE VALIDATION ERROR ===');
+        Log::error('=== ORDER STORE VALIDATION ERROR ===');
         Log::error('Validation errors:', $e->errors());
 
         return response()->json([
@@ -386,7 +386,7 @@ public function store(Request $request, StockService $stockService): JsonRespons
         ], 422);
 
     } catch (Exception $e) {
-        Log::error('=== INFO STORE ERROR ===');
+        Log::error('=== ORDER STORE ERROR ===');
         Log::error('Error: ' . $e->getMessage());
 
         return response()->json([
@@ -404,7 +404,7 @@ public function store(Request $request, StockService $stockService): JsonRespons
     public function confirmPayment($id, Request $request, StockService $stockService): JsonResponse
     {
         try {
-            Log::info('=== CONFIRM PAYMENT START ===', ['info_id' => $id]);
+            Log::info('=== CONFIRM PAYMENT START ===', ['order_id' => $id]);
 
             // Find the order
             $info = Info::find($id);
@@ -447,7 +447,7 @@ public function store(Request $request, StockService $stockService): JsonRespons
             $info->save();
 
             Log::info('Payment confirmed and stock updated', [
-                'info_id' => $info->id,
+                'order_id' => $info->id,
                 'order_number' => $info->order_number,
                 'stock_updated' => $info->stock_updated,
                 'stock_updated_at' => $info->stock_updated_at
@@ -541,7 +541,7 @@ public function store(Request $request, StockService $stockService): JsonRespons
     public function syncStock($id, StockService $stockService): JsonResponse
     {
         try {
-            Log::info('=== MANUAL STOCK SYNC START ===', ['info_id' => $id]);
+            Log::info('=== MANUAL STOCK SYNC START ===', ['order_id' => $id]);
 
             $info = Info::find($id);
             if (!$info) {
@@ -686,9 +686,9 @@ public function store(Request $request, StockService $stockService): JsonRespons
     public function checkDatabaseFields(): JsonResponse
     {
         try {
-            // Check if the columns exist
-            $hasStockUpdated = Schema::hasColumn('infos', 'stock_updated');
-            $hasStockUpdatedAt = Schema::hasColumn('infos', 'stock_updated_at');
+            // FIXED: Check 'orders' table columns
+            $hasStockUpdated = Schema::hasColumn('orders', 'stock_updated');
+            $hasStockUpdatedAt = Schema::hasColumn('orders', 'stock_updated_at');
 
             // Get sample data
             $sampleOrder = Info::first();
@@ -754,15 +754,16 @@ public function store(Request $request, StockService $stockService): JsonRespons
     }
 
     /**
-     * Generate sample infos and save to database.
+     * Generate sample orders and save to database.
      */
     public function generateSamples(StockService $stockService): JsonResponse
     {
         try {
-            if (!Schema::hasTable('infos')) {
+            // FIXED: Check 'orders' table
+            if (!Schema::hasTable('orders')) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Infos table does not exist. Run migrations first.',
+                    'message' => 'Orders table does not exist. Run migrations first.',
                     'debug' => ['table_missing' => true]
                 ], 500);
             }
@@ -780,7 +781,7 @@ public function store(Request $request, StockService $stockService): JsonRespons
                     'discount' => 0.00,
                     'payment_method' => 'pix',
                     'payment_status' => 'paid',
-                    'stock_updated' => false,  // ✅ ADDED
+                    'stock_updated' => false,
                     'status' => 'processing',
                     'shipping_street' => 'Rua das Flores',
                     'shipping_number' => '123',
@@ -792,7 +793,7 @@ public function store(Request $request, StockService $stockService): JsonRespons
                     'items' => json_encode([
                         [
                             'product_name' => 'Camiseta Premium', 
-                            'quantity' => 2, // ✅ ORDER QUANTITY
+                            'quantity' => 2,
                             'price' => 79.90, 
                             'total' => 159.80,
                             'image' => 'https://example.com/images/camiseta-premium.jpg',
@@ -801,7 +802,7 @@ public function store(Request $request, StockService $stockService): JsonRespons
                         ],
                         [
                             'product_name' => 'Caneca Personalizada', 
-                            'quantity' => 1, // ✅ ORDER QUANTITY
+                            'quantity' => 1,
                             'price' => 70.00, 
                             'total' => 70.00,
                             'image' => 'https://example.com/images/caneca-personalizada.jpg',
@@ -820,13 +821,13 @@ public function store(Request $request, StockService $stockService): JsonRespons
                     'shipping' => 0.00,
                     'discount' => 10.00,
                     'payment_method' => 'credit_card',
-                    'payment_status' => 'pending', // ❌ NOT PAID YET
-                    'stock_updated' => false,  // ✅ ADDED
+                    'payment_status' => 'pending',
+                    'stock_updated' => false,
                     'status' => 'pending',
                     'items' => json_encode([
                         [
                             'product_name' => 'Livro Laravel Avançado', 
-                            'quantity' => 1, // ✅ ORDER QUANTITY
+                            'quantity' => 1,
                             'price' => 89.90, 
                             'total' => 89.90,
                             'image' => 'https://example.com/images/livro-laravel.jpg',
@@ -849,13 +850,13 @@ public function store(Request $request, StockService $stockService): JsonRespons
                     
                     $created[] = $info->refresh();
                 } catch (Exception $e) {
-                    Log::warning('Failed to create sample info: ' . $e->getMessage());
+                    Log::warning('Failed to create sample order: ' . $e->getMessage());
                 }
             }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Sample infos generated and saved to database',
+                'message' => 'Sample orders generated and saved to database',
                 'data' => $created,
                 'debug' => [
                     'sample_count' => count($created),
@@ -876,22 +877,24 @@ public function store(Request $request, StockService $stockService): JsonRespons
     }
 
     /**
-     * Get customers from infos table - FIXED VERSION
+     * Get customers from orders table - FIXED VERSION
      */
     public function getCustomersFromInfos(): JsonResponse
     {
         try {
-            Log::info('=== GET CUSTOMERS FROM INFOS START ===');
+            Log::info('=== GET CUSTOMERS FROM ORDERS START ===');
 
-            if (!Schema::hasTable('infos')) {
+            // FIXED: Check 'orders' table
+            if (!Schema::hasTable('orders')) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Infos table does not exist',
+                    'message' => 'Orders table does not exist',
                     'debug' => ['table_missing' => true]
                 ], 500);
             }
 
-            $customerData = DB::table('infos')
+            // FIXED: Query 'orders' table
+            $customerData = DB::table('orders')
                 ->select([
                     'customer_email as email',
                     'customer_name as name',
@@ -912,7 +915,7 @@ public function store(Request $request, StockService $stockService): JsonRespons
             // Add IDs and status manually
             $customers = $customerData->map(function($customer, $index) {
                 return [
-                    'id' => $index + 1, // Simple sequential ID
+                    'id' => $index + 1,
                     'email' => $customer->email,
                     'name' => $customer->name,
                     'phone' => $customer->phone,
@@ -922,15 +925,15 @@ public function store(Request $request, StockService $stockService): JsonRespons
                     'last_purchase' => $customer->last_purchase,
                     'first_order' => $customer->first_order,
                     'address' => $customer->address,
-                    'status' => 'active' // Default status
+                    'status' => 'active'
                 ];
             });
 
-            Log::info('Found ' . $customers->count() . ' customers from infos');
+            Log::info('Found ' . $customers->count() . ' customers from orders');
 
             return response()->json([
                 'success' => true,
-                'message' => 'Customers fetched from infos successfully',
+                'message' => 'Customers fetched from orders successfully',
                 'data' => $customers,
                 'debug' => [
                     'total_customers' => $customers->count(),
@@ -939,12 +942,12 @@ public function store(Request $request, StockService $stockService): JsonRespons
             ]);
 
         } catch (Exception $e) {
-            Log::error('=== GET CUSTOMERS FROM INFOS ERROR ===');
+            Log::error('=== GET CUSTOMERS FROM ORDERS ERROR ===');
             Log::error('Error: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to fetch customers from infos',
+                'message' => 'Failed to fetch customers from orders',
                 'error' => $e->getMessage(),
                 'debug' => ['timestamp' => now()->format('c')]
             ], 500);
@@ -959,21 +962,22 @@ public function store(Request $request, StockService $stockService): JsonRespons
         try {
             Log::info('=== GET CUSTOMER STATS START ===');
 
-            $totalCustomers = DB::table('infos')
+            // FIXED: Query 'orders' table
+            $totalCustomers = DB::table('orders')
                 ->distinct('customer_email')
                 ->whereNotNull('customer_email')
                 ->count('customer_email');
                 
-            $totalRevenue = DB::table('infos')
+            $totalRevenue = DB::table('orders')
                 ->where('payment_status', 'paid')
                 ->sum('total');
                 
-            $activeCustomers = DB::table('infos')
+            $activeCustomers = DB::table('orders')
                 ->distinct('customer_email')
                 ->whereNotNull('customer_email')
                 ->count('customer_email');
 
-            $newCustomers = DB::table('infos')
+            $newCustomers = DB::table('orders')
                 ->select('customer_email')
                 ->where('created_at', '>=', now()->subDays(7))
                 ->distinct()
@@ -1063,7 +1067,8 @@ public function store(Request $request, StockService $stockService): JsonRespons
         try {
             $search = $request->get('search', '');
 
-            $customers = DB::table('infos')
+            // FIXED: Query 'orders' table
+            $customers = DB::table('orders')
                 ->select([
                     'customer_email as email',
                     'customer_name as name',
