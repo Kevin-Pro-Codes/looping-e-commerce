@@ -19,6 +19,7 @@ use App\Http\Controllers\Basic\VerifyEmail;
 use App\Http\Controllers\Basic\UploadController;
 use App\Http\Controllers\Basic\WishlistController;
 use App\Http\Controllers\Basic\CartController;
+
 use MongoDB\Client; 
 use MongoDB\BSON\ObjectId;
 use App\Models\Wishlist;
@@ -207,7 +208,7 @@ Route::delete('/infos/{id}', [OrderInfoController::class, 'destroy']);
 Route::post('/infos', [OrderInfoController::class, 'store']);
 Route::post('/infos/generate-samples', [OrderInfoController::class, 'generateSamples']);
 Route::delete('/admin/infos/clear', [OrderInfoController::class, 'clearAll']);
-Route::get('/infos/all', [OrderInfoController::class, 'getCustomersFromInfos']); 
+Route::get('/infos/all', [OrderInfoController::class, 'getCustomersFromOrders']); 
 Route::get('/infos/stats', [OrderInfoController::class, 'getCustomerStats']); 
 Route::get('/infos/{email}', [OrderInfoController::class, 'getCustomerByEmail']);
 Route::get('/infos/search/customers', [OrderInfoController::class, 'searchCustomers']);
@@ -350,3 +351,6 @@ Route::prefix('basic')->group(function () {
     Route::post('/upload', [UploadController::class, 'store']);
      
 });
+
+
+

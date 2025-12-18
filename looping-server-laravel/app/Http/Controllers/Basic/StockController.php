@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Basic;
 
 use App\Http\Controllers\Controller;
-
 use App\Models\Stock;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -68,7 +67,6 @@ class StockController extends Controller
                 ], 422);
             }
 
-            // Check if any stock items exist with this product_id
             $existingItems = Stock::where('product_id', $productId)->get();
             
             if ($existingItems->isEmpty()) {
@@ -80,7 +78,6 @@ class StockController extends Controller
 
             $updateData = ['last_updated' => now()->format('Y-m-d')];
 
-            // Only update fields that are provided
             if ($request->has('product_id')) {
                 $updateData['product_id'] = $request->product_id;
             }
@@ -306,9 +303,6 @@ class StockController extends Controller
         }
     }
 
-    /**
-     * Delete a specific stock item (variant)
-     */
     public function destroy($id): JsonResponse
     {
         try {
@@ -324,7 +318,6 @@ class StockController extends Controller
                 ], 404);
             }
 
-            // Store order for logging before deletion
             $productInfo = [
                 'id' => $stock->id,
                 'product_id' => $stock->product_id,
@@ -356,15 +349,11 @@ class StockController extends Controller
         }
     }
 
-    /**
-     * Delete all variants of a product by product_id
-     */
     public function destroyByProductId($productId): JsonResponse
     {
         try {
             Log::order("Attempting to delete all stock items for product_id: {$productId}");
 
-            // First, check if any items exist with this product_id
             $existingItems = Stock::where('product_id', $productId)->get();
             
             if ($existingItems->isEmpty()) {
@@ -375,7 +364,6 @@ class StockController extends Controller
                 ], 404);
             }
 
-            // Store order for logging before deletion
             $itemsInfo = $existingItems->map(function ($item) {
                 return [
                     'id' => $item->id,

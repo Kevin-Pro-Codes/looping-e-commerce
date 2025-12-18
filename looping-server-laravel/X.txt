@@ -1,158 +1,13 @@
-I HAVE A LARAVEL/REACT ECOMMERCE AND I USE MYSQL. MY TABLE INFOS PLACE ORDERS AND THERE'S ITEMS COLUMN IN WHICH RETURNS A JSON WITH SIZE AND COLOR VALUES.
-I WANNA SYNC A PAYMENT THAT HAS THIS JSON ATTRIBUTE WITH STOCK TABLE WHICH HAS A STOCK COLUMN WITH NUMBERS REFERENCED AS "ESTOQUE ATUAL" ON UI DISPLAY OF SUCH
-HOW TO MAKE AS EACH TIME ONE PURCHASE HAPPENS ON INFOS/ITEMS IT UPDATES THE VALUE INTO STOCK/STOCK > "ESTOQUE ATUAL" DECREASING THE AMOUNT FOR EACH REFERENCED AS HAVING SIZE AND COLOR IT WAS BOUGHT?
+I have two tables stock and orders, on orders it has an items column which hosts json with information of orders placed, with info about size and color. So i want
+it to fetch from this column this info and decrease on stock (table)> stock (column) the amount of order it was placed (as said, based on its color/size)
+Don't remove extra code and point which file you changed there
+Check few codes:
 
-Info.php
-
-<?php
-
-namespace App\Models;
-
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Log;
-
-class Info extends Model
-{
-    use HasFactory;
-
-    protected $table = 'infos';
-
-    protected $fillable = [
-        'order_number',
-        'customer_name',
-        'customer_email',
-        'customer_phone',
-        'customer_cpf',
-        'total',
-        'subtotal',
-        'shipping',
-        'discount',
-        'payment_method',
-        'payment_status',
-        'stock_updated',           // ✅ ADDED
-        'stock_updated_at',        // ✅ ADDED
-        'status',
-        'shipping_street',
-        'shipping_number',
-        'shipping_complement',
-        'shipping_neighborhood',
-        'shipping_city',
-        'shipping_state',
-        'shipping_zip_code',
-        'items',       
-        'metadata'
-    ];
-
-    protected $casts = [
-        'total' => 'decimal:2',
-        'subtotal' => 'decimal:2',
-        'shipping' => 'decimal:2',
-        'discount' => 'decimal:2',
-        'stock_updated' => 'boolean',  // ✅ ADDED
-        'items' => 'array',
-        'metadata' => 'array',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-        'stock_updated_at' => 'datetime',  // ✅ ADDED
-    ];
-
-    /**
-     * Boot method to handle JSON encoding issues
-     */
-    protected static function boot()
-    {
-        parent::boot();
-
-        static::retrieved(function ($info) {
-            // Ensure JSON fields are properly handled
-            try {
-                if ($info->items && is_string($info->items)) {
-                    $info->items = json_decode($info->items, true);
-                }
-            
-                if ($info->metadata && is_string($info->metadata)) {
-                    $info->metadata = json_decode($info->metadata, true);
-                }
-            } catch (\Exception $e) {
-                Log::error('Error decoding JSON fields for info ' . $info->id . ': ' . $e->getMessage());
-            }
-        });
-
-        // ✅ OPTIONAL: Add this to automatically update stock when payment status changes
-        static::updated(function ($info) {
-            // You can add stock synchronization logic here if you want
-            // but it's better to handle it in the controller or service
-        });
-    }
-
-    /**
-     * ✅ ADDED: Check if stock needs to be updated
-     */
-    public function needsStockUpdate(): bool
-    {
-        return $this->payment_status === 'paid' && !$this->stock_updated;
-    }
-
-    /**
-     * ✅ ADDED: Mark stock as updated
-     */
-    public function markStockAsUpdated(): void
-    {
-        $this->stock_updated = true;
-        $this->stock_updated_at = now();
-        $this->save();
-    }
-
-    /**
-     * ✅ ADDED: Check if order is eligible for stock deduction
-     */
-    public function canDeductStock(): bool
-    {
-        return in_array($this->payment_status, ['paid']) 
-            && !in_array($this->status, ['cancelled', 'refunded'])
-            && !$this->stock_updated;
-    }
-
-    /**
-     * ✅ ADDED: Scope for orders that need stock update
-     */
-    public function scopeNeedsStockUpdate($query)
-    {
-        return $query->where('payment_status', 'paid')
-                     ->where('stock_updated', false);
-    }
-
-    /**
-     * ✅ ADDED: Scope for paid orders
-     */
-    public function scopePaid($query)
-    {
-        return $query->where('payment_status', 'paid');
-    }
-
-    /**
-     * ✅ ADDED: Get items array with proper parsing
-     */
-    public function getParsedItemsAttribute(): array
-    {
-        if (is_array($this->items)) {
-            return $this->items;
-        }
-
-        if (is_string($this->items)) {
-            return json_decode($this->items, true) ?? [];
-        }
-
-        return [];
-    }
-}
-
-InfoController.php
+General order controller: OrderInfoController.php
 
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Basic;
 
 use App\Http\Controllers\Controller;
 use App\Models\Info;
@@ -164,9 +19,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Exception;
 use Illuminate\Support\Collection;
-use App\Services\StockService; // ✅ ADDED
+use App\Services\StockService;
 
-class InfoController extends Controller
+class OrderInfoController extends Controller
 {
     /**
      * Display a listing of the infos.
@@ -186,19 +41,20 @@ class InfoController extends Controller
                 $dbConnected = false;
             }
 
-            $tableExists = $dbConnected && Schema::hasTable('infos');
+            // FIXED: Check for 'orders' table instead of 'infos'
+            $tableExists = $dbConnected && Schema::hasTable('orders');
             if ($tableExists) {
-                Log::info('Infos table exists: YES');
+                Log::info('Orders table exists: YES');
             } else {
-                Log::info('Infos table exists: NO');
+                Log::info('Orders table exists: NO');
             }
 
             // Always use a Collection → safe ->count()
-            $infos = collect();
+            $orders = collect();
 
             if ($tableExists) {
                 try {
-                    $infos = Info::select([
+                    $orders = Info::select([
                         'id',
                         'order_number',
                         'customer_name',
@@ -211,8 +67,8 @@ class InfoController extends Controller
                         'discount',
                         'payment_method',
                         'payment_status',
-                        'stock_updated',      // ✅ ADDED
-                        'stock_updated_at',   // ✅ ADDED
+                        'stock_updated',
+                        'stock_updated_at',
                         'status',
                         'shipping_street',
                         'shipping_number',
@@ -227,22 +83,22 @@ class InfoController extends Controller
                         'updated_at'
                     ])->get();
 
-                    Log::info('Fetched ' . $infos->count() . ' infos from database');
+                    Log::info('Fetched ' . $orders->count() . ' orders from database');
                 } catch (Exception $e) {
-                    Log::error('Failed to fetch infos: ' . $e->getMessage());
-                    $infos = collect(); // Keep as Collection even on error
+                    Log::error('Failed to fetch orders: ' . $e->getMessage());
+                    $orders = collect(); // Keep as Collection even on error
                 }
             }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Infos fetched successfully',
-                'data' => $infos,
+                'message' => 'Orders fetched successfully',
+                'data' => $orders,
                 'debug' => [
                     'server' => 'running',
                     'database_connected' => $dbConnected,
-                    'infos_table_exists' => $tableExists,
-                    'total_infos' => $infos->count(),
+                    'orders_table_exists' => $tableExists, // Fixed key
+                    'total_orders' => $orders->count(), // Fixed key
                     'timestamp' => now()->format('c')
                 ]
             ]);
@@ -265,82 +121,99 @@ class InfoController extends Controller
         }
     }
 
-    /**
-     * Update info status and payment status WITH STOCK SYNC
-     * PUT /api/infos/{id}/status
-     */
     public function updateStatus($id, Request $request, StockService $stockService): JsonResponse
     {
         try {
-            Log::info('=== INFO STATUS UPDATE START ===', ['info_id' => $id]);
-
+            Log::info('=== INFO STATUS UPDATE START ===', [
+                'info_id' => $id,
+                'request_data' => $request->all(),
+                'full_url' => $request->fullUrl()
+            ]);
+    
+            // DEBUG: Log incoming request
+            Log::debug('Raw request input:', $request->input());
+            Log::debug('Request headers:', $request->headers->all());
+    
             // Validate input
             $validated = $request->validate([
                 'status' => 'required|string|in:pending,processing,shipped,delivered,cancelled',
                 'payment_status' => 'required|string|in:pending,paid,failed,refunded'
             ]);
-
+    
+            Log::info('Validation passed:', $validated);
+    
             // Find info
             $info = Info::find($id);
             if (!$info) {
+                Log::warning('Order not found', ['order_id' => $id]);
                 return response()->json([
                     'success' => false,
-                    'message' => 'Info not found',
-                    'debug' => ['info_id' => $id]
+                    'message' => 'Order not found',
+                    'debug' => ['order_id' => $id]
                 ], 404);
             }
-
+    
+            Log::info('Order found:', [
+                'order_id' => $info->id,
+                'order_number' => $info->order_number,
+                'current_status' => $info->status,
+                'current_payment_status' => $info->payment_status,
+                'current_stock_updated' => $info->stock_updated,
+                'current_stock_updated_at' => $info->stock_updated_at
+            ]);
+    
             $oldPaymentStatus = $info->payment_status;
             $oldStatus = $info->status;
-
+    
+            // ✅ CHANGES START HERE:
+            // Update stock flags based on payment status change
+            if ($oldPaymentStatus !== 'paid' && $validated['payment_status'] === 'paid') {
+                Log::info('Payment changed to PAID - updating stock flags (debug mode)');
+                
+                // ✅ UPDATE STOCK FLAGS
+                $info->stock_updated = true;
+                $info->stock_updated_at = now();
+                
+                Log::info('Stock flags updated for paid order', [
+                    'stock_updated' => true,
+                    'stock_updated_at' => now()->format('c')
+                ]);
+            }
+            
+            // Reset stock flags if order is refunded
+            if ($oldPaymentStatus === 'paid' && $validated['payment_status'] === 'refunded') {
+                Log::info('Payment changed to REFUNDED - resetting stock flags');
+                
+                $info->stock_updated = false;
+                $info->stock_updated_at = null;
+            }
+            
+            // Reset stock flags if order is cancelled
+            if ($oldStatus !== 'cancelled' && $validated['status'] === 'cancelled') {
+                Log::info('Status changed to CANCELLED - resetting stock flags');
+                
+                $info->stock_updated = false;
+                $info->stock_updated_at = null;
+            }
+    
             // Update fields
             $info->status = $validated['status'];
             $info->payment_status = $validated['payment_status'];
-            
-            // ✅ HANDLE STOCK SYNC BASED ON STATUS CHANGES
-            if (($oldPaymentStatus === 'paid' && $validated['payment_status'] === 'refunded') ||
-                ($oldStatus !== 'cancelled' && $validated['status'] === 'cancelled')) {
-                // Restore stock for refunds or cancellations
-                $stockService->restoreStockForOrder($info);
-                Log::info('Stock restored for order due to refund/cancellation', [
-                    'info_id' => $info->id,
-                    'old_payment_status' => $oldPaymentStatus,
-                    'new_payment_status' => $validated['payment_status'],
-                    'old_status' => $oldStatus,
-                    'new_status' => $validated['status']
-                ]);
-            } elseif ($oldPaymentStatus !== 'paid' && $validated['payment_status'] === 'paid') {
-                // Deduct stock when payment is confirmed
-                $stockUpdated = $stockService->deductStockFromOrder($info);
-                if (!$stockUpdated) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Failed to update stock. Insufficient stock available.',
-                        'debug' => ['info_id' => $info->id]
-                    ], 400);
-                }
-                Log::info('Stock deducted for order due to payment confirmation', [
-                    'info_id' => $info->id,
-                    'old_payment_status' => $oldPaymentStatus,
-                    'new_payment_status' => $validated['payment_status']
-                ]);
-            }
-            
             $info->save();
-
-            Log::info('Info status updated successfully', [
-                'info_id' => $info->id,
-                'status' => $info->status,
-                'payment_status' => $info->payment_status,
+    
+            Log::info('Order status updated successfully', [
+                'order_id' => $info->id,
+                'new_status' => $info->status,
+                'new_payment_status' => $info->payment_status,
                 'stock_updated' => $info->stock_updated,
                 'stock_updated_at' => $info->stock_updated_at
             ]);
-
+    
             return response()->json([
                 'success' => true,
-                'message' => 'Info status updated successfully',
+                'message' => 'Order status updated successfully (debug mode)',
                 'data' => [
-                    'info_id' => $info->id,
+                    'order_id' => $info->id,
                     'order_number' => $info->order_number,
                     'status' => $info->status,
                     'payment_status' => $info->payment_status,
@@ -348,193 +221,36 @@ class InfoController extends Controller
                     'stock_updated_at' => $info->stock_updated_at
                 ],
                 'debug' => [
-                    'timestamp' => now()->format('c')
-                ]
-            ]);
-
-        } catch (Exception $e) {
-            Log::error('=== INFO STATUS UPDATE ERROR ===');
-            Log::error('Error: ' . $e->getMessage());
-            Log::error('File: ' . $e->getFile() . ':' . $e->getLine());
-            Log::error('Request data: ', $request->all());
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update info status',
-                'error' => $e->getMessage(),
-                'debug' => [
-                    'exception' => get_class($e),
-                    'message' => $e->getMessage(),
-                    'timestamp' => now()->format('c')
-                ]
-            ], 500);
-        }
-    }
-
-    /**
-     * Simple test endpoint
-     */
-    public function test(): JsonResponse
-    {
-        return response()->json([
-            'success' => true,
-            'message' => 'InfoController is working!',
-            'timestamp' => now()->format('c'),
-            'status' => 'OK'
-        ]);
-    }
-
-    /**
-     * Store a newly created info (POST /api/infos) WITH STOCK CHECK OPTION
-     */
-    public function store(Request $request, StockService $stockService): JsonResponse
-    {
-        try {
-            Log::info('=== INFO STORE START ===');
-            Log::info('Info data received:', $request->all());
-
-            // More flexible validation with proper defaults
-            $validated = $request->validate([
-                'customer_name' => 'required|string|max:255',
-                'customer_email' => 'required|email',
-                'customer_phone' => 'required|string',
-                'customer_cpf' => 'required|string',
-                'total' => 'required|numeric|min:0',
-                'subtotal' => 'required|numeric|min:0',
-                'shipping' => 'required|numeric|min:0',
-                'discount' => 'sometimes|numeric|min:0',
-                'payment_method' => 'required|string|in:pix,credit,debit,boleto',
-                'payment_status' => 'required|string|in:pending,paid,failed,refunded',
-                'status' => 'required|string|in:pending,processing,shipped,delivered,cancelled',
-                'shipping_street' => 'required|string',
-                'shipping_number' => 'required|string',
-                'shipping_complement' => 'nullable|string',
-                'shipping_neighborhood' => 'required|string',
-                'shipping_city' => 'required|string',
-                'shipping_state' => 'required|string|size:2',
-                'shipping_zip_code' => 'required|string',
-                'items' => 'required|array|min:1',
-                'items.*.product_name' => 'required|string',
-                'items.*.quantity' => 'required|integer|min:1',
-                'items.*.price' => 'required|numeric|min:0',
-                'items.*.total' => 'required|numeric|min:0',
-                // ✅ ADDED: Validation for image, color, and size
-                'items.*.image' => 'sometimes|string|nullable',
-                'items.*.color' => 'sometimes|string|nullable',
-                'items.*.size' => 'sometimes|string|nullable',
-            ]);
-
-            // ✅ OPTIONAL: Check stock before creating order
-            if ($request->has('check_stock') && $request->check_stock == true) {
-                $stockCheck = $stockService->checkStockAvailability($validated['items']);
-                $allAvailable = collect($stockCheck)->every(function($result) {
-                    return $result['available'] === true;
-                });
-                
-                if (!$allAvailable) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Some items are out of stock',
-                        'stock_check' => $stockCheck
-                    ], 400);
-                }
-            }
-
-            // Generate order number if not provided
-            $orderNumber = $request->order_number ?? 'ORD-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
-
-            // Prepare the data with defaults
-            $infoData = [
-                'order_number' => $orderNumber,
-                'customer_name' => $validated['customer_name'],
-                'customer_email' => $validated['customer_email'],
-                'customer_phone' => $validated['customer_phone'],
-                'customer_cpf' => $validated['customer_cpf'],
-                'total' => $validated['total'],
-                'subtotal' => $validated['subtotal'],
-                'shipping' => $validated['shipping'],
-                'discount' => $validated['discount'] ?? 0,
-                'payment_method' => $validated['payment_method'],
-                'payment_status' => $validated['payment_status'] ?? 'pending',
-                'stock_updated' => false,  // ✅ ADDED - default false
-                'stock_updated_at' => null, // ✅ ADDED - default null
-                'status' => $validated['status'] ?? 'pending',
-                'shipping_street' => $validated['shipping_street'],
-                'shipping_number' => $validated['shipping_number'],
-                'shipping_complement' => $validated['shipping_complement'] ?? null,
-                'shipping_neighborhood' => $validated['shipping_neighborhood'],
-                'shipping_city' => $validated['shipping_city'],
-                'shipping_state' => $validated['shipping_state'],
-                'shipping_zip_code' => $validated['shipping_zip_code'],
-                'items' => json_encode($validated['items']),
-                'metadata' => $request->metadata ? json_encode($request->metadata) : null,
-            ];
-
-            Log::info('Creating info with data:', $infoData);
-
-            $info = Info::create($infoData);
-
-            // ✅ If payment is already marked as paid, deduct stock immediately
-            if ($validated['payment_status'] === 'paid') {
-                $stockUpdated = $stockService->deductStockFromOrder($info);
-                if (!$stockUpdated) {
-                    // If stock deduction fails, delete the order
-                    $info->delete();
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Failed to create order. Insufficient stock available.'
-                    ], 400);
-                }
-                Log::info('Stock deducted immediately for paid order', [
-                    'info_id' => $info->id,
-                    'order_number' => $info->order_number
-                ]);
-            }
-
-            Log::info('Info created successfully:', [
-                'info_id' => $info->id, 
-                'order_number' => $info->order_number,
-                'stock_updated' => $info->stock_updated
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Order created successfully',
-                'data' => [
-                    'order_id' => $info->id,
-                    'order_number' => $info->order_number,
-                    'order' => $info,
-                    'stock_updated' => $info->stock_updated
-                ],
-                'debug' => [
                     'timestamp' => now()->format('c'),
-                    'info_id' => $info->id
+                    'old_status' => $oldStatus,
+                    'old_payment_status' => $oldPaymentStatus,
+                    'stock_flags_updated' => true,
+                    'bypassed_stock_check' => true
                 ]
-            ], 201);
-
+            ]);
+    
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('=== INFO STORE VALIDATION ERROR ===');
+            Log::error('=== VALIDATION ERROR ===');
             Log::error('Validation errors:', $e->errors());
-            Log::error('Request data: ', $request->all());
-
+            Log::error('Request data:', $request->all());
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
                 'errors' => $e->errors(),
-                'debug' => [
-                    'timestamp' => now()->format('c')
-                ]
+                'debug' => ['request_data' => $request->all()]
             ], 422);
-
+            
         } catch (Exception $e) {
-            Log::error('=== INFO STORE ERROR ===');
+            Log::error('=== INFO STATUS UPDATE ERROR ===');
             Log::error('Error: ' . $e->getMessage());
             Log::error('File: ' . $e->getFile() . ':' . $e->getLine());
+            Log::error('Trace: ' . $e->getTraceAsString());
             Log::error('Request data: ', $request->all());
-
+    
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create order',
+                'message' => 'Failed to update order status',
                 'error' => $e->getMessage(),
                 'debug' => [
                     'exception' => get_class($e),
@@ -545,14 +261,173 @@ class InfoController extends Controller
         }
     }
 
+  /**
+ * Store a newly created order (POST /api/infos) WITH STOCK CHECK
+ */
+public function store(Request $request, StockService $stockService): JsonResponse
+{
+    try {
+        Log::info('=== ORDER STORE START ===');
+
+        // Validation
+        $validated = $request->validate([
+            'customer_name' => 'required|string|max:255',
+            'customer_email' => 'required|email',
+            'customer_phone' => 'required|string',
+            'customer_cpf' => 'required|string',
+            'total' => 'required|numeric|min:0',
+            'subtotal' => 'required|numeric|min:0',
+            'shipping' => 'required|numeric|min:0',
+            'discount' => 'sometimes|numeric|min:0',
+            'payment_method' => 'required|string|in:pix,credit,debit,boleto',
+            'payment_status' => 'required|string|in:pending,paid,failed,refunded',
+            'status' => 'required|string|in:pending,processing,shipped,delivered,cancelled',
+            'shipping_street' => 'required|string',
+            'shipping_number' => 'required|string',
+            'shipping_complement' => 'nullable|string',
+            'shipping_neighborhood' => 'required|string',
+            'shipping_city' => 'required|string',
+            'shipping_state' => 'required|string|size:2',
+            'shipping_zip_code' => 'required|string',
+            'items' => 'required|array|min:1',
+            'items.*.product_name' => 'required|string',
+            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.price' => 'required|numeric|min:0',
+            'items.*.total' => 'required|numeric|min:0',
+            'items.*.image' => 'sometimes|string|nullable',
+            'items.*.color' => 'sometimes|string|nullable',
+            'items.*.size' => 'sometimes|string|nullable',
+        ]);
+
+        // ✅ ENSURE PRODUCT NAME IS PRESENT IN EACH ITEM
+        $itemsWithProductName = [];
+        foreach ($validated['items'] as $item) {
+            if (empty($item['product_name'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Product name is required for all items'
+                ], 400);
+            }
+            
+            $itemsWithProductName[] = [
+                'product_name' => $item['product_name'],
+                'quantity' => $item['quantity'],
+                'price' => $item['price'],
+                'total' => $item['total'],
+                'image' => $item['image'] ?? null,
+                'color' => $item['color'] ?? null,
+                'size' => $item['size'] ?? null,
+            ];
+        }
+
+        // ✅ OPTIONAL: Check stock before creating order
+        if ($request->has('check_stock') && $request->check_stock == true) {
+            $stockCheck = $stockService->checkStockAvailability($itemsWithProductName);
+            $unavailableItems = array_filter($stockCheck, function($result) {
+                return $result['available'] === false;
+            });
+            
+            if (!empty($unavailableItems)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Some items are out of stock',
+                    'stock_check' => $stockCheck,
+                    'unavailable_items' => $unavailableItems
+                ], 400);
+            }
+        }
+
+        // Generate order number
+        $orderNumber = $request->order_number ?? 'ORD-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
+
+        // Prepare the data
+        $infoData = [
+            'order_number' => $orderNumber,
+            'customer_name' => $validated['customer_name'],
+            'customer_email' => $validated['customer_email'],
+            'customer_phone' => $validated['customer_phone'],
+            'customer_cpf' => $validated['customer_cpf'],
+            'total' => $validated['total'],
+            'subtotal' => $validated['subtotal'],
+            'shipping' => $validated['shipping'],
+            'discount' => $validated['discount'] ?? 0,
+            'payment_method' => $validated['payment_method'],
+            'payment_status' => $validated['payment_status'],
+            'stock_updated' => false,
+            'stock_updated_at' => null,
+            'status' => $validated['status'],
+            'shipping_street' => $validated['shipping_street'],
+            'shipping_number' => $validated['shipping_number'],
+            'shipping_complement' => $validated['shipping_complement'] ?? null,
+            'shipping_neighborhood' => $validated['shipping_neighborhood'],
+            'shipping_city' => $validated['shipping_city'],
+            'shipping_state' => $validated['shipping_state'],
+            'shipping_zip_code' => $validated['shipping_zip_code'],
+            'items' => json_encode($itemsWithProductName),
+            'metadata' => $request->metadata ? json_encode($request->metadata) : null,
+        ];
+
+        Log::info('Creating order with items:', [
+            'order_number' => $orderNumber,
+            'items' => $itemsWithProductName
+        ]);
+
+        $info = Info::create($infoData);
+
+        // ✅ If payment is already marked as paid, deduct stock immediately
+        if ($validated['payment_status'] === 'paid') {
+            $stockUpdated = $stockService->deductStockFromOrder($info);
+            if (!$stockUpdated) {
+                $info->delete();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to create order. Insufficient stock available.',
+                    'order_number' => $orderNumber
+                ], 400);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Order created successfully',
+            'data' => [
+                'order_id' => $info->id,
+                'order_number' => $info->order_number,
+                'items' => $info->parsed_items,
+                'stock_updated' => $info->stock_updated
+            ]
+        ], 201);
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        Log::error('=== ORDER STORE VALIDATION ERROR ===');
+        Log::error('Validation errors:', $e->errors());
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Validation failed',
+            'errors' => $e->errors(),
+        ], 422);
+
+    } catch (Exception $e) {
+        Log::error('=== ORDER STORE ERROR ===');
+        Log::error('Error: ' . $e->getMessage());
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to create order',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
+
     /**
-     * ✅ NEW: Confirm payment and update stock
+     * ✅ Confirm payment and update stock
      * POST /api/infos/{id}/confirm-payment
      */
     public function confirmPayment($id, Request $request, StockService $stockService): JsonResponse
     {
         try {
-            Log::info('=== CONFIRM PAYMENT START ===', ['info_id' => $id]);
+            Log::info('=== CONFIRM PAYMENT START ===', ['order_id' => $id]);
 
             // Find the order
             $info = Info::find($id);
@@ -572,7 +447,8 @@ class InfoController extends Controller
                         'order_id' => $info->id,
                         'order_number' => $info->order_number,
                         'payment_status' => $info->payment_status,
-                        'stock_updated' => $info->stock_updated
+                        'stock_updated' => $info->stock_updated,
+                        'stock_updated_at' => $info->stock_updated_at
                     ]
                 ]);
             }
@@ -594,7 +470,7 @@ class InfoController extends Controller
             $info->save();
 
             Log::info('Payment confirmed and stock updated', [
-                'info_id' => $info->id,
+                'order_id' => $info->id,
                 'order_number' => $info->order_number,
                 'stock_updated' => $info->stock_updated,
                 'stock_updated_at' => $info->stock_updated_at
@@ -607,6 +483,7 @@ class InfoController extends Controller
                     'order_id' => $info->id,
                     'order_number' => $info->order_number,
                     'payment_status' => $info->payment_status,
+                    'status' => $info->status,
                     'stock_updated' => $info->stock_updated,
                     'stock_updated_at' => $info->stock_updated_at
                 ]
@@ -623,7 +500,7 @@ class InfoController extends Controller
     }
 
     /**
-     * ✅ NEW: Check stock availability before placing order
+     * ✅ Check stock availability before placing order
      * POST /api/infos/check-stock
      */
     public function checkStock(Request $request, StockService $stockService): JsonResponse
@@ -681,13 +558,13 @@ class InfoController extends Controller
     }
 
     /**
-     * ✅ NEW: Manual stock sync for an order
+     * ✅ Manual stock sync for an order
      * POST /api/infos/{id}/sync-stock
      */
     public function syncStock($id, StockService $stockService): JsonResponse
     {
         try {
-            Log::info('=== MANUAL STOCK SYNC START ===', ['info_id' => $id]);
+            Log::info('=== MANUAL STOCK SYNC START ===', ['order_id' => $id]);
 
             $info = Info::find($id);
             if (!$info) {
@@ -741,7 +618,7 @@ class InfoController extends Controller
     }
 
     /**
-     * ✅ NEW: Get orders that need stock update
+     * ✅ Get orders that need stock update
      * GET /api/infos/needs-stock-update
      */
     public function getOrdersNeedingStockUpdate(): JsonResponse
@@ -768,20 +645,153 @@ class InfoController extends Controller
     }
 
     /**
-     * Generate sample infos and save to database.
+     * ✅ DEBUG: Test stock deduction manually
+     * POST /api/infos/{id}/test-stock-deduction
+     */
+    public function testStockDeduction($id, StockService $stockService): JsonResponse
+    {
+        try {
+            $info = Info::find($id);
+            if (!$info) {
+                return response()->json(['success' => false, 'message' => 'Order not found'], 404);
+            }
+
+            Log::info('=== TEST STOCK DEDUCTION START ===', [
+                'order_id' => $info->id,
+                'order_number' => $info->order_number,
+                'payment_status' => $info->payment_status,
+                'stock_updated_before' => $info->stock_updated,
+                'stock_updated_at_before' => $info->stock_updated_at
+            ]);
+
+            // Test stock deduction
+            $result = $stockService->deductStockFromOrder($info);
+            
+            // Refresh the model to get updated values
+            $info->refresh();
+
+            Log::info('=== TEST STOCK DEDUCTION RESULT ===', [
+                'success' => $result,
+                'stock_updated_after' => $info->stock_updated,
+                'stock_updated_at_after' => $info->stock_updated_at
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Test completed',
+                'data' => [
+                    'stock_deduction_success' => $result,
+                    'order' => [
+                        'id' => $info->id,
+                        'order_number' => $info->order_number,
+                        'payment_status' => $info->payment_status,
+                        'stock_updated' => $info->stock_updated,
+                        'stock_updated_at' => $info->stock_updated_at,
+                        'items' => $info->parsed_items
+                    ]
+                ]
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('Test stock deduction error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Test failed',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * ✅ DEBUG: Check database fields
+     * GET /api/infos/check-database-fields
+     */
+    public function checkDatabaseFields(): JsonResponse
+    {
+        try {
+            // FIXED: Check 'orders' table columns
+            $hasStockUpdated = Schema::hasColumn('orders', 'stock_updated');
+            $hasStockUpdatedAt = Schema::hasColumn('orders', 'stock_updated_at');
+
+            // Get sample data
+            $sampleOrder = Info::first();
+            
+            return response()->json([
+                'success' => true,
+                'database_check' => [
+                    'stock_updated_column_exists' => $hasStockUpdated,
+                    'stock_updated_at_column_exists' => $hasStockUpdatedAt,
+                    'sample_order' => $sampleOrder ? [
+                        'id' => $sampleOrder->id,
+                        'order_number' => $sampleOrder->order_number,
+                        'payment_status' => $sampleOrder->payment_status,
+                        'stock_updated' => $sampleOrder->stock_updated,
+                        'stock_updated_at' => $sampleOrder->stock_updated_at
+                    ] : 'No orders found'
+                ]
+            ]);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Database check failed',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * ✅ DEBUG: Check stock table structure
+     * GET /api/debug/stock-structure
+     */
+    public function checkStockStructure(): JsonResponse
+    {
+        try {
+            $tableExists = Schema::hasTable('stock');
+            
+            if (!$tableExists) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Stock table does not exist'
+                ], 404);
+            }
+            
+            $columns = Schema::getColumnListing('stock');
+            $firstRecord = Stock::first();
+            
+            return response()->json([
+                'success' => true,
+                'table_exists' => $tableExists,
+                'columns' => $columns,
+                'sample_record' => $firstRecord,
+                'total_records' => Stock::count()
+            ]);
+            
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error checking stock structure',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Generate sample orders and save to database.
      */
     public function generateSamples(StockService $stockService): JsonResponse
     {
         try {
-            if (!Schema::hasTable('infos')) {
+            // FIXED: Check 'orders' table
+            if (!Schema::hasTable('orders')) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Infos table does not exist. Run migrations first.',
+                    'message' => 'Orders table does not exist. Run migrations first.',
                     'debug' => ['table_missing' => true]
                 ], 500);
             }
 
-            $sampleInfos = [
+            $sampleOrders = [
                 [
                     'order_number' => 'ORD-' . strtoupper(substr(uniqid(), -6)),
                     'customer_name' => 'João Silva',
@@ -794,7 +804,7 @@ class InfoController extends Controller
                     'discount' => 0.00,
                     'payment_method' => 'pix',
                     'payment_status' => 'paid',
-                    'stock_updated' => false,  // ✅ ADDED
+                    'stock_updated' => false,
                     'status' => 'processing',
                     'shipping_street' => 'Rua das Flores',
                     'shipping_number' => '123',
@@ -806,20 +816,18 @@ class InfoController extends Controller
                     'items' => json_encode([
                         [
                             'product_name' => 'Camiseta Premium', 
-                            'quantity' => 1, 
+                            'quantity' => 2,
                             'price' => 79.90, 
-                            'total' => 79.90,
-                            // ✅ ADDED: Sample image, color, and size data
+                            'total' => 159.80,
                             'image' => 'https://example.com/images/camiseta-premium.jpg',
                             'color' => 'Azul',
                             'size' => 'M'
                         ],
                         [
                             'product_name' => 'Caneca Personalizada', 
-                            'quantity' => 1, 
+                            'quantity' => 1,
                             'price' => 70.00, 
                             'total' => 70.00,
-                            // ✅ ADDED: Sample image, color, and size data
                             'image' => 'https://example.com/images/caneca-personalizada.jpg',
                             'color' => 'Branco',
                             'size' => 'Único'
@@ -836,16 +844,15 @@ class InfoController extends Controller
                     'shipping' => 0.00,
                     'discount' => 10.00,
                     'payment_method' => 'credit_card',
-                    'payment_status' => 'paid',
-                    'stock_updated' => false,  // ✅ ADDED
-                    'status' => 'shipped',
+                    'payment_status' => 'pending',
+                    'stock_updated' => false,
+                    'status' => 'pending',
                     'items' => json_encode([
                         [
                             'product_name' => 'Livro Laravel Avançado', 
-                            'quantity' => 1, 
+                            'quantity' => 1,
                             'price' => 89.90, 
                             'total' => 89.90,
-                            // ✅ ADDED: Sample image, color, and size data
                             'image' => 'https://example.com/images/livro-laravel.jpg',
                             'color' => 'Não especificada',
                             'size' => 'Não especificado'
@@ -855,7 +862,7 @@ class InfoController extends Controller
             ];
 
             $created = [];
-            foreach ($sampleInfos as $data) {
+            foreach ($sampleOrders as $data) {
                 try {
                     $info = Info::create($data);
                     
@@ -866,13 +873,13 @@ class InfoController extends Controller
                     
                     $created[] = $info->refresh();
                 } catch (Exception $e) {
-                    Log::warning('Failed to create sample info: ' . $e->getMessage());
+                    Log::warning('Failed to create sample order: ' . $e->getMessage());
                 }
             }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Sample infos generated and saved to database',
+                'message' => 'Sample orders generated and saved to database',
                 'data' => $created,
                 'debug' => [
                     'sample_count' => count($created),
@@ -892,25 +899,25 @@ class InfoController extends Controller
         }
     }
 
-    // ... (KEEP ALL EXISTING METHODS BELOW UNCHANGED: getCustomersFromInfos, getCustomerStats, getCustomerByEmail, searchCustomers)
-    // These methods remain exactly as they were in your original code
     /**
-     * Get customers from infos table - FIXED VERSION
+     * Get customers from orders table - FIXED VERSION
      */
-    public function getCustomersFromInfos(): JsonResponse
+    public function getCustomersFromOrders(): JsonResponse
     {
         try {
-            Log::info('=== GET CUSTOMERS FROM INFOS START ===');
+            Log::info('=== GET CUSTOMERS FROM ORDERS START ===');
 
-            if (!Schema::hasTable('infos')) {
+            // FIXED: Check 'orders' table
+            if (!Schema::hasTable('orders')) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Infos table does not exist',
+                    'message' => 'Orders table does not exist',
                     'debug' => ['table_missing' => true]
                 ], 500);
             }
 
-            $customerData = DB::table('infos')
+            // FIXED: Query 'orders' table
+            $customerData = DB::table('orders')
                 ->select([
                     'customer_email as email',
                     'customer_name as name',
@@ -931,7 +938,7 @@ class InfoController extends Controller
             // Add IDs and status manually
             $customers = $customerData->map(function($customer, $index) {
                 return [
-                    'id' => $index + 1, // Simple sequential ID
+                    'id' => $index + 1,
                     'email' => $customer->email,
                     'name' => $customer->name,
                     'phone' => $customer->phone,
@@ -941,15 +948,15 @@ class InfoController extends Controller
                     'last_purchase' => $customer->last_purchase,
                     'first_order' => $customer->first_order,
                     'address' => $customer->address,
-                    'status' => 'active' // Default status
+                    'status' => 'active'
                 ];
             });
 
-            Log::info('Found ' . $customers->count() . ' customers from infos');
+            Log::info('Found ' . $customers->count() . ' customers from orders');
 
             return response()->json([
                 'success' => true,
-                'message' => 'Customers fetched from infos successfully',
+                'message' => 'Customers fetched from orders successfully',
                 'data' => $customers,
                 'debug' => [
                     'total_customers' => $customers->count(),
@@ -958,12 +965,12 @@ class InfoController extends Controller
             ]);
 
         } catch (Exception $e) {
-            Log::error('=== GET CUSTOMERS FROM INFOS ERROR ===');
+            Log::error('=== GET CUSTOMERS FROM ORDERS ERROR ===');
             Log::error('Error: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to fetch customers from infos',
+                'message' => 'Failed to fetch customers from orders',
                 'error' => $e->getMessage(),
                 'debug' => ['timestamp' => now()->format('c')]
             ], 500);
@@ -978,21 +985,22 @@ class InfoController extends Controller
         try {
             Log::info('=== GET CUSTOMER STATS START ===');
 
-            $totalCustomers = DB::table('infos')
+            // FIXED: Query 'orders' table
+            $totalCustomers = DB::table('orders')
                 ->distinct('customer_email')
                 ->whereNotNull('customer_email')
                 ->count('customer_email');
                 
-            $totalRevenue = DB::table('infos')
+            $totalRevenue = DB::table('orders')
                 ->where('payment_status', 'paid')
                 ->sum('total');
                 
-            $activeCustomers = DB::table('infos')
+            $activeCustomers = DB::table('orders')
                 ->distinct('customer_email')
                 ->whereNotNull('customer_email')
                 ->count('customer_email');
 
-            $newCustomers = DB::table('infos')
+            $newCustomers = DB::table('orders')
                 ->select('customer_email')
                 ->where('created_at', '>=', now()->subDays(7))
                 ->distinct()
@@ -1082,7 +1090,8 @@ class InfoController extends Controller
         try {
             $search = $request->get('search', '');
 
-            $customers = DB::table('infos')
+            // FIXED: Query 'orders' table
+            $customers = DB::table('orders')
                 ->select([
                     'customer_email as email',
                     'customer_name as name',
@@ -1116,5 +1125,1057 @@ class InfoController extends Controller
                 'message' => 'Failed to search customers'
             ], 500);
         }
+    }
+
+    /**
+     * ✅ Get stock status report
+     * GET /api/infos/stock-report
+     */
+    public function getStockReport(StockService $stockService): JsonResponse
+    {
+        try {
+            $ordersNeedingUpdate = Info::needsStockUpdate()->count();
+            $ordersWithStockUpdated = Info::where('stock_updated', true)->count();
+            $totalPaidOrders = Info::where('payment_status', 'paid')->count();
+            
+            $lowStockProducts = $stockService->getLowStockProducts();
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'orders_needing_stock_update' => $ordersNeedingUpdate,
+                    'orders_with_stock_updated' => $ordersWithStockUpdated,
+                    'total_paid_orders' => $totalPaidOrders,
+                    'low_stock_products' => $lowStockProducts,
+                    'low_stock_count' => count($lowStockProducts),
+                    'report_time' => now()->format('Y-m-d H:i:s')
+                ]
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('Get stock report error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate stock report'
+            ], 500);
+        }
+    }
+}
+
+Info.php
+
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
+
+class Info extends Model
+{
+    use HasFactory;
+
+    protected $table = 'orders';
+
+    protected $fillable = [
+        'order_number',
+        'customer_name',
+        'customer_email',
+        'customer_phone',
+        'customer_cpf',
+        'total',
+        'subtotal',
+        'shipping',
+        'discount',
+        'payment_method',
+        'payment_status',
+        'stock_updated',           // ✅ TRACKS IF STOCK WAS DEDUCTED
+        'stock_updated_at',        // ✅ WHEN STOCK WAS DEDUCTED
+        'status',
+        'shipping_street',
+        'shipping_number',
+        'shipping_complement',
+        'shipping_neighborhood',
+        'shipping_city',
+        'shipping_state',
+        'shipping_zip_code',
+        'items',                   // ✅ CONTAINS ORDERED QUANTITIES
+        'metadata'
+    ];
+
+    protected $casts = [
+        'total' => 'decimal:2',
+        'subtotal' => 'decimal:2',
+        'shipping' => 'decimal:2',
+        'discount' => 'decimal:2',
+        'stock_updated' => 'boolean',  // ✅ Cast as boolean
+        'items' => 'array',            // ✅ Cast as array (contains quantities)
+        'metadata' => 'array',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'stock_updated_at' => 'datetime',  // ✅ Cast as datetime
+    ];
+
+    /**
+     * Boot method
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::retrieved(function ($order) {
+            try {
+                if ($order->items && is_string($order->items)) {
+                    $order->items = json_decode($order->items, true);
+                }
+            
+                if ($order->metadata && is_string($order->metadata)) {
+                    $order->metadata = json_decode($order->metadata, true);
+                }
+            } catch (\Exception $e) {
+                Log::error('Error decoding JSON fields for order ' . $order->id . ': ' . $e->getMessage());
+            }
+        });
+    }
+
+    /**
+     * ✅ Check if stock needs to be updated
+     */
+    public function needsStockUpdate(): bool
+    {
+        return $this->payment_status === 'paid' && !$this->stock_updated;
+    }
+
+    /**
+     * ✅ Mark stock as updated
+     */
+    public function markStockAsUpdated(): void
+    {
+        $this->stock_updated = true;
+        $this->stock_updated_at = now();
+        $this->save();
+    }
+
+    /**
+     * ✅ Check if order is eligible for stock deduction
+     */
+    public function canDeductStock(): bool
+    {
+        return in_array($this->payment_status, ['paid']) 
+            && !in_array($this->status, ['cancelled', 'refunded'])
+            && !$this->stock_updated;
+    }
+
+    /**
+     * ✅ Check if order should restore stock
+     */
+    public function shouldRestoreStock(): bool
+    {
+        return ($this->payment_status === 'refunded' || $this->status === 'cancelled')
+            && $this->stock_updated;
+    }
+
+    /**
+     * ✅ Scope for orders that need stock update
+     */
+    public function scopeNeedsStockUpdate($query)
+    {
+        return $query->where('payment_status', 'paid')
+                     ->where('stock_updated', false);
+    }
+
+    /**
+     * ✅ Scope for paid orders
+     */
+    public function scopePaid($query)
+    {
+        return $query->where('payment_status', 'paid');
+    }
+
+    /**
+     * ✅ Get parsed items with quantities
+     */
+    public function getParsedItemsAttribute(): array
+    {
+        if (is_array($this->items)) {
+            return $this->items;
+        }
+
+        if (is_string($this->items)) {
+            return json_decode($this->items, true) ?? [];
+        }
+
+        return [];
+    }
+
+    /**
+     * ✅ Get total quantity of items in order
+     */
+    public function getTotalQuantityAttribute(): int
+    {
+        $total = 0;
+        foreach ($this->parsed_items as $item) {
+            $total += $item['quantity'] ?? 0;
+        }
+        return $total;
+    }
+}
+
+StockController.php
+
+<?php
+
+namespace App\Http\Controllers\Basic;
+
+use App\Http\Controllers\Controller;
+use App\Models\Stock;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Schema;
+
+class StockController extends Controller
+{
+    public function index(): JsonResponse
+    {
+        try {
+            if (!Schema::hasTable('stock')) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [],
+                    'message' => 'Stock table not created yet',
+                    'total_products' => 0,
+                    'total_variants' => 0
+                ]);
+            }
+    
+            $stockData = Stock::getGroupedStock();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $stockData,
+                'total_products' => $stockData->count(),
+                'total_variants' => Stock::count()
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Stock index error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch stock data',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
+        }
+    }
+
+    /**
+     * Update specific field for a product (supplier, category, etc.)
+     */
+    public function updateProductField(Request $request, $productId): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'product_id' => 'sometimes|string',
+                'name' => 'sometimes|string',
+                'sku' => 'sometimes|string',
+                'category' => 'sometimes|string',
+                'supplier' => 'sometimes|string'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation error',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $existingItems = Stock::where('product_id', $productId)->get();
+            
+            if ($existingItems->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Nenhum produto encontrado com esse product_id'
+                ], 404);
+            }
+
+            $updateData = ['last_updated' => now()->format('Y-m-d')];
+
+            if ($request->has('product_id')) {
+                $updateData['product_id'] = $request->product_id;
+            }
+            if ($request->has('name')) {
+                $updateData['name'] = $request->name;
+            }
+            if ($request->has('sku')) {
+                $updateData['sku'] = $request->sku;
+            }
+            if ($request->has('category')) {
+                $updateData['category'] = $request->category;
+            }
+            if ($request->has('supplier')) {
+                $updateData['supplier'] = $request->supplier;
+            }
+
+            $updated = Stock::where('product_id', $productId)->update($updateData);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Campo atualizado com sucesso em todas as variantes',
+                'updated_count' => $updated,
+                'updated_fields' => array_keys($updateData)
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Update product field error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao atualizar campo: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function lowStock(): JsonResponse
+    {
+        try {
+            $lowStockItems = Stock::getLowStock();
+
+            return response()->json([
+                'success' => true,
+                'data' => $lowStockItems,
+                'count' => $lowStockItems->count()
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Low stock error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch low stock items'
+            ], 500);
+        }
+    }
+
+    public function outOfStock(): JsonResponse
+    {
+        try {
+            $outOfStockItems = Stock::getOutOfStock();
+
+            return response()->json([
+                'success' => true,
+                'data' => $outOfStockItems,
+                'count' => $outOfStockItems->count()
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Out of stock error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch out of stock items'
+            ], 500);
+        }
+    }
+
+    public function updateProductPricing(Request $request, $productId): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'cost' => 'required|numeric|min:0',
+                'profit' => 'required|numeric|min:0',
+                'sale_price' => 'required|numeric|min:0',
+                'total_value' => 'sometimes|numeric|min:0'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation error',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $updated = Stock::where('product_id', $productId)
+                ->update([
+                    'cost' => $request->cost,
+                    'profit' => $request->profit,
+                    'sale_price' => $request->sale_price,
+                    'total_value' => $request->total_value ?? DB::raw('stock * sale_price'),
+                    'last_updated' => now()->format('Y-m-d')
+                ]);
+
+            if ($updated === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Nenhum produto encontrado com esse product_id'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Preços atualizados com sucesso em todas as variantes',
+                'updated_count' => $updated
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Update pricing error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao atualizar preços: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function updateStock(Request $request, $id): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'stock' => 'required|integer|min:0'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation error',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $stock = Stock::find($id);
+            
+            if (!$stock) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Stock item not found'
+                ], 404);
+            }
+
+            $stock->update([
+                'stock' => $request->stock,
+                'last_updated' => now()->format('Y-m-d')
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Stock updated successfully',
+                'data' => $stock
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Update stock error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update stock'
+            ], 500);
+        }
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'product_id' => 'required|string',
+                'name' => 'required|string',
+                'sku' => 'required|string|unique:stock,sku',
+                'category' => 'required|string',
+                'supplier' => 'required|string',
+                'cost' => 'required|numeric|min:0',
+                'profit' => 'required|numeric|min:0',
+                'sale_price' => 'required|numeric|min:0',
+                'total_value' => 'required|numeric|min:0',
+                'color' => 'required|string',
+                'size' => 'required|string',
+                'stock' => 'required|integer|min:0'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation error',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $stock = Stock::create([
+                'product_id' => $request->product_id,
+                'name' => $request->name,
+                'sku' => $request->sku,
+                'category' => $request->category,
+                'supplier' => $request->supplier,
+                'cost' => $request->cost,
+                'profit' => $request->profit,
+                'sale_price' => $request->sale_price,
+                'total_value' => $request->total_value,
+                'color' => $request->color,
+                'size' => $request->size,
+                'stock' => $request->stock,
+                'last_updated' => now()->format('Y-m-d')
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Stock item created successfully',
+                'data' => $stock
+            ], 201);
+
+        } catch (\Exception $e) {
+            Log::error('Create stock item error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create stock item',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function destroy($id): JsonResponse
+    {
+        try {
+            Log::order("Attempting to delete stock item with ID: {$id}");
+
+            $stock = Stock::find($id);
+            
+            if (!$stock) {
+                Log::warning("Stock item not found with ID: {$id}");
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Item de estoque não encontrado'
+                ], 404);
+            }
+
+            $productInfo = [
+                'id' => $stock->id,
+                'product_id' => $stock->product_id,
+                'name' => $stock->name,
+                'color' => $stock->color,
+                'size' => $stock->size
+            ];
+
+            $stock->delete();
+
+            Log::order("Stock item deleted successfully", $productInfo);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Variante excluída com sucesso',
+                'deleted_item' => $productInfo
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Delete stock item error: ' . $e->getMessage(), [
+                'stock_id' => $id,
+                'exception' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao excluir variante: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function destroyByProductId($productId): JsonResponse
+    {
+        try {
+            Log::order("Attempting to delete all stock items for product_id: {$productId}");
+
+            $existingItems = Stock::where('product_id', $productId)->get();
+            
+            if ($existingItems->isEmpty()) {
+                Log::warning("No stock items found for product_id: {$productId}");
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Nenhum produto encontrado com este ID'
+                ], 404);
+            }
+
+            $itemsInfo = $existingItems->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'product_id' => $item->product_id,
+                    'name' => $item->name,
+                    'color' => $item->color,
+                    'size' => $item->size
+                ];
+            })->toArray();
+
+            $deletedCount = Stock::where('product_id', $productId)->delete();
+
+            Log::order("Product and all variants deleted successfully", [
+                'product_id' => $productId,
+                'deleted_count' => $deletedCount,
+                'deleted_items' => $itemsInfo
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Produto e todas as variantes excluídos com sucesso',
+                'deleted_count' => $deletedCount,
+                'deleted_items' => $itemsInfo
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Delete product error: ' . $e->getMessage(), [
+                'product_id' => $productId,
+                'exception' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao excluir produto: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+}
+
+Stock.php
+
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
+
+class Stock extends Model
+{
+    use HasFactory;
+
+    protected $table = 'stock';
+    
+    // Disable automatic timestamps since you're using last_updated
+    public $timestamps = false;
+    
+    protected $fillable = [
+        'product_id', 
+        'name', 
+        'sku', 
+        'category', 
+        'supplier',
+        'cost', 
+        'profit', 
+        'sale_price', 
+        'total_value',
+        'color', 
+        'size', 
+        'stock',           // ✅ AVAILABLE QUANTITY
+        'last_updated'
+    ];
+
+    protected $casts = [
+        'cost' => 'decimal:2',
+        'profit' => 'decimal:2',
+        'sale_price' => 'decimal:2',
+        'total_value' => 'decimal:2',
+        'stock' => 'integer',      // ✅ Cast as integer
+        'last_updated' => 'date'
+    ];
+
+    /**
+     * Get grouped stock by product
+     */
+    public static function getGroupedStock()
+    {
+        if (!Schema::hasTable('stock')) {
+            return collect();
+        }
+
+        return self::orderBy('product_id')
+            ->orderBy('color')
+            ->orderBy('size')
+            ->get()
+            ->groupBy('product_id')
+            ->map(function ($items, $productId) {
+                $firstItem = $items->first();
+                
+                return [
+                    'id' => $firstItem->id,
+                    'product_id' => $productId,
+                    'name' => $firstItem->name,
+                    'category' => $firstItem->category,
+                    'supplier' => $firstItem->supplier,
+                    'cost' => (float) $firstItem->cost,
+                    'profit' => (float) $firstItem->profit,
+                    'sale_price' => (float) $firstItem->sale_price,
+                    'total_value' => (float) $firstItem->total_value,
+                    'last_updated' => $firstItem->last_updated,
+                    // Removed created_at and updated_at references
+                    'variants' => $items->map(function ($item) {
+                        return [
+                            'id' => $item->id,
+                            'color' => $item->color,
+                            'size' => $item->size,
+                            'stock' => $item->stock, // ✅ AVAILABLE QUANTITY
+                            'sku' => $item->sku,
+                        ];
+                    })->values()->toArray()
+                ];
+            })->values();
+    }
+
+    public static function getLowStock()
+    {
+        if (!Schema::hasTable('stock')) {
+            return collect();
+        }
+
+        return self::where('stock', '>', 0)
+            ->where('stock', '<=', 5)
+            ->get();
+    }
+
+    public static function getOutOfStock()
+    {
+        if (!Schema::hasTable('stock')) {
+            return collect();
+        }
+
+        return self::where('stock', 0)->get();
+    }
+}
+
+StockService.php
+
+<?php
+
+namespace App\Services;
+
+use App\Models\Stock;
+use App\Models\Info;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+
+class StockService
+{
+    /**
+     * ✅ Deduct stock for a paid order
+     */
+    public function deductStockFromOrder(Info $order): bool
+    {
+        try {
+            Log::info('=== DEDUCT STOCK FROM ORDER START ===', [
+                'order_id' => $order->id,
+                'order_number' => $order->order_number,
+                'payment_status' => $order->payment_status,
+                'stock_updated_before' => $order->stock_updated
+            ]);
+
+            // If stock already updated, return true
+            if ($order->stock_updated) {
+                Log::info('Stock already deducted for order');
+                return true;
+            }
+
+            // Only deduct stock for paid orders
+            if ($order->payment_status !== 'paid') {
+                Log::warning('Cannot deduct stock for unpaid order');
+                return false;
+            }
+
+            $items = $order->parsed_items;
+            if (empty($items)) {
+                Log::warning('No items in order');
+                return false;
+            }
+
+            DB::beginTransaction();
+
+            // Check all items have enough stock first
+            foreach ($items as $item) {
+                if (!$this->checkItemStockAvailability($item)) {
+                    throw new \Exception("Insufficient stock for: " . ($item['product_name'] ?? 'Unknown'));
+                }
+            }
+
+            // Deduct stock for each item
+            foreach ($items as $item) {
+                $this->deductItemStock($item);
+            }
+
+            // Mark order as having stock deducted
+            $order->stock_updated = true;
+            $order->stock_updated_at = now();
+            $order->save();
+
+            DB::commit();
+
+            Log::info('=== STOCK DEDUCTION COMPLETE ===', [
+                'order_id' => $order->id,
+                'items_count' => count($items),
+                'stock_updated' => $order->stock_updated,
+                'stock_updated_at' => $order->stock_updated_at
+            ]);
+
+            return true;
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('=== STOCK DEDUCTION FAILED ===', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * ✅ Check if item has enough stock
+     */
+    private function checkItemStockAvailability(array $item): bool
+    {
+        $productName = $item['product_name'] ?? null;
+        $quantity = $item['quantity'] ?? 0;
+        $color = $item['color'] ?? null;
+        $size = $item['size'] ?? null;
+
+        if (!$productName || $quantity <= 0) {
+            return false;
+        }
+
+        $stock = $this->findStockItem($productName, $color, $size);
+        
+        if (!$stock) {
+            Log::warning('Stock item not found', [
+                'product_name' => $productName,
+                'color' => $color,
+                'size' => $size
+            ]);
+            return false;
+        }
+
+        $available = $stock->stock >= $quantity;
+        
+        if (!$available) {
+            Log::warning('Insufficient stock', [
+                'product_name' => $productName,
+                'required' => $quantity,
+                'available' => $stock->stock
+            ]);
+        }
+
+        return $available;
+    }
+
+    /**
+     * ✅ Deduct stock for a single item
+     */
+    private function deductItemStock(array $item): void
+    {
+        $productName = $item['product_name'] ?? null;
+        $quantity = $item['quantity'] ?? 0;
+        $color = $item['color'] ?? null;
+        $size = $item['size'] ?? null;
+
+        if (!$productName || $quantity <= 0) {
+            return;
+        }
+
+        $stock = $this->findStockItem($productName, $color, $size);
+        
+        if (!$stock) {
+            throw new \Exception("Stock not found for product: {$productName}");
+        }
+
+        // Deduct from available stock
+        $stock->decrement('stock', $quantity);
+        $stock->last_updated = now()->format('Y-m-d');
+        $stock->save();
+
+        Log::info('Stock deducted for item', [
+            'stock_id' => $stock->id,
+            'product_name' => $productName,
+            'quantity' => $quantity,
+            'remaining_stock' => $stock->stock,
+            'color' => $color,
+            'size' => $size
+        ]);
+    }
+    
+    /**
+     * ✅ Restore stock for cancelled/refunded orders
+     */
+    public function restoreStockForOrder(Info $order): bool
+    {
+        try {
+            Log::info('=== RESTORE STOCK FOR ORDER START ===', [
+                'order_id' => $order->id,
+                'order_number' => $order->order_number,
+                'payment_status' => $order->payment_status,
+                'stock_updated_before' => $order->stock_updated
+            ]);
+
+            // Only restore if stock was previously deducted
+            if (!$order->stock_updated) {
+                Log::info('Stock was not deducted for this order, nothing to restore');
+                return true;
+            }
+
+            $items = $order->parsed_items;
+            if (empty($items)) {
+                return false;
+            }
+
+            DB::beginTransaction();
+
+            // Restore stock for each item
+            foreach ($items as $item) {
+                $this->restoreItemStock($item);
+            }
+
+            // Mark order as having stock restored
+            $order->stock_updated = false;
+            $order->stock_updated_at = null;
+            $order->save();
+
+            DB::commit();
+
+            Log::info('=== STOCK RESTORATION COMPLETE ===', [
+                'order_id' => $order->id,
+                'items_count' => count($items),
+                'stock_updated' => $order->stock_updated
+            ]);
+
+            return true;
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('=== STOCK RESTORATION FAILED ===', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * ✅ Restore stock for a single item
+     */
+    private function restoreItemStock(array $item): void
+    {
+        $productName = $item['product_name'] ?? null;
+        $quantity = $item['quantity'] ?? 0;
+        $color = $item['color'] ?? null;
+        $size = $item['size'] ?? null;
+
+        if (!$productName || $quantity <= 0) {
+            return;
+        }
+
+        $stock = $this->findStockItem($productName, $color, $size);
+        
+        if (!$stock) {
+            Log::warning('Stock item not found when restoring', [
+                'product_name' => $productName,
+                'color' => $color,
+                'size' => $size
+            ]);
+            return;
+        }
+
+        // Restore to available stock
+        $stock->increment('stock', $quantity);
+        $stock->last_updated = now()->format('Y-m-d');
+        $stock->save();
+
+        Log::info('Stock restored for item', [
+            'stock_id' => $stock->id,
+            'product_name' => $productName,
+            'quantity' => $quantity,
+            'new_stock' => $stock->stock
+        ]);
+    }
+
+    /**
+     * ✅ Find stock item by name, color, and size
+     */
+    private function findStockItem(string $productName, ?string $color, ?string $size): ?Stock
+    {
+        $stock = Stock::where('name', $productName)
+            ->when($color && $color !== 'Não especificada', function($query) use ($color) {
+                return $query->where('color', $color);
+            })
+            ->when($size && $size !== 'Não especificado', function($query) use ($size) {
+                return $query->where('size', $size);
+            })
+            ->first();
+
+        // Fallback: Try without color/size
+        if (!$stock) {
+            $stock = Stock::where('name', $productName)->first();
+        }
+
+        return $stock;
+    }
+
+    /**
+     * ✅ Check stock availability for multiple items
+     */
+    public function checkStockAvailability(array $items): array
+    {
+        $results = [];
+
+        foreach ($items as $key => $item) {
+            $productName = $item['product_name'] ?? null;
+            $quantity = $item['quantity'] ?? 0;
+            $color = $item['color'] ?? null;
+            $size = $item['size'] ?? null;
+
+            $result = [
+                'product_name' => $productName,
+                'requested_quantity' => $quantity,
+                'color' => $color,
+                'size' => $size,
+                'available' => false,
+                'available_stock' => 0,
+                'message' => ''
+            ];
+
+            if (!$productName || $quantity <= 0) {
+                $result['message'] = 'Invalid product data';
+                $results[$key] = $result;
+                continue;
+            }
+
+            $stock = $this->findStockItem($productName, $color, $size);
+
+            if (!$stock) {
+                $result['message'] = 'Product not found in stock';
+            } else {
+                $result['available_stock'] = $stock->stock;
+                $result['available'] = $stock->stock >= $quantity;
+                $result['message'] = $result['available'] 
+                    ? 'Stock available' 
+                    : "Insufficient stock. Available: {$stock->stock}, Requested: {$quantity}";
+                $result['stock_id'] = $stock->id;
+            }
+
+            $results[$key] = $result;
+        }
+
+        return $results;
+    }
+
+    /**
+     * ✅ Get all products with low stock
+     */
+    public function getLowStockProducts(int $threshold = 5): array
+    {
+        return Stock::where('stock', '>', 0)
+            ->where('stock', '<=', $threshold)
+            ->get()
+            ->map(function ($stock) {
+                return [
+                    'id' => $stock->id,
+                    'name' => $stock->name,
+                    'color' => $stock->color,
+                    'size' => $stock->size,
+                    'stock' => $stock->stock,
+                    'sale_price' => $stock->sale_price
+                ];
+            })
+            ->toArray();
     }
 }

@@ -7,8 +7,8 @@ import {
 } from "react-icons/fi";
 import { LuDatabaseBackup } from "react-icons/lu";
 
-import Dashboard from '../Admin/Dashboard';
-import SaleProducts from '../Admin/SaleProducts';
+import DashboardManagement from '../Admin/DashboardManagement';
+import SaleProductManagement from '../Admin/SaleProductManagement';
 import StockManagement from '../Admin/StockManagement';
 import OrdersManagement from '../Admin/OrdersManagement';
 import CustomersManagement from '../Admin/CustomersManagement';
@@ -110,8 +110,8 @@ const AdminPanel = () => {
 
   const renderActiveTab = () => {
     switch (activeTab) {
-      case "dashboard": return <Dashboard />;
-      case "products": return <SaleProducts />;
+      case "dashboard": return <DashboardManagement />;
+      case "products": return <SaleProductManagement />;
       case "stock": return <StockManagement />;
       case "orders": return <OrdersManagement />;
       case "customers": return <CustomersManagement />;
@@ -119,7 +119,7 @@ const AdminPanel = () => {
       case "promotions": return <PromotionsManagement />;
       case "backups": return <BackupsManagement />;
       case "settings": return <SettingsManagement />;
-      default: return <Dashboard />;
+      default: return < DashboardManagement/>;
     }
   };
 

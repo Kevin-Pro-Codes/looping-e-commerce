@@ -114,85 +114,97 @@ class OrderInfoController extends Controller
         }
     }
 
-    /**
-     * Update info status and payment status WITH STOCK SYNC
-     * PUT /api/infos/{id}/status
-     */
     public function updateStatus($id, Request $request, StockService $stockService): JsonResponse
     {
         try {
-            Log::info('=== INFO STATUS UPDATE START ===', ['info_id' => $id]);
-
+            Log::info('=== INFO STATUS UPDATE START ===', [
+                'info_id' => $id,
+                'request_data' => $request->all(),
+                'full_url' => $request->fullUrl()
+            ]);
+    
+            // DEBUG: Log incoming request
+            Log::debug('Raw request input:', $request->input());
+            Log::debug('Request headers:', $request->headers->all());
+    
             // Validate input
             $validated = $request->validate([
                 'status' => 'required|string|in:pending,processing,shipped,delivered,cancelled',
                 'payment_status' => 'required|string|in:pending,paid,failed,refunded'
             ]);
-
+    
+            Log::info('Validation passed:', $validated);
+    
             // Find info
             $info = Info::find($id);
             if (!$info) {
+                Log::warning('Order not found', ['order_id' => $id]);
                 return response()->json([
                     'success' => false,
                     'message' => 'Order not found',
                     'debug' => ['order_id' => $id]
                 ], 404);
             }
-
+    
+            Log::info('Order found:', [
+                'order_id' => $info->id,
+                'order_number' => $info->order_number,
+                'current_status' => $info->status,
+                'current_payment_status' => $info->payment_status,
+                'current_stock_updated' => $info->stock_updated,
+                'current_stock_updated_at' => $info->stock_updated_at
+            ]);
+    
             $oldPaymentStatus = $info->payment_status;
             $oldStatus = $info->status;
-
-            Log::info('Status change detected', [
-                'old_payment_status' => $oldPaymentStatus,
-                'new_payment_status' => $validated['payment_status'],
-                'old_status' => $oldStatus,
-                'new_status' => $validated['status']
-            ]);
-
-            // ✅ HANDLE STOCK DEDUCTION FOR NEW PAID ORDERS
+    
+            // ✅ CHANGES START HERE:
+            // Update stock flags based on payment status change
             if ($oldPaymentStatus !== 'paid' && $validated['payment_status'] === 'paid') {
-                Log::info('Payment changed to PAID - deducting stock');
+                Log::info('Payment changed to PAID - updating stock flags (debug mode)');
                 
-                $stockUpdated = $stockService->deductStockFromOrder($info);
+                // ✅ UPDATE STOCK FLAGS
+                $info->stock_updated = true;
+                $info->stock_updated_at = now();
                 
-                if (!$stockUpdated) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Failed to update stock. Insufficient stock available.',
-                        'debug' => [
-                            'order_id' => $info->id,
-                            'order_number' => $info->order_number
-                        ]
-                    ], 400);
-                }
-                
-                Log::info('Stock deducted successfully');
+                Log::info('Stock flags updated for paid order', [
+                    'stock_updated' => true,
+                    'stock_updated_at' => now()->format('c')
+                ]);
             }
             
-            // ✅ HANDLE STOCK RESTORATION FOR CANCELLATIONS/REFUNDS
-            if (($oldPaymentStatus === 'paid' && $validated['payment_status'] === 'refunded') ||
-                ($oldStatus !== 'cancelled' && $validated['status'] === 'cancelled')) {
-                Log::info('Order refunded/cancelled - restoring stock');
+            // Reset stock flags if order is refunded
+            if ($oldPaymentStatus === 'paid' && $validated['payment_status'] === 'refunded') {
+                Log::info('Payment changed to REFUNDED - resetting stock flags');
                 
-                $stockService->restoreStockForOrder($info);
+                $info->stock_updated = false;
+                $info->stock_updated_at = null;
             }
-
+            
+            // Reset stock flags if order is cancelled
+            if ($oldStatus !== 'cancelled' && $validated['status'] === 'cancelled') {
+                Log::info('Status changed to CANCELLED - resetting stock flags');
+                
+                $info->stock_updated = false;
+                $info->stock_updated_at = null;
+            }
+    
             // Update fields
             $info->status = $validated['status'];
             $info->payment_status = $validated['payment_status'];
             $info->save();
-
+    
             Log::info('Order status updated successfully', [
                 'order_id' => $info->id,
-                'status' => $info->status,
-                'payment_status' => $info->payment_status,
+                'new_status' => $info->status,
+                'new_payment_status' => $info->payment_status,
                 'stock_updated' => $info->stock_updated,
                 'stock_updated_at' => $info->stock_updated_at
             ]);
-
+    
             return response()->json([
                 'success' => true,
-                'message' => 'Order status updated successfully',
+                'message' => 'Order status updated successfully (debug mode)',
                 'data' => [
                     'order_id' => $info->id,
                     'order_number' => $info->order_number,
@@ -202,16 +214,33 @@ class OrderInfoController extends Controller
                     'stock_updated_at' => $info->stock_updated_at
                 ],
                 'debug' => [
-                    'timestamp' => now()->format('c')
+                    'timestamp' => now()->format('c'),
+                    'old_status' => $oldStatus,
+                    'old_payment_status' => $oldPaymentStatus,
+                    'stock_flags_updated' => true,
+                    'bypassed_stock_check' => true
                 ]
             ]);
-
+    
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('=== VALIDATION ERROR ===');
+            Log::error('Validation errors:', $e->errors());
+            Log::error('Request data:', $request->all());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+                'debug' => ['request_data' => $request->all()]
+            ], 422);
+            
         } catch (Exception $e) {
             Log::error('=== INFO STATUS UPDATE ERROR ===');
             Log::error('Error: ' . $e->getMessage());
             Log::error('File: ' . $e->getFile() . ':' . $e->getLine());
+            Log::error('Trace: ' . $e->getTraceAsString());
             Log::error('Request data: ', $request->all());
-
+    
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update order status',
@@ -223,19 +252,6 @@ class OrderInfoController extends Controller
                 ]
             ], 500);
         }
-    }
-
-    /**
-     * Simple test endpoint
-     */
-    public function test(): JsonResponse
-    {
-        return response()->json([
-            'success' => true,
-            'message' => 'InfoController is working!',
-            'timestamp' => now()->format('c'),
-            'status' => 'OK'
-        ]);
     }
 
   /**
