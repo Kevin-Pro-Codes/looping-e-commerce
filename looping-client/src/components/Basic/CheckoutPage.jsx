@@ -1415,7 +1415,7 @@ const OrderSummary = ({
                   <div className="flex flex-wrap gap-2 mb-2">
                     {product.size && product.size !== 'Not specified' && (
                       <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                        Size: {product.size}
+                        Tamanho: {product.size}
                       </span>
                     )}
                     {product.color && product.color !== 'Not specified' && (
@@ -1428,7 +1428,7 @@ const OrderSummary = ({
                           }}
                           title={product.color}
                         ></div>
-                        <span className="text-xs text-gray-600">Color: {product.color}</span>
+                        <span className="text-xs text-gray-600">Cor: {product.color}</span>
                       </div>
                     )}
                   </div>
@@ -1831,9 +1831,8 @@ const CheckoutPage = () => {
       } catch (error) {
         console.error('Error checking payment status:', error);
       }
-    }, 5000); // Check every 5 seconds
-
-    // Stop polling after 30 minutes
+    }, 5000); 
+   
     setTimeout(() => {
       clearInterval(pollInterval);
     }, 30 * 60 * 1000);
@@ -1880,107 +1879,104 @@ const CheckoutPage = () => {
   const calculateTotal = () => {
     const subtotal = calculateSubtotal();
     const shipping = calculateShipping();
-    const total = subtotal + shipping - discount;
-    
-    const discountedTotal = paymentMethod === 'pix' ? total * 0.95 : total;
-    
+    const total = subtotal + shipping - discount;    
+    const discountedTotal = paymentMethod === 'pix' ? total * 0.95 : total;    
     return discountedTotal;
   };
   
 
-  // ✅ UPDATED generateOrderJSON with Portuguese Color Names
-  const generateOrderJSON = () => {
-    const subtotal      = calculateSubtotal();
-    const shippingCost  = calculateShipping();
-    const rawTotal      = subtotal + shippingCost - discount;
-    const total         = paymentMethod === 'pix' ? rawTotal * 0.95 : rawTotal;
-    const discountAmt   = paymentMethod === 'pix' ? rawTotal * 0.05 : discount;
+const generateOrderJSON = () => {
+  const subtotal = calculateSubtotal();
+  const shippingCost = calculateShipping();
+  const rawTotal = subtotal + shippingCost - discount;
+  const total = paymentMethod === 'pix' ? rawTotal * 0.95 : rawTotal;
+  const discountAmt = paymentMethod === 'pix' ? rawTotal * 0.05 : discount;
 
-    const items = cartItems.map(item => {
-      const product = item.product || {};
-      const price   = Number(product.price || item.price || 0);
-      const qty     = Number(item.quantity || 1);
+  const items = cartItems.map(item => {
+    const product = item.product || {};    
+    const price = Number(product.price || item.price || 0);
+    const qty = Number(item.quantity || 1);
+  
+    const size = item.size ||
+      item.selectedSize ||
+      item.variant_size ||
+      item.product_variant?.size ||
+      item.variant?.size ||
+      product.size ||
+      (item.options && (item.options.size || item.options.tamanho)) ||
+      item.attributes?.size ||
+      item.metadata?.size ||
+      'Not specified';
+   
+    const rawColor = item.color ||
+      item.selectedColor ||
+      item.variant_color ||
+      item.product_variant?.color ||
+      item.variant?.color ||
+      product.color ||
+      (item.options && (item.options.color || item.options.cor)) ||
+      item.attributes?.color ||
+      item.metadata?.color ||
+      null;
 
-      // Extract size
-      const size = item.size || 
-                  item.selectedSize || 
-                  item.variant_size ||
-                  item.product_variant?.size ||
-                  item.variant?.size ||
-                  product.size ||
-                  (item.options && (item.options.size || item.options.tamanho)) ||
-                  item.attributes?.size ||
-                  item.metadata?.size ||
-                  'Not specified';
-      
-      // Extract raw color and convert to Portuguese name
-      const rawColor = item.color || 
-                     item.selectedColor || 
-                     item.variant_color ||
-                     item.product_variant?.color ||
-                     item.variant?.color ||
-                     product.color ||
-                     (item.options && (item.options.color || item.options.cor)) ||
-                     item.attributes?.color ||
-                     item.metadata?.color ||
-                     null;
-      
-      const color = getEnglishColorName(rawColor);
+    const color = getEnglishColorName(rawColor);
 
-      return {
-        product_id:   item.product_id || product.id || null,
-        product_name: product.title || product.name || `Product ${item.product_id || ''}`,
-        quantity:     qty,
-        price:        price,
-        total:        price * qty,
-        // ✅ CRITICAL: Include color and size for admin panel (now in Portuguese)
-        size: size,
-        color: color,
-        // Also save the original color value if needed
-        original_color: rawColor,
-        image: product.image || product.image_url || item.image || null,
-        variant_id: item.variant_id || item.product_variant?.id || null,
-        sku: product.sku || item.sku || null
-      };
-    });
 
-    const payload = {
-      customer_name:  (customerData.name   ?? '').toString().trim(),
-      customer_email: (customerData.email  ?? '').toString().trim(),
-      customer_phone: (customerData.phone  ?? '').toString().trim(),
-      customer_cpf:   (customerData.cpf    ?? '').toString().trim(),
-
-      subtotal:      Number(subtotal.toFixed(2)),
-      shipping:      Number(shippingCost.toFixed(2)),
-      discount:      Number(discountAmt.toFixed(2)),
-      total:         Number(total.toFixed(2)),
-
-      payment_method: paymentMethod,
-      payment_status: 'pending',
-      status:         'pending',
-
-      shipping_street:        (shippingData.street        ?? '').toString().trim(),
-      shipping_number:        (shippingData.number        ?? '').toString().trim(),
-      shipping_complement:    (shippingData.complement    ?? null),
-      shipping_neighborhood:  (shippingData.hood          ?? '').toString().trim(),
-      shipping_city:          (shippingData.city          ?? '').toString().trim(),
-      shipping_state:         (shippingData.state         ?? '').toString().trim(),
-      shipping_zip_code:      (shippingData.cep?.replace(/\D/g, '') ?? '').toString(),
-
-      items: items,
-
-      metadata: {
-        is_mock: true,
-        coupon_applied: discount > 0 ? couponCode : null,
-        platform: 'web',
-        timestamp: new Date().toISOString(),
-        selected_items_only: isUsingSelectedItems()
-      }
+    return {
+   
+      product_name: product.title || product.name || `Product ${item.product_id || ''}`,  
+      quantity: qty,
+      price: price,
+      total: price * qty,
+      size: size,
+      color: color,    
+      image: product.image || product.image_url || item.image || null,  
+  
     };
+  });
 
-    console.log('%c ORDER PAYLOAD → /api/infos ', 'background:#006400;color:#fff;', payload);
-    return payload;
+  const payload = {
+    customer_name: (customerData.name ?? '').toString().trim(),
+    customer_email: (customerData.email ?? '').toString().trim(),
+    customer_phone: (customerData.phone ?? '').toString().trim(),
+    customer_cpf: (customerData.cpf ?? '').toString().trim(),
+
+    subtotal: Number(subtotal.toFixed(2)),
+    shipping: Number(shippingCost.toFixed(2)),
+    discount: Number(discountAmt.toFixed(2)),
+    total: Number(total.toFixed(2)),
+
+    payment_method: paymentMethod,
+    payment_status: 'pending',
+    status: 'pending',
+    shipping_street: (shippingData.street ?? '').toString().trim(),
+    shipping_number: (shippingData.number ?? '').toString().trim(),
+    shipping_complement: (shippingData.complement ?? null),
+    shipping_neighborhood: (shippingData.hood ?? '').toString().trim(),
+    shipping_city: (shippingData.city ?? '').toString().trim(),
+    shipping_state: (shippingData.state ?? '').toString().trim(),
+    shipping_zip_code: (shippingData.cep?.replace(/\D/g, '') ?? '').toString(),
+
+    items: items,
+
+    metadata: {
+      is_mock: true,
+      coupon_applied: discount > 0 ? couponCode : null,
+      platform: 'web',
+      timestamp: new Date().toISOString(),
+      selected_items_only: isUsingSelectedItems()
+    }
   };
+
+  console.log('%c ORDER PAYLOAD → /api/infos ', 'background:#006400;color:#fff;', payload);
+  
+  // ✅ Verify order of properties in first item
+  if (items.length > 0) {
+    console.log('%c ITEM PROPERTIES ORDER:', 'background:#4a5568;color:#fff;font-weight:bold;', Object.keys(items[0]));
+  }
+  
+  return payload;
+};
 
   const fetchUserProfile = async () => {
     try {

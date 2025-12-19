@@ -76,8 +76,8 @@ class StockController extends Controller
                 ], 404);
             }
 
-            $updateData = ['last_updated' => now()->format('Y-m-d')];
-
+            $updateData = ['last_updated' => now()];  
+        
             if ($request->has('product_id')) {
                 $updateData['product_id'] = $request->product_id;
             }
@@ -176,7 +176,7 @@ class StockController extends Controller
                     'profit' => $request->profit,
                     'sale_price' => $request->sale_price,
                     'total_value' => $request->total_value ?? DB::raw('stock * sale_price'),
-                    'last_updated' => now()->format('Y-m-d')
+                    'last_updated' => now()
                 ]);
 
             if ($updated === 0) {
@@ -227,7 +227,7 @@ class StockController extends Controller
 
             $stock->update([
                 'stock' => $request->stock,
-                'last_updated' => now()->format('Y-m-d')
+                'last_updated' => now()
             ]);
 
             return response()->json([
@@ -284,7 +284,7 @@ class StockController extends Controller
                 'color' => $request->color,
                 'size' => $request->size,
                 'stock' => $request->stock,
-                'last_updated' => now()->format('Y-m-d')
+                'last_updated' => now()
             ]);
 
             return response()->json([

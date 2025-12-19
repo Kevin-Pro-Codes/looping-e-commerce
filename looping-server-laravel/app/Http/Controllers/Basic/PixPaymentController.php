@@ -208,7 +208,7 @@ class PixPaymentController extends Controller
                     'transaction_id' => $pixDetails->transaction_id,
                     'amount' => (float) $pixDetails->amount, // Ensure it's a number
                     'expires_at' => $expiresAt->format('c'),
-                    'updated_at' => $pixDetails->updated_at->format('c'),
+                    
                 ]
             ]);
 

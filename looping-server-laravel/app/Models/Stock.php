@@ -12,6 +12,9 @@ class Stock extends Model
 
     protected $table = 'stock';
     
+    // Remove this line to enable Laravel's default timestamps
+    // public $timestamps = false;
+    
     protected $fillable = [
         'product_id', 
         'name', 
@@ -34,7 +37,7 @@ class Stock extends Model
         'sale_price' => 'decimal:2',
         'total_value' => 'decimal:2',
         'stock' => 'integer',      // ✅ Cast as integer
-        'last_updated' => 'date'
+        'last_updated' => 'datetime'  // ✅ Change from 'date' to 'datetime'
     ];
 
     /**
@@ -64,9 +67,7 @@ class Stock extends Model
                     'profit' => (float) $firstItem->profit,
                     'sale_price' => (float) $firstItem->sale_price,
                     'total_value' => (float) $firstItem->total_value,
-                    'last_updated' => $firstItem->last_updated,
-                    'created_at' => $firstItem->created_at?->format('Y-m-d H:i:s'),
-                    'updated_at' => $firstItem->updated_at?->format('Y-m-d H:i:s'),
+                    'last_updated' => $firstItem->last_updated ? $firstItem->last_updated->format('Y-m-d H:i:s') : null,                 
                     'variants' => $items->map(function ($item) {
                         return [
                             'id' => $item->id,
@@ -74,6 +75,8 @@ class Stock extends Model
                             'size' => $item->size,
                             'stock' => $item->stock, // ✅ AVAILABLE QUANTITY
                             'sku' => $item->sku,
+                            'last_updated' => $item->last_updated ? $item->last_updated->format('Y-m-d H:i:s') : null,
+                            'last_updated_raw' => $item->last_updated
                         ];
                     })->values()->toArray()
                 ];

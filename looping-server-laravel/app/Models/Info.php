@@ -12,6 +12,7 @@ class Info extends Model
 
     protected $table = 'orders';
 
+
     protected $fillable = [
         'order_number',
         'customer_name',
@@ -46,8 +47,7 @@ class Info extends Model
         'stock_updated' => 'boolean',  // ✅ Cast as boolean
         'items' => 'array',            // ✅ Cast as array (contains quantities)
         'metadata' => 'array',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'created_at' => 'datetime',       
         'stock_updated_at' => 'datetime',  // ✅ Cast as datetime
     ];
 

@@ -45,8 +45,7 @@ class Order extends Model
         'items' => 'array',
         'pix_data' => 'array',
         'metadata' => 'array',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime'
+        'created_at' => 'datetime'
     ];
 
     /**

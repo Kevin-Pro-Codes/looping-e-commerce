@@ -72,8 +72,8 @@ class OrderInfoController extends Controller
                         'shipping_zip_code',
                         'items',                    
                         'metadata',
-                        'created_at',
-                        'updated_at'
+                        'created_at'
+                        
                     ])->get();
 
                     Log::info('Fetched ' . $orders->count() . ' orders from database');
@@ -292,26 +292,25 @@ public function store(Request $request, StockService $stockService): JsonRespons
             'items.*.size' => 'sometimes|string|nullable',
         ]);
 
-        // ✅ ENSURE PRODUCT NAME IS PRESENT IN EACH ITEM
-        $itemsWithProductName = [];
-        foreach ($validated['items'] as $item) {
-            if (empty($item['product_name'])) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Product name is required for all items'
-                ], 400);
-            }
-            
-            $itemsWithProductName[] = [
-                'product_name' => $item['product_name'],
-                'quantity' => $item['quantity'],
-                'price' => $item['price'],
-                'total' => $item['total'],
-                'image' => $item['image'] ?? null,
-                'color' => $item['color'] ?? null,
-                'size' => $item['size'] ?? null,
-            ];
-        }
+$itemsWithProductName = [];
+foreach ($validated['items'] as $item) {
+    if (empty($item['product_name'])) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Product name is required for all items'
+        ], 400);
+    }
+    
+    $itemsWithProductName[] = [
+        'product_name' => $item['product_name'],
+        'quantity' => $item['quantity'],
+        'price' => $item['price'],
+        'total' => $item['total'],
+        'image' => $item['image'] ?? null,
+        'color' => $item['color'] ?? null,
+        'size' => $item['size'] ?? null,
+    ];
+}
 
         // ✅ OPTIONAL: Check stock before creating order
         if ($request->has('check_stock') && $request->check_stock == true) {
