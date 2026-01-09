@@ -14,7 +14,7 @@ start "MongoDB Shell" mongosh.exe "mongodb://admin:6bhcct53@127.0.0.1:27017/loop
 
 :: === START LARAVEL ===
 echo Starting Laravel server...
-cd /d "%~dp0looping-server-laravel"
+cd /d "%~dp0looping-server"
 start "Laravel Server" php artisan serve
 
 :: === START REACT ===
