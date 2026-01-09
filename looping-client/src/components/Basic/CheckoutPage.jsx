@@ -38,7 +38,7 @@ const CsrfTokenManager = {
 
 // ✅ Color Utility Functions
 const getEnglishColorName = (colorValue) => {
-  if (!colorValue || colorValue === 'undefined') return 'Not specified';
+  if (!colorValue || colorValue === 'undefined') return 'Não especificada';
   
   // Convert to lowercase and trim
   const color = colorValue.toString().toLowerCase().trim();
@@ -74,7 +74,7 @@ const getEnglishColorName = (colorValue) => {
     '#f0e68c': 'Cáqui',
     '#d2691e': 'Chocolate',
     
-    // Portuguese color names (keep as is)
+    // Portuguese color names
     'preto': 'Preto',
     'branco': 'Branco',
     'azul': 'Azul',
@@ -265,7 +265,7 @@ const StepIndicator = ({ currentStep, goToStep }) => (
       { number: 1, label: 'Dados', icon: FiUser },
       { number: 2, label: 'Entrega', icon: FiTruck },
       { number: 3, label: 'Pagamento', icon: FiCard },
-      { number: 4, label: 'Conclusão', icon: FiCheck }
+      { number: 4, label: 'Confirmação', icon: FiCheck }
     ].map((step, index) => (
       <React.Fragment key={step.number}>
         <button
@@ -315,14 +315,15 @@ const CustomerStep = ({
   return (
     <div className="bg-white p-6 rounded-lg shadow-md" style={{ fontFamily: 'Calibri, sans-serif' }}>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold">Personal Data</h2>
+        <h2 className="text-xl font-semibold">Dados Pessoais</h2>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500">Step 1 of 4</span>
+          <span className="text-sm text-gray-500">Passo 1 de 4</span>
           <button 
             onClick={fetchUserProfile}
-            className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200 transition-colors"
+            className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200 transition-colors flex items-center gap-1"
           >
-            Reload
+            <IoReload size={12} />
+            Recarregar
           </button>
         </div>
       </div>
@@ -330,36 +331,36 @@ const CustomerStep = ({
       {!isProfileLoaded ? (
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your data...</p>
+          <p className="text-gray-600">Carregando seus dados...</p>
         </div>
       ) : (
         <>
           {customerData.name && (
             <div className="mb-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-3">Profile Data Loaded</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-3">Dados do Perfil Carregados</h3>
               <div className="border-2 border-green-500 bg-green-50 rounded-lg p-4 transition-all">
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="space-y-2">
                       <div className="flex items-center">
-                        <span className="font-medium text-gray-700 w-19">Name:</span>
-                        <span className="text-green-900 font-semibold -ml-6">{customerData.name}</span>
+                        <span className="font-medium text-gray-700 w-20">Nome:</span>
+                        <span className="text-green-900 font-semibold -ml-7">{customerData.name}</span>
                       </div>
                       <div className="flex items-center">
-                        <span className="font-medium text-gray-700 w-19">Email:</span>
+                        <span className="font-medium text-gray-700 w-20">E-mail:</span>
                         <span className="text-green-900 font-semibold -ml-7">{customerData.email}</span>
                       </div>
                       <div className="flex items-center">
-                        <span className="font-medium text-gray-700 w-19">Phone:</span>
-                        <span className="text-green-900 font-semibold -ml-3">{customerData.phone}</span>
+                        <span className="font-medium text-gray-700 w-20">Telefone:</span>
+                        <span className="text-green-900 font-semibold -ml-3.5">{customerData.phone}</span>
                       </div>
                       <div className="flex items-center">
-                        <span className="font-medium text-gray-700 w-19">CPF:</span>
+                        <span className="font-medium text-gray-700 w-20">CPF:</span>
                         <span className="text-green-900 font-semibold -ml-11">{customerData.cpf}</span>
                       </div>
                     </div>
                     <p className="text-sm text-green-700 mt-3">
-                      Your data was loaded automatically. You can edit them below if needed.
+                      Seus dados foram carregados automaticamente. Você pode editá-los abaixo se necessário.
                     </p>
                   </div>
                   <div className="w-6 h-6 rounded-full border-2 border-green-500 bg-green-500 flex items-center justify-center ml-4 flex-shrink-0">
@@ -373,33 +374,33 @@ const CustomerStep = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Full Name *
+                Nome Completo *
               </label>
               <input
                 type="text"
                 value={customerData.name}
                 onChange={(e) => setCustomerData(prev => ({...prev, name: e.target.value}))}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
-                placeholder="Your full name"
+                placeholder="Seu nome completo"
               />
             </div>
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email *
+                E-mail *
               </label>
               <input
                 type="email"
                 value={customerData.email}
                 onChange={(e) => setCustomerData(prev => ({...prev, email: e.target.value}))}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
-                placeholder="your@email.com"
+                placeholder="seu@email.com"
               />
             </div>
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Phone *
+                Telefone *
               </label>
               <input
                 type="tel"
@@ -428,9 +429,10 @@ const CustomerStep = ({
             <button
               onClick={nextStep}
               disabled={!customerData.name || !customerData.email || !customerData.phone || !customerData.cpf}
-              className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white py-3 px-8 rounded-lg font-semibold transition-colors"
+              className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white py-3 px-8 rounded-lg font-semibold transition-colors flex items-center gap-2"
             >
-              Continue to Delivery
+              Continuar para Entrega
+              <FiArrowRight />
             </button>
           </div>
         </>
@@ -490,13 +492,13 @@ const CepInput = ({
     <div className="bg-white p-4 rounded-lg border border-gray-200 mb-6">
       <div className="flex items-center gap-2 mb-3">
         <FiMapPin className="text-blue-600" size={20} />
-        <h3 className="text-lg font-semibold text-gray-800">Calculate Shipping</h3>
+        <h3 className="text-lg font-semibold text-gray-800">Calcular Frete</h3>
       </div>
       
       <div className="flex gap-3">
         <div className="flex-1">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Enter your ZIP Code
+            Digite seu CEP
           </label>
           <div className="relative">
             <input
@@ -516,12 +518,12 @@ const CepInput = ({
           </div>
           
           {showError && (
-            <p className="text-red-500 text-xs mt-1">ZIP Code must have 8 digits</p>
+            <p className="text-red-500 text-xs mt-1">CEP deve ter 8 dígitos</p>
           )}
           
           {cep && cep.replace(/\D/g, '').length > 0 && cep.replace(/\D/g, '').length < 8 && !showError && (
             <p className="text-gray-500 text-xs mt-1">
-              Enter {getMissingDigits()} more digit{getMissingDigits() !== 1 ? 's' : ''}
+              Digite mais {getMissingDigits()} dígito{getMissingDigits() !== 1 ? 's' : ''}
             </p>
           )}
         </div>
@@ -532,7 +534,7 @@ const CepInput = ({
           <div className="flex items-center gap-2">
             <FiCheck className="text-green-600" size={16} />
             <span className="text-green-800 text-sm font-medium">
-              ZIP Code {shippingData.cep} valid
+              CEP {shippingData.cep} válido
             </span>
           </div>
           {shippingData.city && shippingData.state && (
@@ -581,10 +583,10 @@ const ShippingStep = ({
           cep: data.cep || cleanCEP
         }));
       } else {
-        console.log('ZIP Code not found');
+        console.log('CEP não encontrado');
       }
     } catch (error) {
-      console.error('Error fetching ZIP Code:', error);
+      console.error('Error fetching CEP:', error);
     } finally {
       setCepLoading(false);
     }
@@ -605,23 +607,23 @@ const ShippingStep = ({
   const shippingOptions = [
     {
       id: 'economy',
-      name: 'Economy Delivery',
-      company: 'Carrier',
+      name: 'Entrega Econômica',
+      company: 'Transportadora',
       price: 15.90,
       delivery_time: '5-8',
       delivery_range: { min: 5, max: 8 },
-      custom_delivery_time: '5 to 8 business days',
-      description: 'Economy delivery'
+      custom_delivery_time: '5 a 8 dias úteis',
+      description: 'Entrega econômica'
     },
     {
       id: 'express',
-      name: 'Express Delivery',
-      company: 'Carrier',
+      name: 'Entrega Expressa',
+      company: 'Transportadora',
       price: 29.90,
       delivery_time: '2-3',
       delivery_range: { min: 2, max: 3 },
-      custom_delivery_time: '2 to 3 business days',
-      description: 'Fast delivery'
+      custom_delivery_time: '2 a 3 dias úteis',
+      description: 'Entrega rápida'
     }
   ];
 
@@ -631,14 +633,15 @@ const ShippingStep = ({
   return (
     <div className="bg-white p-6 rounded-lg shadow-md" style={{ fontFamily: 'Calibri, sans-serif' }}>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold">Delivery Address</h2>
+        <h2 className="text-xl font-semibold">Endereço de Entrega</h2>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500">Step 2 of 4</span>
+          <span className="text-sm text-gray-500">Passo 2 de 4</span>
           <button 
             onClick={fetchUserAddresses}
-            className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200 transition-colors"
+            className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200 transition-colors flex items-center gap-1"
           >
-            Reload
+            <IoReload size={12} />
+            Recarregar
           </button>
         </div>
       </div>
@@ -653,47 +656,47 @@ const ShippingStep = ({
       
       {userAddresses.length > 0 && selectedAddressId && (
         <div className="mb-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-3">Addresses Loaded</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-3">Endereços Carregados</h3>
           <div className="border-2 border-green-500 bg-green-50 rounded-lg p-4 transition-all">
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
                 <div className="space-y-2">
                   <div className="flex items-center">
-                    <span className="font-medium text-gray-700 w-20">Street:</span>
+                    <span className="font-medium text-gray-700 w-20">Rua:</span>
                     <span className="text-green-900 font-semibold -ml-11">{shippingData.street}</span>
                   </div>
                   
                   <div className="flex items-center">
-                    <span className="font-medium text-gray-700 w-20">Number:</span>
+                    <span className="font-medium text-gray-700 w-20">Número:</span>
                     <span className="text-green-900 font-semibold -ml-4">{shippingData.number}</span>
                   </div>
 
                   <div className="flex items-center">
-                    <span className="font-medium text-gray-700 w-20">Complement:</span>
+                    <span className="font-medium text-gray-700 w-20">Complemento:</span>
                     <span className="text-green-900 font-semibold ml-6">
-                      {shippingData.complement || <span className="text-gray-400 italic">None</span>}
+                      {shippingData.complement || <span className="text-gray-400 italic">Nenhum</span>}
                     </span>
                   </div>
 
                   <div className="flex items-center">
-                    <span className="font-medium text-gray-700 w-19">Neighborhood:</span>
+                    <span className="font-medium text-gray-700 w-19">Bairro:</span>
                     <span className="text-green-900 font-semibold -ml-6">{shippingData.hood}</span>
                   </div>
                   <div className="flex items-center">
-                    <span className="font-medium text-gray-700 w-20">City:</span>
+                    <span className="font-medium text-gray-700 w-20">Cidade:</span>
                     <span className="text-green-900 font-semibold -ml-6">{shippingData.city}</span>
                   </div>
                   <div className="flex items-center">
-                    <span className="font-medium text-gray-700 w-20">State:</span>
+                    <span className="font-medium text-gray-700 w-20">Estado:</span>
                     <span className="text-green-900 font-semibold -ml-6">{shippingData.state}</span>
                   </div>
                   <div className="flex items-center">
-                    <span className="font-medium text-gray-700 w-20">ZIP Code:</span>
+                    <span className="font-medium text-gray-700 w-20">CEP:</span>
                     <span className="text-green-900 font-semibold -ml-11">{shippingData.cep}</span>
                   </div>
                 </div>
                 <p className="text-sm text-green-700 mt-3">
-                  Your address was loaded automatically. You can select another below or edit manually.
+                  Seu endereço foi carregado automaticamente. Você pode selecionar outro abaixo ou editar manualmente.
                 </p>
               </div>
               <div className="w-6 h-6 rounded-full border-2 border-green-500 bg-green-500 flex items-center justify-center ml-4 flex-shrink-0">
@@ -707,7 +710,7 @@ const ShippingStep = ({
       {userAddresses.length === 0 && (
         <div className="mb-6 p-4 bg-gray-50 rounded-lg">
           <p className="text-gray-600 text-center">
-            No saved addresses found. Fill in your delivery details below.
+            Nenhum endereço salvo encontrado. Preencha os dados de entrega abaixo.
           </p>
         </div>
       )}
@@ -715,20 +718,20 @@ const ShippingStep = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Street *
+            Rua *
           </label>
           <input
             type="text"
             value={shippingData.street}
             onChange={(e) => setShippingData(prev => ({...prev, street: e.target.value}))}
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
-            placeholder="Street Name"
+            placeholder="Nome da Rua"
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Number *
+            Número *
           </label>
           <input
             type="text"
@@ -741,53 +744,53 @@ const ShippingStep = ({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Complement
+            Complemento
           </label>
           <input
             type="text"
             value={shippingData.complement}
             onChange={(e) => setShippingData(prev => ({...prev, complement: e.target.value}))}
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
-            placeholder="Apartment, block, etc."
+            placeholder="Apartamento, bloco, etc."
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Neighborhood *
+            Bairro *
           </label>
           <input
             type="text"
             value={shippingData.hood}
             onChange={(e) => setShippingData(prev => ({...prev, hood: e.target.value}))}
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
-            placeholder="Neighborhood"
+            placeholder="Bairro"
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            City *
+            Cidade *
           </label>
           <input
             type="text"
             value={shippingData.city}
             onChange={(e) => setShippingData(prev => ({...prev, city: e.target.value}))}
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
-            placeholder="City"
+            placeholder="Cidade"
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            State *
+            Estado *
           </label>
           <select
             value={shippingData.state}
             onChange={(e) => setShippingData(prev => ({...prev, state: e.target.value}))}
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
           >
-            <option value="">Select</option>
+            <option value="">Selecione</option>
             <option value="AC">Acre</option>
             <option value="AL">Alagoas</option>
             <option value="AP">Amapá</option>
@@ -821,7 +824,7 @@ const ShippingStep = ({
 
       {/* Shipping Options */}
       <div className="mt-6">
-        <h3 className="text-lg font-semibold text-black mb-4">Delivery Options</h3>
+        <h3 className="text-lg font-semibold text-black mb-4">Opções de Entrega</h3>
         
         <div className="space-y-3">
           {shippingOptions.map((shipping) => (
@@ -872,12 +875,12 @@ const ShippingStep = ({
                   </div>
                   {shipping.id === 'economy' && (
                     <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
-                      Most economical
+                      Mais econômico
                     </span>
                   )}
                   {shipping.id === 'express' && (
                     <span className="text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded">
-                      Fastest
+                      Mais rápido
                     </span>
                   )}
                 </div>
@@ -893,7 +896,7 @@ const ShippingStep = ({
           className="flex items-center text-gray-600 hover:text-gray-800 py-3 px-6 rounded-lg border border-gray-300 hover:border-gray-400 transition-colors"
         >
           <FiArrowLeft className="mr-2" />
-          Back to Personal Data
+          Voltar para Dados Pessoais
         </button>
         <button
           onClick={nextStep}
@@ -906,13 +909,13 @@ const ShippingStep = ({
         >
           {selectedShipping ? (
             <>
-              Continue to Payment
+              Continuar para Pagamento
               <span className="ml-2 text-sm font-normal">
-                (+ R$ {selectedShipping.price.toFixed(2)} shipping)
+                (+ R$ {selectedShipping.price.toFixed(2)} frete)
               </span>
             </>
           ) : (
-            'Select shipping'
+            'Selecione o frete'
           )}
         </button>
       </div>
@@ -933,8 +936,8 @@ const PaymentStep = ({
 }) => (
   <div className="bg-white p-6 rounded-lg shadow-md" style={{ fontFamily: 'Calibri, sans-serif' }}>
     <div className="flex items-center justify-between mb-4">
-      <h2 className="text-xl font-semibold text-black">Payment Method</h2>
-      <span className="text-sm text-gray-500">Step 3 of 4</span>
+      <h2 className="text-xl font-semibold text-black">Forma de Pagamento</h2>
+      <span className="text-sm text-gray-500">Passo 3 de 4</span>
     </div>
     
     <div className="space-y-4">
@@ -951,12 +954,12 @@ const PaymentStep = ({
             <SiPix size={24} className="text-green-600" />
             <div>
               <span className="font-semibold text-black">PIX</span>
-              <p className="text-sm text-gray-600">Instant payment</p>
+              <p className="text-sm text-gray-600">Pagamento instantâneo</p>
             </div>
           </div>
           {paymentMethod === 'pix' && (
             <div className="text-green-600 font-semibold">
-              5% discount
+              5% de desconto
             </div>
           )}
         </div>
@@ -973,8 +976,8 @@ const PaymentStep = ({
           </div>
           <FiFileText size={20} className="text-gray-600" />
           <div>
-            <span className="font-semibold text-black">Bank Slip</span>
-            <p className="text-sm text-gray-600">Due in 3 business days</p>
+            <span className="font-semibold text-black">Boleto Bancário</span>
+            <p className="text-sm text-gray-600">Vencimento em 3 dias úteis</p>
           </div>
         </div>
       </div>
@@ -990,8 +993,8 @@ const PaymentStep = ({
           </div>
           <FiCreditCard size={20} className="text-gray-600" />
           <div>
-            <span className="font-semibold text-black">Credit Card</span>
-            <p className="text-sm text-gray-600">Installments up to 12x</p>
+            <span className="font-semibold text-black">Cartão de Crédito</span>
+            <p className="text-sm text-gray-600">Parcelamento em até 12x</p>
           </div>
         </div>
       </div>
@@ -1007,8 +1010,8 @@ const PaymentStep = ({
           </div>
           <FiDollarSign size={20} className="text-gray-600" />
           <div>
-            <span className="font-semibold text-black">Debit Card</span>
-            <p className="text-sm text-gray-600">Payment in full</p>
+            <span className="font-semibold text-black">Cartão de Débito</span>
+            <p className="text-sm text-gray-600">Pagamento à vista</p>
           </div>
         </div>
       </div>
@@ -1016,7 +1019,7 @@ const PaymentStep = ({
 
     {paymentMethod === 'credit' && (
       <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-        <h3 className="font-semibold mb-4 text-black">Card Details</h3>
+        <h3 className="font-semibold mb-4 text-black">Dados do Cartão</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
             <input
@@ -1024,7 +1027,7 @@ const PaymentStep = ({
               value={cardData.number}
               onChange={(e) => setCardData(prev => ({...prev, number: e.target.value}))}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
-              placeholder="Card Number"
+              placeholder="Número do Cartão"
             />
           </div>
           
@@ -1034,7 +1037,7 @@ const PaymentStep = ({
               value={cardData.name}
               onChange={(e) => setCardData(prev => ({...prev, name: e.target.value}))}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
-              placeholder="Name on Card"
+              placeholder="Nome no Cartão"
             />
           </div>
 
@@ -1044,7 +1047,7 @@ const PaymentStep = ({
               value={cardData.expiry}
               onChange={(e) => setCardData(prev => ({...prev, expiry: e.target.value}))}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
-              placeholder="Expiry (MM/YY)"
+              placeholder="Validade (MM/AA)"
             />
           </div>
 
@@ -1066,7 +1069,7 @@ const PaymentStep = ({
             >
               {[1,2,3,4,5,6,7,8,9,10,11,12].map(num => (
                 <option key={num} value={num}>
-                  {num}x of R$ {(calculateTotal() / num).toFixed(2)} no interest
+                  {num}x de R$ {(calculateTotal() / num).toFixed(2)} sem juros
                 </option>
               ))}
             </select>
@@ -1081,18 +1084,18 @@ const PaymentStep = ({
         className="flex items-center text-gray-600 hover:text-gray-800 py-3 px-6 rounded-lg border border-gray-300 hover:border-gray-400 transition-colors"
       >
         <FiArrowLeft className="mr-2" />
-        Back to Delivery
+        Voltar para Entrega
       </button>
       <button
         onClick={processCheckout}
         disabled={loading}
-        className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white py-3 px-8 rounded-lg font-semibold transition-colors flex items-center"
+        className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white py-3 px-8 rounded-lg font-semibold transition-colors flex items-center gap-2"
       >
-        {loading ? 'Processing...' : (
+        {loading ? 'Processando...' : (
           <>
-            <FiLock className="mr-2" />
-            {paymentMethod === 'pix' ? 'Generate PIX' : 
-             paymentMethod === 'boleto' ? 'Generate Bank Slip' : 'Complete Order'}
+            <FiLock />
+            {paymentMethod === 'pix' ? 'Gerar PIX' : 
+             paymentMethod === 'boleto' ? 'Gerar Boleto' : 'Finalizar Pedido'}
           </>
         )}
       </button>
@@ -1100,7 +1103,7 @@ const PaymentStep = ({
   </div>
 );
 
-// ✅ PixStep Component - FIXED
+// ✅ PixStep Component
 const PixStep = ({ pixData, copyPixCode, goToStep }) => {
   const [timeLeft, setTimeLeft] = useState(30 * 60);
   const [isMock, setIsMock] = useState(false);
@@ -1147,12 +1150,11 @@ const PixStep = ({ pixData, copyPixCode, goToStep }) => {
   };
 
   const handleContinue = () => {
-    const orderNumber = pixData.backendOrderNumber || 'your order';
-    alert(`✅ PIX payment confirmed successfully! Order #${orderNumber} completed.`);
+    const orderNumber = pixData.backendOrderNumber || 'seu pedido';
+    alert(`✅ Pagamento PIX confirmado com sucesso! Pedido #${orderNumber} finalizado.`);
     window.location.href = '/';
   };
 
-  // FIX: Ensure amount is treated as a number
   const amount = parseFloat(pixData?.amount) || 0;
 
   return (
@@ -1161,14 +1163,14 @@ const PixStep = ({ pixData, copyPixCode, goToStep }) => {
         <SiPix size={32} className="text-green-600" />
       </div>
       
-      <h2 className="text-2xl font-bold mb-2 text-black">Payment via PIX</h2>
-      <p className="text-gray-600 mb-6">Scan the QR Code or copy the code to pay</p>
+      <h2 className="text-2xl font-bold mb-2 text-black">Pagamento via PIX</h2>
+      <p className="text-gray-600 mb-6">Escaneie o QR Code ou copie o código para pagar</p>
       
       {isMock && (
         <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 mb-4">
           <div className="flex items-center justify-center space-x-2">
-            <span className="text-purple-700 font-semibold">🧪 TEST MODE</span>
-            <span className="text-purple-600 text-sm">Automatic payment in 10 seconds</span>
+            <span className="text-purple-700 font-semibold">🧪 MODO DE TESTE</span>
+            <span className="text-purple-600 text-sm">Pagamento automático em 10 segundos</span>
           </div>
         </div>
       )}
@@ -1179,51 +1181,52 @@ const PixStep = ({ pixData, copyPixCode, goToStep }) => {
             <div className="bg-green-50 border border-green-200 rounded-lg p-6">
               <div className="flex items-center justify-center space-x-2 mb-4">
                 <FiCheck size={24} className="text-green-600" />
-                <span className="text-green-800 text-xl font-bold">Payment Confirmed!</span>
+                <span className="text-green-800 text-xl font-bold">Pagamento Confirmado!</span>
               </div>
               <p className="text-green-700 mb-4">
-                Your order <strong>#{pixData.backendOrderNumber}</strong> was confirmed.<br />
-                Amount: <strong>R$ {amount.toFixed(2)}</strong>
+                Seu pedido <strong>#{pixData.backendOrderNumber}</strong> foi confirmado.<br />
+                Valor: <strong>R$ {amount.toFixed(2)}</strong>
               </p>
               <button
                 onClick={handleContinue}
-                className="bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg font-semibold transition-colors"
+                className="bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 mx-auto"
               >
-                Continue <FiArrowRight className="ml-1" />
+                Continuar
+                <FiArrowRight />
               </button>
             </div>
           ) : (
             <>
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <div className="flex items-center justify-center space-x-2">
-                  <span className="text-yellow-800 font-semibold">Time remaining:</span>
+                  <span className="text-yellow-800 font-semibold">Tempo restante:</span>
                   <span className={`text-lg font-bold ${timeLeft < 300 ? 'text-red-600' : 'text-yellow-700'}`}>
                     {formatTime(timeLeft)}
                   </span>
                 </div>
                 {timeLeft < 300 && (
                   <p className="text-red-600 text-sm text-center mt-2">
-                    ⚠️ Code expires soon!
+                    ⚠️ Código expira em breve!
                   </p>
                 )}
               </div>
               
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-                <p className="text-sm text-green-700 mb-1">Amount to pay</p>
+                <p className="text-sm text-green-700 mb-1">Valor a pagar</p>
                 <p className="text-2xl font-bold text-green-800">
                   R$ {amount.toFixed(2)}
                 </p>
               </div>
 
               <div className="text-center">
-                <p className="text-sm text-gray-600 mb-3">Scan with your banking app</p>
+                <p className="text-sm text-gray-600 mb-3">Escaneie com seu aplicativo bancário</p>
                 <div className="bg-white p-4 rounded-lg border-2 border-dashed border-green-300 inline-block">
                   <img 
                     src={pixData.pixQrCode} 
                     alt="QR Code PIX" 
                     className="w-64 h-64 mx-auto"
                     onError={(e) => {
-                      e.target.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(pixData.pixCode || 'PIX_CODE')}`;
+                      e.target.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(pixData.pixCode || 'CODIGO_PIX')}`;
                     }}
                   />
                 </div>
@@ -1231,7 +1234,7 @@ const PixStep = ({ pixData, copyPixCode, goToStep }) => {
               
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-sm text-gray-600 mb-2 text-center">
-                  Or copy the PIX code and paste in your banking app
+                  Ou copie o código PIX e cole em seu aplicativo bancário
                 </p>
                 <div className="flex items-center justify-between bg-white p-3 rounded border">
                   <code className="text-sm font-mono break-all flex-1 text-left text-black text-xs">
@@ -1240,7 +1243,7 @@ const PixStep = ({ pixData, copyPixCode, goToStep }) => {
                   <button
                     onClick={copyPixCode}
                     className="ml-2 p-2 text-gray-600 hover:text-gray-800 flex-shrink-0"
-                    title="Copy PIX code"
+                    title="Copiar código PIX"
                   >
                     <FiCopy size={18} />
                   </button>
@@ -1248,12 +1251,12 @@ const PixStep = ({ pixData, copyPixCode, goToStep }) => {
               </div>
               
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-semibold text-blue-800 mb-2">How to pay:</h4>
+                <h4 className="font-semibold text-blue-800 mb-2">Como pagar:</h4>
                 <ul className="text-sm text-blue-700 space-y-1">
-                  <li>• <strong>Option 1:</strong> Open your banking app, choose "Pay with PIX" and scan the QR Code</li>
-                  <li>• <strong>Option 2:</strong> Copy the code above and paste in the "PIX Code" field of your bank</li>
+                  <li>• <strong>Opção 1:</strong> Abra seu app bancário, escolha "Pagar com PIX" e escaneie o QR Code</li>
+                  <li>• <strong>Opção 2:</strong> Copie o código acima e cole no campo "Código PIX" do seu banco</li>
                   {isMock && (
-                    <li>• <strong>🧪 Test Mode:</strong> Payment will be confirmed automatically</li>
+                    <li>• <strong>🧪 Modo Teste:</strong> Pagamento será confirmado automaticamente</li>
                   )}
                 </ul>
               </div>
@@ -1264,11 +1267,11 @@ const PixStep = ({ pixData, copyPixCode, goToStep }) => {
                   className="flex items-center text-gray-600 hover:text-gray-800 py-2 px-4 rounded-lg border border-gray-300 hover:border-gray-400 transition-colors"
                 >
                   <FiArrowLeft className="mr-2" />
-                  Change Payment Method
+                  Alterar Forma de Pagamento
                 </button>
                 <div className="text-center">
                   <p className="text-sm text-gray-500 mb-2">
-                    {isMock ? 'Confirming payment automatically...' : 'Waiting for payment confirmation...'}
+                    {isMock ? 'Confirmando pagamento automaticamente...' : 'Aguardando confirmação do pagamento...'}
                   </p>
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600 mx-auto"></div>
                 </div>
@@ -1279,14 +1282,14 @@ const PixStep = ({ pixData, copyPixCode, goToStep }) => {
       ) : (
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-black">Generating PIX code...</p>
+          <p className="text-black">Gerando código PIX...</p>
         </div>
       )}
     </div>
   );
 };
 
-// ✅ OrderSummary Component - UPDATED with Portuguese Color Names
+// ✅ OrderSummary Component - FIXED with unique keys
 const OrderSummary = ({ 
   cartItems, 
   couponCode, 
@@ -1304,6 +1307,17 @@ const OrderSummary = ({
   navigate
 }) => {
   
+  // ✅ Function to generate unique ID for each item
+  const generateUniqueItemId = (item, index) => {
+    const productId = item.product_id || item.id || `item-${index}`;
+    const variantId = item.variant_id || item.product_variant?.id || 'default';
+    const size = item.size || item.selectedSize || item.tamanho || 'no-size';
+    const color = item.color || item.selectedColor || item.cor || 'no-color';
+    const timestamp = item.added_at || Date.now();
+    
+    return `item-${productId}-${variantId}-${size}-${color}-${timestamp}`;
+  };
+
   // ✅ UPDATED getProductDetails function with Portuguese color mapping
   const getProductDetails = (item) => {
     const product = item.product || {};
@@ -1318,7 +1332,7 @@ const OrderSummary = ({
                 (item.options && (item.options.size || item.options.tamanho)) ||
                 item.attributes?.size ||
                 item.metadata?.size ||
-                'Not specified';
+                'Não especificado';
     
     // Extract raw color and convert to Portuguese name  
     const rawColor = item.color || 
@@ -1336,7 +1350,8 @@ const OrderSummary = ({
     const color = getEnglishColorName(rawColor);
   
     return {
-      name: product.title || product.name || item.product_name || `Product ${item.product_id || ''}`,
+      id: item.id || item.product_id || `item-${Date.now()}`,
+      name: product.title || product.name || item.product_name || `Produto ${item.product_id || ''}`,
       price: product.price || item.price || 0,
       image: product.image || product.image_url || item.image || product.images?.[0] || null,
       quantity: item.quantity || 1,
@@ -1351,109 +1366,123 @@ const OrderSummary = ({
   return (
     <div className="bg-white p-6 rounded-lg shadow-md sticky top-24" style={{ fontFamily: 'Calibri, sans-serif' }}>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold text-black">Order Summary</h2>
+        <h2 className="text-xl font-semibold text-black">Resumo do Pedido</h2>
         <div className="flex items-center gap-2">
           {isUsingSelectedItems && (
             <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-              {cartItems.length} {cartItems.length === 1 ? 'selected' : 'selected'}
+              {cartItems.length} {cartItems.length === 1 ? 'item' : 'itens'}
             </span>
           )}
           <button 
             onClick={() => navigate('/cart')}
-            className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200 transition-colors"
-            title="Change selected items"
+            className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200 transition-colors flex items-center gap-1"
+            title="Alterar itens selecionados"
           >
-            Change Items
+            <FiShoppingCart size={12} />
+            Alterar Itens
           </button>
         </div>
       </div>
       
-      {isUsingSelectedItems && (
+      {isUsingSelectedItems && cartItems.length > 0 && (
         <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
           <div className="flex items-center gap-2">
             <FiCheck className="text-green-600" size={16} />
             <span className="text-green-800 text-sm font-medium">
-              {cartItems.length} {cartItems.length === 1 ? 'item selected' : 'items selected'} from cart
+              {cartItems.length} {cartItems.length === 1 ? 'item selecionado' : 'itens selecionados'} do carrinho
             </span>
           </div>
         </div>
       )}
       
       <div className="space-y-3 mb-4 max-h-80 overflow-y-auto">
-        {cartItems.map((item, index) => {
-          const product = getProductDetails(item);
-          const itemTotal = product.price * product.quantity;
+        {cartItems.length === 0 ? (
+          <div className="text-center py-4">
+            <FiShoppingCart className="mx-auto text-gray-300 mb-2" size={24} />
+            <p className="text-gray-500 text-sm">Nenhum item no carrinho</p>
+          </div>
+        ) : (
+          cartItems.map((item, index) => {
+            const product = getProductDetails(item);
+            const itemTotal = product.price * product.quantity;
 
-          return (
-            <div key={item.id || index} className="flex items-start space-x-4 pb-3 border-b border-gray-100 last:border-b-0">
-              <div className="w-35 h-35 bg-white rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-gray-100 shadow-lg">
-                {product.image ? (
-                  <div className="w-full h-full flex items-center justify-center p-0">
-                    <img 
-                      src={product.image} 
-                      alt={product.name}
-                      className="w-full h-full object-contain"
-                      style={{ 
-                        imageRendering: 'auto',
-                        transform: 'translateZ(0)'
-                      }}
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'flex';
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <span className="text-gray-500 text-xs text-center">No image</span>
-                )}
-              </div>
-              
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900 text-sm leading-tight mb-1">{product.name}</p>
+            return (
+              <div 
+                key={generateUniqueItemId(item, index)} 
+                className="flex items-start space-x-4 pb-3 border-b border-gray-100 last:border-b-0 transition-all duration-200 hover:bg-gray-50 p-2 rounded"
+              >
+                <div className="w-35 h-35 bg-white rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-gray-100 shadow-lg">
+                  {product.image ? (
+                    <div className="w-full h-full flex items-center justify-center p-0">
+                      <img 
+                        src={product.image} 
+                        alt={product.name}
+                        className="w-full h-full object-contain"
+                        style={{ 
+                          imageRendering: 'auto',
+                          transform: 'translateZ(0)'
+                        }}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          const fallback = document.createElement('div');
+                          fallback.className = 'text-gray-500 text-xs text-center p-4';
+                          fallback.textContent = 'Sem imagem';
+                          e.target.parentNode.appendChild(fallback);
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <span className="text-gray-500 text-xs text-center">Sem imagem</span>
+                  )}
+                </div>
                 
-                {(product.size || product.color) && (
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {product.size && product.size !== 'Not specified' && (
-                      <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                        Tamanho: {product.size}
-                      </span>
-                    )}
-                    {product.color && product.color !== 'Not specified' && (
-                      <div className="flex items-center gap-1">
-                        <div 
-                          className="w-3 h-3 rounded-full border border-gray-300 shadow-sm"
-                          style={{ 
-                            backgroundColor: getColorForSwatch(product.color),
-                            borderColor: (product.color === 'Branco' || product.color === '#FFFFFF') ? '#ccc' : 'transparent'
-                          }}
-                          title={product.color}
-                        ></div>
-                        <span className="text-xs text-gray-600">Cor: {product.color}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Qty: {product.quantity}</p>
-                    <p className="text-sm font-semibold text-gray-900">
-                      R$ {product.price.toFixed(2)} each
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900 text-sm leading-tight mb-1">{product.name}</p>
+                  
+                  {(product.size || product.color) && (
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {product.size && product.size !== 'Não especificado' && (
+                        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                          Tamanho: {product.size}
+                        </span>
+                      )}
+                      {product.color && product.color !== 'Não especificada' && (
+                        <div className="flex items-center gap-1">
+                          <div 
+                            className="w-3 h-3 rounded-full border border-gray-300 shadow-sm"
+                            style={{ 
+                              backgroundColor: getColorForSwatch(product.color),
+                              borderColor: (product.color === 'Branco' || product.color === '#FFFFFF') ? '#ccc' : 'transparent'
+                            }}
+                            title={product.color}
+                          ></div>
+                          <span className="text-xs text-gray-600">Cor: {product.color}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Qtd: {product.quantity}</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        R$ {product.price.toFixed(2)} cada
+                      </p>
+                    </div>
+                    <p className="font-semibold text-gray-900 text-sm">
+                      R$ {itemTotal.toFixed(2)}
                     </p>
                   </div>
-                  <p className="font-semibold text-gray-900 text-sm">
-                    R$ {itemTotal.toFixed(2)}
-                  </p>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
 
       <div className="border-t pt-4 mb-4">
         <div className="flex justify-between items-center mb-2">
-          <span className="text-sm text-gray-600">Items in cart:</span>
+          <span className="text-sm text-gray-600">Itens no carrinho:</span>
           <span className="font-semibold text-black">{cartItems.length}</span>
         </div>
       </div>
@@ -1464,14 +1493,14 @@ const OrderSummary = ({
             type="text"
             value={couponCode}
             onChange={(e) => setCouponCode(e.target.value)}
-            placeholder="Discount coupon"
+            placeholder="Cupom de desconto"
             className="flex-1 p-2 border border-gray-300 rounded-lg text-sm text-black"
           />
           <button
             onClick={applyCoupon}
             className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 rounded-lg text-sm font-medium"
           >
-            Apply
+            Aplicar
           </button>
         </div>
       </div>
@@ -1485,7 +1514,7 @@ const OrderSummary = ({
         {selectedShipping ? (
           <div className="flex justify-between text-black">
             <span>
-              Shipping {selectedShipping.name}
+              Frete {selectedShipping.name}
               {selectedShipping.custom_delivery_time && (
                 <span className="text-xs text-gray-500 block">
                   {selectedShipping.custom_delivery_time}
@@ -1496,21 +1525,21 @@ const OrderSummary = ({
           </div>
         ) : (
           <div className="flex justify-between text-black">
-            <span>Shipping</span>
-            <span className="text-gray-500">To calculate</span>
+            <span>Frete</span>
+            <span className="text-gray-500">A calcular</span>
           </div>
         )}
         
         {discount > 0 && (
           <div className="flex justify-between text-green-600">
-            <span>Discount</span>
+            <span>Desconto</span>
             <span>- R$ {discount.toFixed(2)}</span>
           </div>
         )}
         <div className="border-t pt-2 mt-2">
           <div className="flex justify-between font-bold text-lg text-black">
             <span>Total</span>            
-            <span>R$ {calculateTotal().toFixed(2)}</span>
+ <span>R$ {calculateTotal().toFixed(2)}</span>
           </div>
         </div>
       </div>
@@ -1519,34 +1548,34 @@ const OrderSummary = ({
         <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
           <div className="flex items-center text-green-700">
             <SiPix className="mr-2" />
-            <span className="font-semibold">5% discount on PIX</span>
+            <span className="font-semibold">5% de desconto no PIX</span>
           </div>
           <p className="text-green-600 text-sm mt-1">
-            Save R$ {(calculateTotal() * 0.05).toFixed(2)}
+            Economize R$ {(calculateTotal() * 0.05).toFixed(2)}
           </p>
         </div>
       )}
 
       <div className="mt-6 pt-4 border-t border-gray-200">
-        <p className="text-sm font-medium text-gray-700 mb-2">Quick Navigation:</p>
+        <p className="text-sm font-medium text-gray-700 mb-2">Navegação Rápida:</p>
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => goToStep(1)}
             className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded"
           >
-            Personal Data
+            Dados Pessoais
           </button>
           <button
             onClick={() => goToStep(2)}
             className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded"
           >
-            Delivery
+            Entrega
           </button>
           <button
             onClick={() => goToStep(3)}
             className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded"
           >
-            Payment
+            Pagamento
           </button>
           {currentStep === 4 && (
             <button
@@ -1787,14 +1816,14 @@ const CheckoutPage = () => {
       } else {
         // Handle other payment methods
         await OrderAPI.updateOrderStatus(orderId, 'processing', 'paid');
-        alert(`Order #${orderNumber} created successfully!`);
+        alert(`Pedido #${orderNumber} criado com sucesso!`);
         await clearCart();
         window.location.href = '/';
       }
 
     } catch (error) {
       console.error('Checkout error:', error);
-      alert('Checkout error: ' + error.message);
+      alert('Erro no checkout: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -1825,7 +1854,7 @@ const CheckoutPage = () => {
             console.log('💰 PIX Payment Complete - Database updated');
           } else if (result.data.status === 'expired') {
             clearInterval(pollInterval);
-            alert('PIX payment expired. Please try again.');
+            alert('Pagamento PIX expirou. Por favor, tente novamente.');
           }
         }
       } catch (error) {
@@ -1920,7 +1949,6 @@ const generateOrderJSON = () => {
       null;
 
     const color = getEnglishColorName(rawColor);
-
 
     return {
    
@@ -2125,16 +2153,16 @@ const generateOrderJSON = () => {
   const applyCoupon = () => {
     if (couponCode === 'DESCONTO10') {
       setDiscount(calculateSubtotal() * 0.1);
-      alert('Coupon applied! 10% discount.');
+      alert('Cupom aplicado! 10% de desconto.');
     } else {
-      alert('Invalid coupon');
+      alert('Cupom inválido');
     }
   };
 
   const copyPixCode = () => {
     if (pixData) {
       navigator.clipboard.writeText(pixData.pixCode);
-      alert('PIX code copied!');
+      alert('Código PIX copiado!');
     }
   };
 
@@ -2147,19 +2175,19 @@ const generateOrderJSON = () => {
             <FiShoppingCart size={32} className="text-gray-400" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            {isUsingSelectedItems() ? 'Items Not Found' : 'Empty Cart'}
+            {isUsingSelectedItems() ? 'Itens Não Encontrados' : 'Carrinho Vazio'}
           </h2>
           <p className="text-gray-600 mb-6">
             {isUsingSelectedItems() 
-              ? "The selected items are no longer available. Please return to the cart and select items again."
-              : "Your cart is empty. Add products before completing the purchase."
+              ? "Os itens selecionados não estão mais disponíveis. Volte ao carrinho e selecione os itens novamente."
+              : "Seu carrinho está vazio. Adicione produtos antes de finalizar a compra."
             }
           </p>
           <button
             onClick={() => navigate('/cart')}
             className="bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg font-semibold transition-colors"
           >
-            Back to Cart
+            Voltar ao Carrinho
           </button>
         </div>
       </div>

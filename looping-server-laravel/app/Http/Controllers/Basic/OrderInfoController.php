@@ -114,7 +114,7 @@ class OrderInfoController extends Controller
         }
     }
 
-    public function updateStatus($id, Request $request, StockService $stockService): JsonResponse
+    public function updateStatus($id, Request $request, \App\Services\OrderStockService $orderStockService): JsonResponse
     {
         try {
             Log::info('=== INFO STATUS UPDATE START ===', [
@@ -122,11 +122,11 @@ class OrderInfoController extends Controller
                 'request_data' => $request->all(),
                 'full_url' => $request->fullUrl()
             ]);
-    
+
             // DEBUG: Log incoming request
             Log::debug('Raw request input:', $request->input());
             Log::debug('Request headers:', $request->headers->all());
-    
+            
             // Validate input
             $validated = $request->validate([
                 'status' => 'required|string|in:pending,processing,shipped,delivered,cancelled',
@@ -159,13 +159,40 @@ class OrderInfoController extends Controller
             $oldStatus = $info->status;
     
             // ✅ CHANGES START HERE:
+            // Update payment status FIRST so stock deduction can work
+            $info->payment_status = $validated['payment_status'];
+            $info->status = $validated['status'];
+            $info->save();
+            
             // Update stock flags based on payment status change
             if ($oldPaymentStatus !== 'paid' && $validated['payment_status'] === 'paid') {
-                Log::info('Payment changed to PAID - updating stock flags (debug mode)');
+                Log::info('Payment changed to PAID - updating stock flags and deducting stock');
+                
+                // ✅ ACTUAL STOCK DEDUCTION
+                try {
+                    $stockUpdated = $orderStockService->deductStockFromOrder($info);
+                    if ($stockUpdated) {
+                        Log::info('Stock deducted successfully in updateStatus', [
+                            'order_id' => $info->id,
+                            'order_number' => $info->order_number
+                        ]);
+                    } else {
+                        Log::warning('Stock deduction failed in updateStatus', [
+                            'order_id' => $info->id,
+                            'order_number' => $info->order_number
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Stock deduction error in updateStatus', [
+                        'order_id' => $info->id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
                 
                 // ✅ UPDATE STOCK FLAGS
                 $info->stock_updated = true;
                 $info->stock_updated_at = now();
+                $info->save();
                 
                 Log::info('Stock flags updated for paid order', [
                     'stock_updated' => true,
@@ -187,12 +214,8 @@ class OrderInfoController extends Controller
                 
                 $info->stock_updated = false;
                 $info->stock_updated_at = null;
+                $info->save();
             }
-    
-            // Update fields
-            $info->status = $validated['status'];
-            $info->payment_status = $validated['payment_status'];
-            $info->save();
     
             Log::info('Order status updated successfully', [
                 'order_id' => $info->id,
@@ -359,25 +382,67 @@ foreach ($validated['items'] as $item) {
             'metadata' => $request->metadata ? json_encode($request->metadata) : null,
         ];
 
-        Log::info('Creating order with items:', [
-            'order_number' => $orderNumber,
-            'items' => $itemsWithProductName
+        Log::info('=== ORDER STORE START ===', [
+        'request_data' => $request->all(),
+        'payment_status' => $validated['payment_status'] ?? 'not_set',
+        'timestamp' => now()->format('c')
+    ]);
+
+    Log::info('Creating order with items:', [
+        'order_number' => $orderNumber,
+        'items' => $itemsWithProductName
+    ]);
+
+    $info = Info::create($infoData);
+
+    Log::info('Order created successfully', [
+        'order_id' => $info->id,
+        'order_number' => $info->order_number,
+        'payment_status' => $info->payment_status,
+        'stock_updated' => $info->stock_updated,
+        'items_count' => count($itemsWithProductName)
+    ]);
+
+    // ✅ If payment is already marked as paid, deduct stock immediately
+    if ($validated['payment_status'] === 'paid') {
+        Log::info('Payment status is PAID - attempting stock deduction', [
+            'order_id' => $info->id,
+            'order_number' => $info->order_number
         ]);
-
-        $info = Info::create($infoData);
-
-        // ✅ If payment is already marked as paid, deduct stock immediately
-        if ($validated['payment_status'] === 'paid') {
-            $stockUpdated = $stockService->deductStockFromOrder($info);
-            if (!$stockUpdated) {
-                $info->delete();
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to create order. Insufficient stock available.',
-                    'order_number' => $orderNumber
-                ], 400);
-            }
+        
+        $stockUpdated = $stockService->deductStockFromOrder($info);
+        
+        Log::info('Stock deduction result', [
+            'order_id' => $info->id,
+            'stock_updated' => $stockUpdated,
+            'result' => $stockUpdated ? 'SUCCESS' : 'FAILED'
+        ]);
+        
+        if (!$stockUpdated) {
+            Log::warning('Stock deduction failed, deleting order', [
+                'order_id' => $info->id,
+                'order_number' => $orderNumber
+            ]);
+            $info->delete();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create order. Insufficient stock available.',
+                'order_number' => $orderNumber
+            ], 400);
         }
+        
+        Log::info('Stock deduction completed successfully', [
+            'order_id' => $info->id,
+            'order_number' => $info->order_number,
+            'stock_updated' => $info->stock_updated
+        ]);
+    } else {
+        Log::info('Payment status is not PAID - no stock deduction', [
+            'order_id' => $info->id,
+            'order_number' => $info->order_number,
+            'payment_status' => $info->payment_status
+        ]);
+    }
 
         return response()->json([
             'success' => true,

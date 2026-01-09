@@ -23,5 +23,8 @@ class AppServiceProvider extends ServiceProvider
         ResetPassword::createUrlUsing(function (object $notifiable, string $token) {
             return config('app.frontend_url')."/password-reset/$token?email={$notifiable->getEmailForPasswordReset()}";
         });
+        
+        // Observer disabled - using OrderInfoController only
+        // This prevents conflicts and ensures stock deduction works
     }
 }

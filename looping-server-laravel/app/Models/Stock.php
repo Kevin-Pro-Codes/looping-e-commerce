@@ -12,8 +12,11 @@ class Stock extends Model
 
     protected $table = 'stock';
     
-    // Remove this line to enable Laravel's default timestamps
-    // public $timestamps = false;
+    // Use custom timestamp column names
+    const UPDATED_AT = 'last_updated';
+    const CREATED_AT = null; // No created_at column in stock table
+    
+    public $timestamps = true;
     
     protected $fillable = [
         'product_id', 
