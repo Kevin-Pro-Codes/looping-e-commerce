@@ -416,16 +416,14 @@ class StockController extends Controller
             $output['database']['orders_table_exists'] = Schema::hasTable('orders');
             $output['database']['stock_table_exists'] = Schema::hasTable('stock');
             $output['database']['stock_updated_column'] = Schema::hasColumn('orders', 'stock_updated');
-            $output['database']['stock_updated_at_column'] = Schema::hasColumn('orders', 'stock_updated_at');
             
             // 2. Run migration if needed
-            if (!$output['database']['stock_updated_column'] || !$output['database']['stock_updated_at_column']) {
+            if (!$output['database']['stock_updated_column']) {
                 \Artisan::call('migrate', ['--force' => true]);
                 $output['migration_output'] = \Artisan::output();
                 
                 // Re-check after migration
                 $output['database']['stock_updated_column'] = Schema::hasColumn('orders', 'stock_updated');
-                $output['database']['stock_updated_at_column'] = Schema::hasColumn('orders', 'stock_updated_at');
             }
             
             // 3. Count records

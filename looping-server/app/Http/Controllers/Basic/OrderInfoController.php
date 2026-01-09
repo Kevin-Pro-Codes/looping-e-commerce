@@ -61,7 +61,6 @@ class OrderInfoController extends Controller
                         'payment_method',
                         'payment_status',
                         'stock_updated',
-                        'stock_updated_at',
                         'status',
                         'shipping_street',
                         'shipping_number',
@@ -151,8 +150,7 @@ class OrderInfoController extends Controller
                 'order_number' => $info->order_number,
                 'current_status' => $info->status,
                 'current_payment_status' => $info->payment_status,
-                'current_stock_updated' => $info->stock_updated,
-                'current_stock_updated_at' => $info->stock_updated_at
+                'current_stock_updated' => $info->stock_updated
             ]);
     
             $oldPaymentStatus = $info->payment_status;
@@ -191,12 +189,10 @@ class OrderInfoController extends Controller
                 
                 // ✅ UPDATE STOCK FLAGS
                 $info->stock_updated = true;
-                $info->stock_updated_at = now();
                 $info->save();
                 
                 Log::info('Stock flags updated for paid order', [
-                    'stock_updated' => true,
-                    'stock_updated_at' => now()->format('c')
+                    'stock_updated' => true
                 ]);
             }
             
@@ -205,7 +201,6 @@ class OrderInfoController extends Controller
                 Log::info('Payment changed to REFUNDED - resetting stock flags');
                 
                 $info->stock_updated = false;
-                $info->stock_updated_at = null;
             }
             
             // Reset stock flags if order is cancelled
@@ -213,7 +208,6 @@ class OrderInfoController extends Controller
                 Log::info('Status changed to CANCELLED - resetting stock flags');
                 
                 $info->stock_updated = false;
-                $info->stock_updated_at = null;
                 $info->save();
             }
     
@@ -221,8 +215,7 @@ class OrderInfoController extends Controller
                 'order_id' => $info->id,
                 'new_status' => $info->status,
                 'new_payment_status' => $info->payment_status,
-                'stock_updated' => $info->stock_updated,
-                'stock_updated_at' => $info->stock_updated_at
+                'stock_updated' => $info->stock_updated
             ]);
     
             return response()->json([
@@ -233,8 +226,7 @@ class OrderInfoController extends Controller
                     'order_number' => $info->order_number,
                     'status' => $info->status,
                     'payment_status' => $info->payment_status,
-                    'stock_updated' => $info->stock_updated,
-                    'stock_updated_at' => $info->stock_updated_at
+                    'stock_updated' => $info->stock_updated
                 ],
                 'debug' => [
                     'timestamp' => now()->format('c'),
@@ -369,7 +361,6 @@ foreach ($validated['items'] as $item) {
             'payment_method' => $validated['payment_method'],
             'payment_status' => $validated['payment_status'],
             'stock_updated' => false,
-            'stock_updated_at' => null,
             'status' => $validated['status'],
             'shipping_street' => $validated['shipping_street'],
             'shipping_number' => $validated['shipping_number'],
@@ -529,8 +520,7 @@ foreach ($validated['items'] as $item) {
             Log::info('Payment confirmed and stock updated', [
                 'order_id' => $info->id,
                 'order_number' => $info->order_number,
-                'stock_updated' => $info->stock_updated,
-                'stock_updated_at' => $info->stock_updated_at
+                'stock_updated' => $info->stock_updated
             ]);
 
             return response()->json([
@@ -541,8 +531,7 @@ foreach ($validated['items'] as $item) {
                     'order_number' => $info->order_number,
                     'payment_status' => $info->payment_status,
                     'status' => $info->status,
-                    'stock_updated' => $info->stock_updated,
-                    'stock_updated_at' => $info->stock_updated_at
+                    'stock_updated' => $info->stock_updated
                 ]
             ]);
 
@@ -659,8 +648,7 @@ foreach ($validated['items'] as $item) {
                 'data' => [
                     'order_id' => $info->id,
                     'order_number' => $info->order_number,
-                    'stock_updated' => $info->stock_updated,
-                    'stock_updated_at' => $info->stock_updated_at
+                    'stock_updated' => $info->stock_updated
                 ]
             ]);
 
@@ -729,8 +717,7 @@ foreach ($validated['items'] as $item) {
 
             Log::info('=== TEST STOCK DEDUCTION RESULT ===', [
                 'success' => $result,
-                'stock_updated_after' => $info->stock_updated,
-                'stock_updated_at_after' => $info->stock_updated_at
+                'stock_updated_after' => $info->stock_updated
             ]);
 
             return response()->json([
@@ -743,7 +730,6 @@ foreach ($validated['items'] as $item) {
                         'order_number' => $info->order_number,
                         'payment_status' => $info->payment_status,
                         'stock_updated' => $info->stock_updated,
-                        'stock_updated_at' => $info->stock_updated_at,
                         'items' => $info->parsed_items
                     ]
                 ]
@@ -768,7 +754,6 @@ foreach ($validated['items'] as $item) {
         try {
             // FIXED: Check 'orders' table columns
             $hasStockUpdated = Schema::hasColumn('orders', 'stock_updated');
-            $hasStockUpdatedAt = Schema::hasColumn('orders', 'stock_updated_at');
 
             // Get sample data
             $sampleOrder = Info::first();
@@ -777,13 +762,11 @@ foreach ($validated['items'] as $item) {
                 'success' => true,
                 'database_check' => [
                     'stock_updated_column_exists' => $hasStockUpdated,
-                    'stock_updated_at_column_exists' => $hasStockUpdatedAt,
                     'sample_order' => $sampleOrder ? [
                         'id' => $sampleOrder->id,
                         'order_number' => $sampleOrder->order_number,
                         'payment_status' => $sampleOrder->payment_status,
-                        'stock_updated' => $sampleOrder->stock_updated,
-                        'stock_updated_at' => $sampleOrder->stock_updated_at
+                        'stock_updated' => $sampleOrder->stock_updated
                     ] : 'No orders found'
                 ]
             ]);

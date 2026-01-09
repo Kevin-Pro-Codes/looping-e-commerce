@@ -389,54 +389,54 @@ const Navbar = () => {
     </div>
   );
 
-  // Componente para as abas de música - agora como seções expansíveis
-  const MusicTabs = () => (
-    <div className="mt-3 ml-1 space-y-2">
-      {Object.keys(musicSubcategories).map((tab) => (
-        <div key={tab} className="space-y-1">
-          <div className="flex justify-between items-center p-1">
-            <h4 className="text-gray-800 text-2xl md:text-3xl cursor-pointer hover:text-yellow-400">
-              {tab}
-            </h4>
-            <div className="flex items-center space-x-1">
-              <span 
-                className="text-4xl md:text-3xl cursor-pointer text-gray-800"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleTabExpanded(tab);
-                }}
-              >
-                {expandedTabs[tab] ? <CiSquareMinus /> : <CiSquarePlus />}
-              </span>
-            </div>
+ // Componente para as abas de música - agora como seções expansíveis
+const MusicTabs = () => (
+  <div className="mt-3 ml-1 space-y-4">
+    {Object.keys(musicSubcategories).map((tab) => (
+      <div key={tab} className="space-y-2">
+        <div className="flex justify-between items-center p-1">
+          <h4 className="text-gray-800 text-2xl md:text-3xl cursor-pointer hover:text-yellow-400">
+            {tab}
+          </h4>
+          <div className="flex items-center space-x-1">
+            <span 
+              className="text-4xl md:text-3xl cursor-pointer text-gray-800"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleTabExpanded(tab);
+              }}
+            >
+              {expandedTabs[tab] ? <CiSquareMinus /> : <CiSquarePlus />}
+            </span>
           </div>
-          
-          {expandedTabs[tab] && (
-            <div className="mt-1 ml-1 space-y-2">
-              {Object.entries(musicSubcategories[tab]).map(([category, subgenres], catIndex) => (
-                <div key={catIndex} className="space-y-1">
-                  <h6 className="font-semibold text-gray-800 text-xl md:text-lg cursor-pointer hover:text-yellow-400">
-                    {category}
-                  </h6>
-                  <ul className="space-y-0.5 ml-1">
-                    {subgenres.map((subgenre, subIndex) => (
-                      <li
-                        key={subIndex}
-                        className="p-0.5 rounded text-gray-800 text-xl md:text-lg"
-                        style={{ fontFamily: "Calibri, sans-serif" }}
-                      >
-                        {subgenre}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
-      ))}
-    </div>
-  );
+        
+        {expandedTabs[tab] && (
+          <div className="mt-2 ml-1 space-y-4">
+            {Object.entries(musicSubcategories[tab]).map(([category, subgenres], catIndex) => (
+              <div key={catIndex} className="space-y-3">
+                <h6 className="font-semibold text-gray-800 text-xl md:text-lg cursor-pointer hover:text-yellow-400 mb-1">
+                  {category}
+                </h6>
+                <ul className="space-y-1 ml-1">
+                  {subgenres.map((subgenre, subIndex) => (
+                    <li
+                      key={subIndex}
+                      className="p-1 rounded text-gray-800 text-xl md:text-lg"
+                      style={{ fontFamily: "Calibri, sans-serif" }}
+                    >
+                      {subgenre}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    ))}
+  </div>
+);
 
   return (
     <>

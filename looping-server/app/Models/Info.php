@@ -26,7 +26,6 @@ class Info extends Model
         'payment_method',
         'payment_status',
         'stock_updated',           // ✅ TRACKS IF STOCK WAS DEDUCTED
-        'stock_updated_at',        // ✅ WHEN STOCK WAS DEDUCTED
         'status',
         'shipping_street',
         'shipping_number',
@@ -48,7 +47,6 @@ class Info extends Model
         'items' => 'array',            // ✅ Cast as array (contains quantities)
         'metadata' => 'array',
         'created_at' => 'datetime',       
-        'stock_updated_at' => 'datetime',  // ✅ Cast as datetime
     ];
 
     /**
@@ -84,12 +82,6 @@ class Info extends Model
     /**
      * ✅ Mark stock as updated
      */
-    public function markStockAsUpdated(): void
-    {
-        $this->stock_updated = true;
-        $this->stock_updated_at = now();
-        $this->save();
-    }
 
     /**
      * ✅ Check if order is eligible for stock deduction

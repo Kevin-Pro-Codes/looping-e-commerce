@@ -25,7 +25,6 @@ class Order extends Model
         'payment_method',
         'payment_status',
         'stock_updated',           // ✅ TRACKS IF STOCK WAS DEDUCTED
-        'stock_updated_at',        // ✅ WHEN STOCK WAS DEDUCTED
         'status',
         'shipping_street',
         'shipping_number',
@@ -49,7 +48,6 @@ class Order extends Model
         'metadata' => 'array',
         'stock_updated' => 'boolean',  // ✅ Cast as boolean
         'created_at' => 'datetime',
-        'stock_updated_at' => 'datetime',  // ✅ Cast as datetime
     ];
 
     /**

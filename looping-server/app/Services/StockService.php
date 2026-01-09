@@ -56,7 +56,6 @@ class StockService
 
             // Mark order as having stock deducted
             $order->stock_updated = true;
-            $order->stock_updated_at = now();
             $order->save();
 
             DB::commit();
@@ -64,8 +63,7 @@ class StockService
             Log::info('=== STOCK DEDUCTION COMPLETE ===', [
                 'order_id' => $order->id,
                 'items_count' => count($items),
-                'stock_updated' => $order->stock_updated,
-                'stock_updated_at' => $order->stock_updated_at
+                'stock_updated' => $order->stock_updated
             ]);
 
             return true;
@@ -187,7 +185,6 @@ class StockService
 
             // Mark order as having stock restored
             $order->stock_updated = false;
-            $order->stock_updated_at = null;
             $order->save();
 
             DB::commit();
