@@ -70,8 +70,9 @@ class OrderInfoController extends Controller
                         'shipping_state',
                         'shipping_zip_code',
                         'items',                    
-                        'metadata',
-                        'created_at'
+                        'metadata',                     
+                        'created_at',
+                        'updated_at'
                         
                     ])->get();
 

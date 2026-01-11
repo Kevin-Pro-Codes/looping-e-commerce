@@ -550,42 +550,42 @@ const DeliveryManagement = () => {
 
       {/* Deliveries Table */}
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200">
+          <table className="min-w-[800px] w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50 sticky top-0 z-10">
               <tr>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pedido</th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente & Endereço</th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produto</th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transportadora & Rastreio</th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cronograma</th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Pedido</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Cliente & Endereço</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Produto</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Transportadora & Rastreio</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Cronograma</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Ações</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredDeliveries.map((delivery) => (
                 <tr key={delivery.id} className="hover:bg-gray-50">
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 py-3 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{delivery.orderId}</div>
                     <div className="text-sm text-gray-500">R$ {delivery.price.toFixed(2)}</div>
                     <div className="text-xs text-gray-400 mt-1">
                       {delivery.originalInfo?.created_at ? new Date(delivery.originalInfo.created_at).toLocaleDateString('pt-BR') : ''}
                     </div>
                   </td>
-                  <td className="px-4 sm:px-6 py-4">
+                  <td className="px-3 py-3">
                     <div className="text-sm font-medium text-gray-900">{delivery.customer}</div>
                     <div className="text-sm text-gray-500">{delivery.city}</div>
                     <div className="text-xs text-gray-400 mt-1 max-w-xs truncate" title={delivery.address}>
                       {delivery.address}
                     </div>
                   </td>
-                  <td className="px-4 sm:px-6 py-4">
+                  <td className="px-3 py-3">
                     <div className="text-sm text-gray-900">{delivery.product}</div>
                     <div className="text-sm text-gray-500">Qtd: {delivery.quantity}</div>
                     <div className="text-xs text-gray-400 mt-1">{delivery.notes}</div>
                   </td>
-                  <td className="px-4 sm:px-6 py-4">
+                  <td className="px-3 py-3">
                     <div className="text-sm font-medium text-gray-900">{delivery.carrier}</div>
                     <div className="text-sm text-gray-500 font-mono">{delivery.tracking}</div>
                     {delivery.paymentStatus && (
@@ -596,7 +596,7 @@ const DeliveryManagement = () => {
                       </div>
                     )}
                   </td>
-                  <td className="px-4 sm:px-6 py-4">
+                  <td className="px-3 py-3">
                     <div className="text-sm text-gray-900">
                       {delivery.shippedDate && `Enviado: ${new Date(delivery.shippedDate).toLocaleDateString('pt-BR')}`}
                     </div>
@@ -609,7 +609,7 @@ const DeliveryManagement = () => {
                       </div>
                     )}
                   </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 py-3 whitespace-nowrap">
                     <select 
                       value={delivery.status}
                       onChange={(e) => updateDeliveryStatus(delivery.id, e.target.value)}
@@ -622,25 +622,25 @@ const DeliveryManagement = () => {
                       <option value="Cancelado">Cancelado</option>
                     </select>
                   </td>
-                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex flex-col sm:flex-row gap-2">
+                  <td className="px-3 py-3 whitespace-nowrap text-sm font-medium">
+                    <div className="flex flex-col sm:flex-row gap-1">
                       <button 
                         onClick={() => handleTrackClick(delivery.id)}
-                        className={`flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${getTrackButtonColor(delivery)}`}
+                        className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-all ${getTrackButtonColor(delivery)}`}
                       >
-                        <FiMapPin size={14} />
+                        <FiMapPin size={12} />
                         Rastrear
                       </button>
                       <button 
                         onClick={() => handlePrintLabel(delivery)}
-                        className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium bg-blue-100 hover:bg-blue-200 text-blue-700 border border-blue-300 transition-all"
+                        className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-blue-100 hover:bg-blue-200 text-blue-700 border border-blue-300 transition-all"
                       >
-                        <FiCheckCircle size={14} />
+                        <FiCheckCircle size={12} />
                         Etiqueta
                       </button>
                       <button 
                         onClick={() => handleNotifyCustomer(delivery)}
-                        className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 transition-all"
+                        className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 transition-all"
                       >
                         Notificar
                       </button>

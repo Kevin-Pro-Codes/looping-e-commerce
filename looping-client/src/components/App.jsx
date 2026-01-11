@@ -15,6 +15,7 @@ import AdminPanel from "./Basic/AdminPanel";
 import ProductDetail from "./Basic/ProductDetail";
 import CheckoutPage from './Basic/CheckoutPage';
 import ResetPassword from './Basic/ResetPassword';
+import SearchPage from './Basic/SearchPage';
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/search" element={<SearchPage />} />
         </Routes>
       </BrowserRouter>
     </GoogleOAuthProvider>

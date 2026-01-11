@@ -49,4 +49,9 @@ return [
     'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
 ],
 
+'meilisearch' => [
+    'host' => env('MEILISEARCH_HOST', 'http://localhost:7700'),
+    'api_key' => env('MEILISEARCH_API_KEY'),
+],
+
 ];

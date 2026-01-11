@@ -59,8 +59,7 @@ class OrderController extends Controller
                         'discount',
                         'payment_method',
                         'payment_status',
-                        'stock_updated',      // ✅ ADDED IF EXISTS
-                        'stock_updated_at',   // ✅ ADDED IF EXISTS
+                        'stock_updated',                        
                         'status',
                         'shipping_street',
                         'shipping_number',

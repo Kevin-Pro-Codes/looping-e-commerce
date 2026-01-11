@@ -19,6 +19,10 @@ use App\Http\Controllers\Basic\VerifyEmail;
 use App\Http\Controllers\Basic\UploadController;
 use App\Http\Controllers\Basic\WishlistController;
 use App\Http\Controllers\Basic\CartController;
+use App\Http\Controllers\SearchController;
+use App\Http\Controllers\TestController;
+use App\Http\Controllers\SimpleSearchController;
+use App\Http\Controllers\DebugController;
 
 use MongoDB\Client; 
 use MongoDB\BSON\ObjectId;
@@ -199,6 +203,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/cart/{productId}', [CartController::class, 'removeFromCart']);
     Route::delete('/cart', [CartController::class, 'clearCart']);
 });
+
+// Search routes (using SimpleSearchController as fallback)
+Route::get('/search', [SimpleSearchController::class, 'search']);
+Route::get('/search/suggestions', [SimpleSearchController::class, 'suggestions']);
+Route::get('/search/categories', [SimpleSearchController::class, 'categories']);
+
+// Test routes
+Route::get('/test/connection', [TestController::class, 'testConnection']);
+Route::get('/test/meilisearch', [TestController::class, 'testMeilisearch']);
+Route::get('/debug/database', [DebugController::class, 'testDatabase']);
+Route::get('/debug/search', [DebugController::class, 'testSearchQuery']);
 
 
 // Info routes

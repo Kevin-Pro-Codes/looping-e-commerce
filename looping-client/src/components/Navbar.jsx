@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { FiShoppingCart, FiMenu, FiUser, FiSearch } from "react-icons/fi";
+import { FiShoppingCart, FiMenu, FiUser, FiSearch, FiArrowRight } from "react-icons/fi";
 import { FaUserCircle } from "react-icons/fa";
 import { IoMdLogIn } from "react-icons/io";
 import { FaPlus, FaMinus } from "react-icons/fa";
@@ -10,7 +10,8 @@ import logo from '../assets/finito.png';
 import enFlag from "../assets/us.png";
 import ptFlag from "../assets/br.png";
 import eightBall from "../assets/8ball.png";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import SearchBar from './Basic/SearchBar';
 
 const categories = [
   "Finito", "Música", "Games", "Cinema", "Esportes",
@@ -202,13 +203,193 @@ const Navbar = () => {
     Outros: false
   });
   const profileRef = useRef();
+  const navRef = useRef(null);
+  const suggestionsRef = useRef(null);
+  const blurTimeoutRef = useRef(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loggedIn, setLoggedIn] = useState(false);
-  
+
+  const [navHeight, setNavHeight] = useState(0);
+  const [searchTypedQuery, setSearchTypedQuery] = useState('');
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+
+  // Get current search query from URL
+  const currentSearchQuery = searchParams.get('q') || '';
+
+  useEffect(() => {
+    setSearchTypedQuery(currentSearchQuery);
+  }, [currentSearchQuery]);
+
+  useEffect(() => {
+    const updateNavHeight = () => {
+      if (navRef.current) {
+        setNavHeight(navRef.current.getBoundingClientRect().height);
+      }
+    };
+
+    updateNavHeight();
+    window.addEventListener('resize', updateNavHeight);
+    return () => window.removeEventListener('resize', updateNavHeight);
+  }, []);
+
+  const handleSearch = (query) => {
+    // Always navigate to search page, even with empty query
+    navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+  };
+
+  const escapeHtml = (unsafe) => {
+    return String(unsafe)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  };
+
+  const toTitleCase = (text) => {
+    return String(text)
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+  };
+
+  const handleSearchQueryChange = (value) => {
+    setSearchTypedQuery(value);
+    if ((value || '').trim().length >= 2) {
+      setSuggestionsOpen(true);
+
+      const typedTitle = toTitleCase((value || '').trim());
+      const typedSuggestion = {
+        title: typedTitle,
+        highlighted: typedTitle
+      };
+      setSuggestions([typedSuggestion]);
+    } else {
+      setSuggestionsOpen(false);
+      setSuggestions([]);
+    }
+  };
+
+  const handleSearchFocus = () => {
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
+      blurTimeoutRef.current = null;
+    }
+    setSuggestionsOpen(true);
+  };
+
+  const handleSearchBlur = () => {
+    // Don't close suggestions on blur - let them stay open until user clicks outside
+    // This prevents suggestions from disappearing when user finishes typing
+  };
+
+  const handleSuggestionSelect = (title) => {
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
+      blurTimeoutRef.current = null;
+    }
+    setSuggestionsOpen(false);
+    handleSearch(title);
+  };
+
+  useEffect(() => {
+    if (!suggestionsOpen) {
+      return;
+    }
+
+    const q = (searchTypedQuery || '').trim();
+    if (q.length < 2) {
+      setSuggestions([]);
+      setSuggestionsOpen(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(async () => {
+      try {
+        const response = await fetch(`http://localhost:8000/api/search/suggestions?q=${encodeURIComponent(q)}`, {
+          signal: controller.signal
+        });
+        const data = await response.json();
+        console.log('API Response data:', data); // Debug: Check what data we're getting
+        if (!controller.signal.aborted) {
+          const apiSuggestions = Array.isArray(data?.suggestions) ? data.suggestions : [];
+          console.log('API Suggestions data:', apiSuggestions); // Debug: Check what data we're getting
+
+          // Fetch full product data for each suggestion to get images
+          const suggestionsWithImages = await Promise.all(
+            apiSuggestions.map(async (suggestion) => {
+              try {
+                const productResponse = await fetch(`http://localhost:8000/api/search?q=${encodeURIComponent(suggestion.title)}`);
+                const productData = await productResponse.json();
+                const products = Array.isArray(productData?.hits) ? productData.hits : [];
+                const matchingProduct = products.find(p => p.title?.toLowerCase() === suggestion.title?.toLowerCase());
+
+                return {
+                  ...suggestion,
+                  image: matchingProduct?.image || null
+                };
+              } catch (e) {
+                console.log('Failed to fetch image for suggestion:', suggestion.title);
+                return suggestion;
+              }
+            })
+          );
+
+          const typedTitle = toTitleCase(q);
+          const typedSuggestion = {
+            title: typedTitle,
+            highlighted: typedTitle
+          };
+
+          const normalizedTypedTitle = typedTitle.toLowerCase();
+          const exactMatch = suggestionsWithImages.find(
+            (s) => (s?.title || '').toLowerCase() === normalizedTypedTitle
+          );
+
+          const rest = suggestionsWithImages.filter(
+            (s) => (s?.title || '').toLowerCase() !== normalizedTypedTitle
+          );
+
+          // Always show the typed suggestion first, then API results (exact match first if it exists)
+          if (exactMatch) {
+            setSuggestions([typedSuggestion, exactMatch, ...rest]);
+          } else {
+            setSuggestions([typedSuggestion, ...suggestionsWithImages]);
+          }
+        }
+      } catch (e) {
+        if (!controller.signal.aborted) {
+          const typedTitle = toTitleCase(q);
+          const typedSuggestion = {
+            title: typedTitle,
+            highlighted: typedTitle
+          };
+          setSuggestions([typedSuggestion]);
+        }
+      }
+    }, 200);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timeout);
+    };
+  }, [searchTypedQuery, suggestionsOpen]);
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (profileRef.current && !profileRef.current.contains(event.target)) {
         setProfileOpen(false);
+      }
+
+      const clickedInsideNavbar = navRef.current && navRef.current.contains(event.target);
+      const clickedInsideSuggestions = suggestionsRef.current && suggestionsRef.current.contains(event.target);
+      
+      if (!clickedInsideNavbar && !clickedInsideSuggestions) {
+        setSuggestionsOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -441,10 +622,10 @@ const MusicTabs = () => (
   return (
     <>
       {/* Main Navbar - WHITE background with BLACK text/icons */}
-      <nav className="bg-white shadow-md fixed top-0 left-0 w-full z-50 py-1 sm:py-2 md:py-2 lg:py-2 xl:py-2 2xl:py-2 border-b border-gray-200">
+      <nav ref={navRef} className="bg-white shadow-md fixed top-0 left-0 w-full z-50 py-1 sm:py-2 md:py-2 lg:py-2 xl:py-2 2xl:py-2 border-b border-gray-200">
         <div className="flex flex-col sm:flex-row justify-between sm:items-center">          
 
-          <div 
+       <div 
             onClick={(e) => {
               e.preventDefault();
               if (window.location.pathname !== "/") {
@@ -475,14 +656,16 @@ const MusicTabs = () => (
                 onClick={toggleLanguage}
               />
 
-              {/* Search Bar - BLACK text and icon */}
+              {/* Search Bar - Replace with functional SearchBar */}
               <div className="relative flex-1 min-w-[150px] max-w-[350px] sm:max-w-[500px] w-full">
-                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 text-lg sm:text-xl" />
-                <input
-                  type="text"
-                  placeholder="Procurar..."
-                  className="w-full border border-black rounded-md py-1.5 sm:py-2 pl-10 pr-3 focus:outline-none focus:ring-1 focus:ring-gray-500 text-gray-800 placeholder-gray-500 text-base sm:text-lg bg-white"
-                  style={{ fontFamily: "Calibri, Arial, sans-serif" }}
+                <SearchBar 
+                  onSearch={handleSearch}
+                  placeholder="Procurar produtos..."
+                  className="w-full"
+                  initialQuery={currentSearchQuery}
+                  onQueryChange={handleSearchQueryChange}
+                  onFocus={handleSearchFocus}
+                  onBlur={handleSearchBlur}
                 />
               </div>
 
@@ -546,6 +729,61 @@ const MusicTabs = () => (
           </div>
         </div>
       </nav>
+
+      {suggestionsOpen && (searchTypedQuery || '').trim().length >= 2 && suggestions.length > 0 && (
+        <div className="fixed left-0 right-0 z-40" style={{ top: navHeight }}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div ref={suggestionsRef} className="bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">
+              {suggestions.map((s, idx) => (
+                <button
+                  key={`${s.title}-${idx}`}
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleSuggestionSelect(s.title);
+                  }}
+                  className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 flex items-center gap-3"
+                >
+                  {/* Product Image */}
+                  <div className="flex-shrink-0 w-26 h-26 bg-gray-100 rounded-md overflow-hidden">
+                    {s.image ? (
+                      <img
+                        src={s.image}
+                        alt={s.title}
+                        className="w-full h-full object-contain bg-white"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-white flex items-center justify-center">
+                        <FiSearch className="w-6 h-6 text-black" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Product Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm text-gray-900 font-medium truncate">
+                      {s.title}
+                    </div>
+                    {s.price && (
+                      <div className="text-xs text-gray-500">
+                        {new Intl.NumberFormat('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL'
+                        }).format(s.price)}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Arrow Icon */}
+                  <div className="flex-shrink-0">
+                    <FiArrowRight className="w-4 h-4 text-black" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Sidebar Menu - WHITE background with BLACK text (unchanged) */}
       {menuOpen && (
