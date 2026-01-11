@@ -154,14 +154,11 @@ const CartTabSkeleton = () => {
   );
 };
 
-const CartTab = ({ 
-  cart, 
-  loadingCart, 
-  updateCartQuantity, 
-  removeFromCart, 
-  cartTotal 
-}) => {
+const CartTab = () => {
   const navigate = useNavigate();
+  const [cart, setCart] = useState([]);
+  const [loadingCart, setLoadingCart] = useState(false);
+  const [cartTotal, setCartTotal] = useState(0);
   const [updatingItems, setUpdatingItems] = useState({});
   const [removingItems, setRemovingItems] = useState({});
   const [optimisticCart, setOptimisticCart] = useState([]);
@@ -170,6 +167,145 @@ const CartTab = ({
   const [selectAll, setSelectAll] = useState(false);
 
   const cartRef = useRef(cart);
+
+  // Fetch cart data
+  const fetchCart = async () => {
+    try {
+      setLoadingCart(true);
+      console.log("🔄 CartTab: Fetching cart from API...");
+    
+      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+        method: "GET",
+        credentials: "include",
+      });
+    
+      const res = await fetch("http://localhost:8000/api/cart", {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          "Accept": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      });
+    
+      console.log("🔥 CartTab: Cart response status:", res.status);
+    
+      if (res.status === 401) {
+        console.log("🚨 CartTab: 401 - Not authenticated for cart");
+        setCart([]);
+        setCartTotal(0);
+        return;
+      }
+    
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error("🚨 CartTab: Cart API error:", errorData);
+        throw new Error(`Cart Error: ${errorData.message || 'Unknown error'}`);
+      }
+    
+      const data = await res.json();
+      console.log("✅ CartTab: CART LOADED:", data);
+      
+      setCart(data.cart || []);
+      setCartTotal(data.total || 0);
+    
+    } catch (err) {
+      console.error("❌ CartTab: Error fetching cart:", err.message);
+      setCart([]);
+      setCartTotal(0);
+    } finally {
+      setLoadingCart(false);
+    }
+  };
+
+  // Update cart quantity API
+  const updateCartQuantityApi = async (productId, newQuantity) => {
+    try {
+      const csrfToken = await CsrfTokenManager.getCsrfToken();
+      
+      const res = await fetch(`http://localhost:8000/api/cart/${productId}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "X-XSRF-TOKEN": csrfToken,
+          "Accept": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: JSON.stringify({ quantity: newQuantity }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Failed to update quantity");
+      }
+
+      const updatedCart = cart.map(item => 
+        item.product_id === productId 
+          ? { ...item, quantity: newQuantity }
+          : item
+      );
+      setCart(updatedCart);
+      
+      const newTotal = updatedCart.reduce((sum, item) => {
+        const product = item.product || { price: 0 };
+        return sum + (product.price * item.quantity);
+      }, 0);
+      setCartTotal(newTotal);
+      
+      console.log("✅ CartTab: Cart quantity updated");
+    } catch (err) {
+      console.error("❌ CartTab: Error updating cart quantity:", err);
+      alert("Erro ao atualizar quantidade!");
+    }
+  };
+
+  // Remove from cart API
+  const removeFromCartApi = async (productId) => {
+    try {
+      const csrfToken = await CsrfTokenManager.getCsrfToken();
+      
+      const res = await fetch(`http://localhost:8000/api/cart/${productId}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: {
+          "X-XSRF-TOKEN": csrfToken,
+          "Accept": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      });
+  
+      if (res.status === 401) {
+        return;
+      }
+  
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Failed to remove from cart");
+      }
+  
+      const updatedCart = cart.filter(item => item.product_id !== productId);
+      setCart(updatedCart);
+      
+      const newTotal = updatedCart.reduce((sum, item) => {
+        const product = item.product || { price: 0 };
+        return sum + (product.price * item.quantity);
+      }, 0);
+      setCartTotal(newTotal);
+      
+      console.log("✅ CartTab: Product removed from cart");
+      alert("Produto removido do carrinho!");
+  
+    } catch (err) {
+      console.error("❌ CartTab: Error removing from cart:", err);
+      alert("Erro ao remover produto do carrinho!");
+    }
+  };
+
+  // Fetch cart on component mount
+  useEffect(() => {
+    fetchCart();
+  }, []);
 
   // ✅ FIXED: Helper function to get unique item identifier
   const getItemId = (item) => {
@@ -204,13 +340,8 @@ const CartTab = ({
       newSelectedItems.delete(itemId);
       setSelectedItems(newSelectedItems);
 
-      // Try the provided removeFromCart function first
-      if (removeFromCart) {
-        await removeFromCart(itemId);
-      } else {
-        // Fallback: Direct API call
-        await removeFromCartDirect(itemId);
-      }
+      // Call API function directly
+      await removeFromCartDirect(itemId);
 
     } catch (error) {
       console.error('❌ Error removing item:', error);
@@ -297,11 +428,11 @@ const CartTab = ({
         )
       );
 
-      if (updateCartQuantity) {
-        await updateCartQuantity(itemId, newQuantity);
+      if (updateCartQuantityApi) {
+        await updateCartQuantityApi(itemId, newQuantity);
       } else {
         // Fallback direct API call
-        await updateCartQuantityDirect(itemId, newQuantity);
+        await updateCartQuantity(itemId, newQuantity);
       }
 
     } catch (error) {

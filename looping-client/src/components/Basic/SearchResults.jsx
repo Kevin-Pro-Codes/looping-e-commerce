@@ -117,14 +117,14 @@ const SearchResults = ({ query, onProductSelect, onSearchSubmit }) => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 bg-">
       {/* Search Header */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">
-          {query ? `Resultados de pesquisa para "${query}"` : "Todos os produtos"}
-        </h2>
-        <p className="mt-1 text-sm text-gray-500">
-          {pagination.total} produtos encontrados
-        </p>
-      </div>
+    <div className="mb-6" style={{ fontFamily: 'Calibri, Candara, Segoe, "Segoe UI", Optima, Arial, sans-serif' }}>
+  <h2 className="text-2xl font-bold text-gray-900">
+    {query ? `Resultados de pesquisa para "${query}"` : "Todos os produtos"}
+  </h2>
+  <p className="mt-1 text-sm text-gray-500">
+    {pagination.total} produtos encontrados
+  </p>
+</div>
 
       {/* Filters Header */}
       <div className="flex items-center mb-4">

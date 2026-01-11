@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { FiShoppingCart, FiMenu, FiUser, FiSearch, FiArrowRight } from "react-icons/fi";
+import { FiShoppingCart, FiMenu, FiUser, FiSearch, FiArrowRight, FiTrash2 } from "react-icons/fi";
 import { FaUserCircle } from "react-icons/fa";
 import { IoMdLogIn } from "react-icons/io";
 import { FaPlus, FaMinus } from "react-icons/fa";
@@ -188,6 +188,7 @@ const products = [
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
   const [language, setLanguage] = useState("en");
   const [sportsExpanded, setSportsExpanded] = useState(false);
   const [cinemaExpanded, setCinemaExpanded] = useState(false);
@@ -203,12 +204,16 @@ const Navbar = () => {
     Outros: false
   });
   const profileRef = useRef();
+  const cartRef = useRef();
   const navRef = useRef(null);
   const suggestionsRef = useRef(null);
   const blurTimeoutRef = useRef(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [loggedIn, setLoggedIn] = useState(false);
+  const [cartItems, setCartItems] = useState([]);
+  const [loadingCart, setLoadingCart] = useState(false);
+  const [cartTotal, setCartTotal] = useState(0);
 
   const [navHeight, setNavHeight] = useState(0);
   const [searchTypedQuery, setSearchTypedQuery] = useState('');
@@ -385,6 +390,10 @@ const Navbar = () => {
         setProfileOpen(false);
       }
 
+      if (cartRef.current && !cartRef.current.contains(event.target)) {
+        setCartOpen(false);
+      }
+
       const clickedInsideNavbar = navRef.current && navRef.current.contains(event.target);
       const clickedInsideSuggestions = suggestionsRef.current && suggestionsRef.current.contains(event.target);
       
@@ -408,18 +417,33 @@ const Navbar = () => {
       
       console.log("Navbar Auth check:", { token, storedStatus, user, isAuthenticated });
       setLoggedIn(isAuthenticated);
+      
+      // Fetch cart if user is authenticated
+      if (isAuthenticated) {
+        fetchCart();
+      }
     };
 
     checkAuthStatus();
 
     const handleStorageChange = (e) => {
       if (e.key === "loggedIn" || e.key === "token" || e.key === "user") {
+        const oldLoggedIn = e.oldValue === "true";
+        const newLoggedIn = e.newValue === "true";
+        
         checkAuthStatus();
+        
+        // Fetch cart when user logs in
+        if (!oldLoggedIn && newLoggedIn) {
+          fetchCart();
+        }
       }
     };
 
     const handleLoginStateChange = () => {
       checkAuthStatus();
+      // Fetch cart on login state change
+      fetchCart();
     };
 
     window.addEventListener("storage", handleStorageChange);
@@ -506,7 +530,85 @@ const Navbar = () => {
     navigate("/");
   };
 
+  // Fetch cart data
+  const fetchCart = async () => {
+    try {
+      setLoadingCart(true);
+      console.log("🔄 Navbar: Fetching cart from API...");
+    
+      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+        method: "GET",
+        credentials: "include",
+      });
+    
+      const res = await fetch("http://localhost:8000/api/cart", {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          "Accept": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      });
+    
+      console.log("🔥 Navbar: Cart response status:", res.status);
+    
+      if (res.status === 401) {
+        console.log("🚨 Navbar: 401 - Not authenticated for cart");
+        setCartItems([]);
+        setCartTotal(0);
+        return;
+      }
+    
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error("🚨 Navbar: Cart API error:", errorData);
+        throw new Error(`Cart Error: ${errorData.message || 'Unknown error'}`);
+      }
+    
+      const data = await res.json();
+      console.log("✅ Navbar: CART LOADED:", data);
+      
+      setCartItems(data.cart || []);
+      setCartTotal(data.total || 0);
+    
+    } catch (err) {
+      console.error("❌ Navbar: Error fetching cart:", err.message);
+      setCartItems([]);
+      setCartTotal(0);
+    } finally {
+      setLoadingCart(false);
+    }
+  };
+
   const currentFlag = language === "en" ? enFlag : ptFlag;
+
+  // Cart functions
+  const updateQuantity = (id, delta) => {
+    setCartItems(prev => prev.map(item => {
+      if ((item.id || item.product_id) === id) {
+        const newQuantity = Math.max(1, item.quantity + delta);
+        return { ...item, quantity: newQuantity };
+      }
+      return item;
+    }));
+  };
+
+  const removeItem = (id) => {
+    setCartItems(prev => prev.filter(item => (item.id || item.product_id) !== id));
+  };
+
+  const calculateTotal = () => {
+    return cartTotal;
+  };
+
+  const getCartItemCount = () => {
+    return cartItems.reduce((total, item) => total + item.quantity, 0);
+  };
+
+  const handleCheckout = () => {
+    setCartOpen(false);
+    navigate("/checkout");
+  };
 
   const ProfilePopup = () => (
     <div
@@ -570,6 +672,131 @@ const Navbar = () => {
     </div>
   );
 
+  const CartPopup = () => {
+  // Show only first 6 items in dropdown
+  const itemsToShow = cartItems.slice(0, 6);
+  const hasMoreItems = cartItems.length > 6;
+  const remainingCount = cartItems.length - 6;
+
+  return (
+    <div
+      ref={cartRef}
+      className="absolute right-14 top-full mt-2 w-96 bg-white shadow-lg rounded-lg border border-gray-300 mr-2 p-4 z-50"
+      style={{ fontFamily: "Calibri, sans-serif" }}
+    >
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-2">
+          <FiShoppingCart className="text-xl sm:text-2xl text-gray-800" />
+          <span className="text-lg sm:text-xl font-bold text-gray-800">Carrinho</span>
+          <span className="text-sm text-gray-500">({getCartItemCount()} itens)</span>
+        </div>
+      </div>
+
+      {cartItems.length === 0 ? (
+        <div className="text-center py-8">
+          <FiShoppingCart className="text-4xl text-gray-300 mx-auto mb-3" />
+          <p className="text-gray-500">Seu carrinho está vazio</p>
+        </div>
+      ) : (
+        <>
+          <div className="max-h-96 overflow-y-auto mb-4">
+            {itemsToShow.map((item) => (
+              <div key={item.id || item.product_id} className="flex items-center space-x-3 py-3 border-b border-gray-100 last:border-b-0">
+                <div className="w-23 h-23 bg-gray-100 rounded-md overflow-hidden flex-shrink-0">
+                  <img
+                    src={item.image || item.product?.image}
+                    alt={item.name || item.product?.name || 'Product'}
+                    className="w-full h-full"
+                  />
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-medium text-gray-800 truncate">
+                    {item.name || item.product?.name || 'Product'}
+                  </h4>
+                  <p className="text-sm font-bold text-gray-800">
+                    R$ {(item.price || item.product?.price || 0).toFixed(2)}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate">
+                    {item.category || item.product?.category || 'Product'} • Qtd: {item.quantity}
+                  </p>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => updateQuantity(item.product_id, -1)}
+                    className="p-1 rounded-full hover:bg-gray-100"
+                    disabled={item.quantity <= 1}
+                  >
+                    <FaMinus className="text-xs text-gray-600" />
+                  </button>
+                  
+                  <span className="text-sm font-medium text-gray-800 min-w-6 text-center">
+                    {item.quantity}
+                  </span>
+                  
+                  <button
+                    onClick={() => updateQuantity(item.product_id, 1)}
+                    className="p-1 rounded-full hover:bg-gray-100"
+                  >
+                    <FaPlus className="text-xs text-gray-600" />
+                  </button>
+                  
+                  <button
+                    onClick={() => removeItem(item.product_id)}
+                    className="p-1 rounded-full hover:bg-red-50 ml-2"
+                  >
+                    <FiTrash2 className="text-sm text-red-500" />
+                  </button>
+                </div>
+              </div>
+            ))}
+            
+            {/* Show message if there are more items */}
+            {hasMoreItems && (
+              <div className="py-3 text-center">
+                <p className="text-sm text-gray-600">
+                  +{remainingCount} mais {remainingCount === 1 ? 'item' : 'itens'} no carrinho
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Veja todos no carrinho completo
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="border-t border-gray-200 pt-4">
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-lg font-bold text-gray-800">Total:</span>
+              <span className="text-xl font-bold text-red-600">
+                R$ {calculateTotal().toFixed(2)}
+              </span>
+            </div>
+            
+            <div className="space-y-2">
+                         
+              <button
+                onClick={() => {
+                  setCartOpen(false);
+                  navigate("/profile/cart");
+                }}
+                className="w-full p-2 bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200 transition flex items-center justify-center"
+              >
+                <span>Ver Carrinho Completo</span>
+                {hasMoreItems && (
+                  <span className="ml-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {cartItems.length}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
  // Componente para as abas de música - agora como seções expansíveis
 const MusicTabs = () => (
   <div className="mt-3 ml-1 space-y-4">
@@ -632,6 +859,7 @@ const MusicTabs = () => (
                 navigate("/");
               }
               setProfileOpen(false);
+              setCartOpen(false);
             }}
             className="flex items-center space-x-1 flex-shrink-0 cursor-pointer ml-1 select-none"
             style={{ pointerEvents: 'auto' }}
@@ -671,16 +899,25 @@ const MusicTabs = () => (
 
               {/* Cart and User Icons - BLACK */}
               <div className="flex items-center space-x-2 sm:space-x-3 relative">
-                <button className="relative p-1 sm:p-1 rounded-full hover:bg-gray-100">
+                <button 
+                  className="p-2 sm:p-3 rounded-full hover:bg-gray-100 relative"
+                  onClick={() => {
+                    setCartOpen(prev => !prev);
+                    setProfileOpen(false);
+                  }}
+                >
                   <FiShoppingCart className="text-2xl sm:text-3xl text-gray-800" />
                   <span className="absolute -top-1 -right-1 sm:-top-1.5 sm:-right-1.5 bg-red-600 text-white text-xs sm:text-sm font-bold rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center">
-                    5
+                    {getCartItemCount()}
                   </span>
                 </button>
 
                 <button
                   className="p-2 sm:p-3 mr-5 rounded-full hover:bg-gray-100 relative"
-                  onClick={() => setProfileOpen(prev => !prev)}
+                  onClick={() => {
+                    setProfileOpen(prev => !prev);
+                    setCartOpen(false);
+                  }}
                 >
                   {loggedIn ? (
                     <FiUser className={`text-2xl sm:text-3xl text-gray-800`} />
@@ -693,6 +930,7 @@ const MusicTabs = () => (
                 </button>
 
                 {profileOpen && <ProfilePopup />}
+                {cartOpen && <CartPopup />}
               </div>
             </div>
           </div>

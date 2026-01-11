@@ -40,7 +40,10 @@ function App() {
           <Route path="/reset-password" element={<ResetPassword />} />          
           <Route path="/verification" element={<VerifyEmail />} />
           <Route path="/product/:id" element={<ProductDetail />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile" element={<Profile />}>
+            <Route path="wishlist" element={<Profile />} />
+            <Route path="cart" element={<Profile />} />
+          </Route>
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/search" element={<SearchPage />} />
         </Routes>

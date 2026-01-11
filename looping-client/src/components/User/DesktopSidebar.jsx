@@ -1,11 +1,29 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FiUser, FiMapPin, FiCreditCard, FiPackage, FiHeart, FiShoppingBag, FiTag, FiSettings, FiHelpCircle, FiLogOut } from 'react-icons/fi';
 
 const DesktopSidebar = ({ activeTab, setActiveTab, user }) => {
+  const navigate = useNavigate();
+  
+  const handleTabClick = (tabId) => {
+    setActiveTab(tabId);
+    switch (tabId) {
+      case 'desejos':
+        navigate('/profile/wishlist');
+        break;
+      case 'carrinho':
+        navigate('/profile/cart');
+        break;
+      default:
+        navigate('/profile');
+        break;
+    }
+  };
+  
   const navigationItems = [
     { id: "perfil", label: "Perfil", icon: FiUser },
     { id: "enderecos", label: "Endereço", icon: FiMapPin },
-    { id: "pagamentos", label: "Pagamento", icon: FiCreditCard }, // ← CHANGED from "pagamento" to "pagamentos"
+    { id: "pagamentos", label: "Pagamento", icon: FiCreditCard }, 
     { id: "pedidos", label: "Pedidos", icon: FiPackage },
     { id: "desejos", label: "Desejos", icon: FiHeart },
     { id: "carrinho", label: "Carrinho", icon: FiShoppingBag },
@@ -40,7 +58,7 @@ const DesktopSidebar = ({ activeTab, setActiveTab, user }) => {
               return (
                 <li key={item.id}>
                   <button
-                    onClick={() => setActiveTab(item.id)}
+                    onClick={() => handleTabClick(item.id)}
                     className={`w-full flex items-center space-x-3 p-4 rounded-xl transition-all ${
                       activeTab === item.id
                         ? 'bg-black text-white shadow-sm shadow-gray-800'

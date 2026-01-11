@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import ProfileTab from '../User/ProfileTab';
 import AddressesTab from '../User/AddressesTab';
 import OrdersTab from '../User/OrdersTab';
@@ -54,8 +54,10 @@ const recoverSession = async () => {
 };
 
 const ProfilePage = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
-  const [activeTab, setActiveTab] = useState("perfil");
+  const [activeTab, setActiveTab] = useState(location.pathname === "/profile/cart" ? "carrinho" : "perfil");
   const [editAddressId, setEditAddressId] = useState(null);
   const [newAddress, setNewAddress] = useState({ street: "", number: "", hood: "", complement: "", city: "", state: "", zip: "" });
   const [paymentInfo, setPaymentInfo] = useState({ cardNumber: "", cardName: "", expiry: "" });
@@ -740,6 +742,12 @@ const ProfilePage = () => {
       console.log("🚨 No user data found, redirecting to login");
     }
   }, []);
+
+  useEffect(() => {
+    if (location.pathname === "/profile/cart") {
+      setActiveTab("carrinho");
+    }
+  }, [location.pathname]);
 
   if (!user) return <p className="text-black p-4 lg:p-8">Carregando perfil...</p>;
 
