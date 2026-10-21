@@ -133,15 +133,50 @@ Ensure you have installed:
 
 ---
 
-### Option B: Running Locally with Script / CLI
+### Option B: Running Locally on Windows with Batch Script (`looping.bat`)
 
-On Windows, you can start all development servers using the bundled batch script:
+The repository includes a ready-to-run automation script [`looping.bat`](file:///looping.bat) that coordinates and opens all services in separate terminal windows with a single command:
 
-```bat
-looping.bat
-```
+1. **First-time dependency setup:**
+   ```bash
+   # Install backend dependencies
+   cd looping-server
+   composer install
+   cp .env.example .env
+   php artisan key:generate
+   php artisan migrate --seed
+   cd ..
 
-Or run them individually:
+   # Install frontend dependencies
+   cd looping-client
+   npm install
+   cd ..
+
+   # Install SSR dependencies
+   cd looping-ssr
+   npm install
+   cd ..
+   ```
+
+2. **Execute the batch script:**
+   - Double click `looping.bat` in File Explorer, or
+   - Run in PowerShell / CMD:
+     ```cmd
+     .\looping.bat
+     ```
+
+#### What `looping.bat` does automatically:
+- 🐘 **Starts WAMP Server** with Administrator privileges (Apache & MySQL service).
+- 🍃 **Launches Mongo Shell (`mongosh`)** connected to the local MongoDB database (`looping`).
+- ⚡ **Starts the Laravel API server** on `http://localhost:8888`.
+- ⚛️ **Starts the React Client (Vite)** dev server on `http://localhost:3000`.
+- 🌐 **Starts the Node SSR engine** dev server on `http://localhost:3001`.
+
+---
+
+### Option C: Running Services Manually via CLI
+
+If you prefer full terminal control over each process individually:
 
 ```bash
 # 1. Start Laravel Backend (Port 8888)
@@ -156,7 +191,7 @@ cd ../looping-client
 npm install
 npm run dev
 
-# 3. Start SSR Node Service (Optional)
+# 3. Start SSR Node Service (Port 3001)
 cd ../looping-ssr
 npm install
 npm run dev
