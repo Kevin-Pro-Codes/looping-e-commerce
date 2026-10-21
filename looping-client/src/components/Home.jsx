@@ -8,7 +8,6 @@ import Footer from "./Footer";
 import PaymentAd from "./Basic/PaymentAd";
 import showImage from "../assets/bg.png";
 import kt from "../assets/kurt.png";
-import rnr from "../assets/rnr.png";
 import rockBanner from "../assets/10.png";
 import ch from "../assets/chad.png";
 import jd from "../assets/jd.png";
@@ -58,17 +57,24 @@ function App() {
       prev.includes(id) ? prev.filter((fid) => fid !== id) : [...prev, id]
     );
 
-  // Detect zoom level with multiple thresholds
+  // Detect zoom level with multiple thresholds (debounced for performance)
   useEffect(() => {
+    let timeoutId = null;
     const checkZoomLevel = () => {
-      const zoom = (window.outerWidth / window.innerWidth) * 100;
-      setZoomLevel(zoom);
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        const zoom = (window.outerWidth / window.innerWidth) * 100;
+        setZoomLevel(zoom);
+      }, 100);
     };
 
     checkZoomLevel();
     window.addEventListener('resize', checkZoomLevel);
     
-    return () => window.removeEventListener('resize', checkZoomLevel);
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      window.removeEventListener('resize', checkZoomLevel);
+    };
   }, []);
 
   // Helper function to get container adjustments
@@ -175,19 +181,18 @@ function App() {
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
-      <main className="flex-1 bg-white pt-[125px]">
+      <main className="flex-1 bg-white pt-[80px] sm:pt-[110px] md:pt-[130px] lg:pt-[140px]">
 
         {/* ENLARGED Zoom-resistant banner container - IMPROVED ZOOM PROTECTION */}
-        <div className="flex justify-center items-center px-4 py-8 sm:py-10 md:py-12 lg:py-13">
+        <div className="flex justify-center items-center px-4 py-16 max-sm:-mb-7 sm:py-10 md:py-12 lg:py-13">
           <div 
             className="relative rounded-xl overflow-hidden border-4 border-black shadow-2xl bg-white"
             style={{
-              width: 'min(1400px, 92vw)', // Further reduced from 95vw to 92vw for more spacing
+              width: 'min(1400px, 94vw)', // Slightly increased width for better spacing
               height: getContainerHeight(), // Dynamic height based on zoom
               minWidth: '320px', // Reduced minimum width
               minHeight: '220px', // Reduced minimum height
-              marginTop: '-1rem', // Increased top margin
-              marginBottom: '-1rem' // Added bottom margin
+              marginTop: '-1rem', // Reduced top margin              
             }}
           >
             
@@ -501,7 +506,7 @@ function App() {
         </div>
 
         {/* Dots */}
-        <div className="flex justify-center space-x-3 mt-6 mb-6">
+        <div className="flex justify-center space-x-3 mb-6">
           {bannerCombos.map((_, idx) => (
             <button
               key={idx}

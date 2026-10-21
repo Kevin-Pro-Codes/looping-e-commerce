@@ -42,7 +42,7 @@ export default function Login() {
       console.log("🔄 Iniciando processo de recuperação de senha...");
 
       // 1. Get CSRF token
-      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+      await fetch("/sanctum/csrf-cookie", {
         method: "GET",
         credentials: "include",
       });
@@ -56,7 +56,7 @@ export default function Login() {
 
       // 2. Send forgot password request
       console.log("📧 Enviando solicitação de recuperação de senha...");
-      const response = await fetch("http://localhost:8000/api/forgot-password", {
+      const response = await fetch("/api/forgot-password", {
         method: "POST",
         credentials: "include",
         headers: {
@@ -102,7 +102,7 @@ export default function Login() {
       console.log("🔄 Step 1: Getting CSRF token...");
       
       // 1. Get CSRF token FIRST
-      const csrfResponse = await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+      const csrfResponse = await fetch("/sanctum/csrf-cookie", {
         method: "GET",
         credentials: "include",
       });
@@ -121,7 +121,7 @@ export default function Login() {
 
       // 3. Send login request WITH session cookies
       console.log("🔄 Step 2: Sending login credentials...");
-      const loginResponse = await fetch("http://localhost:8000/login", {
+      const loginResponse = await fetch("/login", {
         method: "POST",
         credentials: "include",
         headers: {
@@ -148,7 +148,7 @@ export default function Login() {
 
       // 4. Verify the session is actually working
       console.log("🔄 Step 3: Verifying session...");
-      const verifyResponse = await fetch("http://localhost:8000/api/user", {
+      const verifyResponse = await fetch("/api/user", {
         method: "GET",
         credentials: "include",
         headers: {
@@ -237,7 +237,7 @@ export default function Login() {
 
       // 1️⃣ Get CSRF cookie (required by Sanctum)
       console.log("Getting CSRF cookie...");
-      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+      await fetch("/sanctum/csrf-cookie", {
         method: "GET",
         credentials: "include",
       });
@@ -252,7 +252,7 @@ export default function Login() {
 
       // 3️⃣ Send Google token to backend
       console.log("Sending Google token to backend...");
-      const res = await fetch("http://localhost:8000/google-auth", {
+      const res = await fetch("/google-auth", {
         method: "POST",
         credentials: "include",
         headers: {

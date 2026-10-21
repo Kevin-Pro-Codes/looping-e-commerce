@@ -1,9 +1,9 @@
-// PRODUCT GRID DISPLAY
-
 import React, { useState, useEffect } from "react";
 import { FiHeart, FiShoppingCart, FiPlus, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { IoIosArrowRoundForward, IoIosArrowRoundBack } from "react-icons/io";
 import { Link } from "react-router-dom";
+import ProductSkeleton from "./ProductSkeleton";
+import fallbackImage from "../../assets/looping-banner.png";
 
 const SaleProducts = () => {
   const [products, setProducts] = useState([]);
@@ -13,7 +13,32 @@ const SaleProducts = () => {
   const [wishlistLoading, setWishlistLoading] = useState({});
   const [cartLoading, setCartLoading] = useState({}); // NEW: Loading state for cart
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  
+
+  // Non-blocking toast notification function
+  const showCartToast = (message) => {
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = 'fixed top-20 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform duration-300';
+    toast.textContent = message;
+    
+    // Add to DOM
+    document.body.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => {
+      toast.classList.remove('translate-x-full');
+      toast.classList.add('translate-x-0');
+    }, 100);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+      toast.classList.add('translate-x-full');
+      setTimeout(() => {
+        document.body.removeChild(toast);
+      }, 300);
+    }, 3000);
+  };
+
   const [newProduct, setNewProduct] = useState({
     title: "",
     price: "",
@@ -41,13 +66,27 @@ const SaleProducts = () => {
   const loadProducts = async () => {
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:8000/api/products", {
+      const response = await fetch("/api/products", {
         credentials: "include",
       });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const formatImageUrl = (url) => {
+        if (!url) return fallbackImage;
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+          if (url.includes('/storage/')) {
+            return url.replace(/^https?:\/\/[^\/]+/, '');
+          }
+          return url;
+        }
+        if (url.startsWith('/storage/')) return url;
+        if (url.startsWith('storage/')) return '/' + url;
+        if (url.startsWith('uploads/')) return '/storage/' + url;
+        return '/storage/uploads/' + url;
+      };
 
       const data = await response.json();
       const normalized = Array.isArray(data)
@@ -56,7 +95,7 @@ const SaleProducts = () => {
             title: p.title || "No title",
             price: p.price || 0,
             description: p.description || "",
-            image: p.image || "",
+            image: formatImageUrl(p.image || ""),
             category: p.category || "",
             // Frontend-only sizes and colors
             size: p.size || ["P", "M", "G"], // Default sizes
@@ -80,12 +119,12 @@ const SaleProducts = () => {
 
     try {
       // Get CSRF cookie first
-      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+      await fetch("/sanctum/csrf-cookie", {
         method: "GET",
         credentials: "include",
       });
 
-      const res = await fetch("http://localhost:8000/api/wishlist", {
+      const res = await fetch("/api/wishlist", {
         method: "GET",
         credentials: "include",
         headers: {
@@ -126,7 +165,7 @@ const SaleProducts = () => {
       setCartLoading(prev => ({ ...prev, [productId]: true }));
 
       // Get CSRF cookie first
-      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+      await fetch("/sanctum/csrf-cookie", {
         method: "GET",
         credentials: "include",
       });
@@ -150,7 +189,7 @@ const SaleProducts = () => {
       console.log("🛒 Adding product to cart:", productId);
 
       // Send request to add product to cart
-      const res = await fetch("http://localhost:8000/api/cart/add", {
+      const res = await fetch("/api/cart/add", {
         method: "POST",
         credentials: "include",
         headers: {
@@ -181,14 +220,19 @@ const SaleProducts = () => {
 
       if (res.ok) {
         const data = await res.json();
-        console.log("✅ Product added to cart:", data);
+        console.log(" Product added to cart:", data);
         
-        // Show success message
-        alert(`"${productTitle}" added to cart!`);
+        // Dispatch cart update event to notify Navbar FIRST for instant feedback
+        window.dispatchEvent(new CustomEvent('cartUpdated', { 
+          detail: { 
+            action: 'add',
+            product: { id: productId, title: productTitle }
+          } 
+        }));
         
       } else {
         const errorData = await res.json();
-        console.error("❌ Failed to add to cart:", errorData);
+        console.error(" Failed to add to cart:", errorData);
         
         if (res.status === 404) {
           alert("Product not found. Please try again.");
@@ -216,7 +260,7 @@ const SaleProducts = () => {
       setWishlistLoading(prev => ({ ...prev, [productId]: true }));
 
       // Get CSRF cookie first
-      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+      await fetch("/sanctum/csrf-cookie", {
         method: "GET",
         credentials: "include",
       });
@@ -238,7 +282,7 @@ const SaleProducts = () => {
 
       console.log("🔄 Toggling wishlist for product:", productId);
 
-      const res = await fetch("http://localhost:8000/api/wishlist/toggle", {
+      const res = await fetch("/api/wishlist/toggle", {
         method: "POST",
         credentials: "include",
         headers: {
@@ -291,12 +335,12 @@ const SaleProducts = () => {
     
     try {
       // Get CSRF cookie first
-      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+      await fetch("/sanctum/csrf-cookie", {
         method: "GET",
         credentials: "include",
       });
 
-      const res = await fetch(`http://localhost:8000/api/wishlist/check/${productId}`, {
+      const res = await fetch(`/api/wishlist/check/${productId}`, {
         method: "GET",
         credentials: "include",
         headers: {
@@ -438,7 +482,23 @@ const SaleProducts = () => {
   
  
      {/* Products grid */}
-{loading && <p className="text-black mt-2">Loading...</p>}
+{loading && (
+  <>
+    {/* Skeleton count and page info */}
+    <div className="w-full mb-4 flex justify-between items-center">
+      <div className="h-6 bg-gray-200 rounded w-48 animate-pulse"></div>
+      <div className="h-6 bg-gray-200 rounded w-32 animate-pulse"></div>
+    </div>
+    
+    {/* Skeleton products grid */}
+    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 w-full">
+      {[...Array(8)].map((_, index) => (
+        <ProductSkeleton key={index} />
+      ))}
+    </div>
+  </>
+)}
+
 {!loading && products.length === 0 && <p className="text-black mt-2">No products loaded.</p>}
 
 {/* Products Count and Page Info */}
@@ -469,10 +529,14 @@ const SaleProducts = () => {
     return (
       <div key={product._id} className="relative bg-white rounded-2xl shadow-xl flex flex-col items-center p-4 border-1 border-black duration-300 hover:shadow-2xl transition-all group">
         
-        {/* ✅ ADDED: 33% OFF Flag in Green Rectangular Box */}
+        {/* ✅ ADDED: 33% OFF Flag with Black Outline */}
         <div 
-  className="absolute top-3 left-3 z-20 bg-white text-black px-2 py-0 rounded-sm font-bold text-md shadow-lg border-2 border-black"
-  style={{ fontFamily: "'Calibri', 'sans-serif'" }}
+  className="absolute top-2 left-2 z-20 bg-red-500 text-white px-1 py-0.5 rounded border-2 font-bold text-xs md:text-sm md:px-1.5 md:py-1 shadow-md"
+  style={{ 
+    fontFamily: 'Calibri, Arial, sans-serif',
+    borderColor: '#000000',
+    fontWeight: 'bold'
+  }}
 >
   33% OFF
 </div>
@@ -480,7 +544,7 @@ const SaleProducts = () => {
         {/* ✅ UPDATED: Only show heart icon if user is logged in */}
         {isLoggedIn && (
           <button 
-            className="absolute top-3 right-3 z-20 transition-all duration-300 hover:scale-110 bg-white rounded-full p-1 shadow-md"
+            className="absolute top-1 right-2 z-20 transition-all duration-300 hover:scale-110 bg-white rounded-full shadow-md w-10 h-10 flex items-center justify-center"
             onClick={() => toggleWishlist(product._id)}
             disabled={isLoadingWishlist}
             title={isFavorited ? "Remove from wishlist" : "Add to wishlist"}
@@ -491,7 +555,7 @@ const SaleProducts = () => {
               <FiHeart 
                 size={20} 
                 className={`transition-colors duration-300 ${
-                  isFavorited ? 'text-red-500 fill-red-500' : 'text-gray-600'
+                  isFavorited ? 'text-black stroke-1 fill-red-500' : 'text-black stroke-2'
                 }`}
               />
             )}
@@ -506,6 +570,10 @@ const SaleProducts = () => {
              src={product.image} 
              alt={product.title} 
              className="w-[500px] h-auto max-h-[390px] object-contain transition-transform duration-300 scale-90 group-hover:scale-99 cursor-pointer" 
+             onError={(e) => {
+               e.target.onerror = null;
+               e.target.src = fallbackImage;
+             }}
            />
            
             )}
@@ -549,23 +617,21 @@ const SaleProducts = () => {
   </div>
 </Link>
 
-
         {/* ✅ UPDATED: Add to Cart Button with MongoDB integration */}
         <div className="w-full flex justify-center mt-3 pt-3">
           <button 
-            className={`flex items-center justify-center px-3 py-2 rounded-lg border-2 transition-all duration-200 shadow-md ${
+            className={`flex items-center justify-center px-3 py-2 rounded-sm border-2 transition-all duration-200 shadow-md ${
               isLoadingCart 
                 ? 'bg-gray-400 text-white border-gray-600 cursor-not-allowed' 
                 : 'bg-red-500 text-white border-black hover:bg-red-600 hover:scale-105'
-            }`}
-            style={{ fontFamily: "'Georgia', 'Times New Roman', 'Palatino', serif" }}
+            }`} style={{ fontFamily: "'Georgia', 'Times New Roman', 'Palatino', serif", borderRadius: '4px' }}
             onClick={() => addToCart(product._id, product.title)}
             disabled={isLoadingCart}
           >
             {isLoadingCart ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
             ) : (
-              <FiShoppingCart className="text-xl mr-1" />
+              <FiShoppingCart className="text-xl mr-0.5"/>
             )}
             {isLoadingCart ? 'Adding...' : ''}
           </button>

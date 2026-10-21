@@ -128,3 +128,129 @@ h1 {
     color: #747bff;
   }
 }
+
+@media (max-width: 220px) {
+  /* Create proper viewport scaling for smart watches */
+  html {
+    transform: scale(0.85);
+    transform-origin: top left;
+    width: 117.65%; /* 100% / 0.85 to compensate for scaling */
+    overflow-x: hidden;
+  }
+  
+  body {
+    transform: scale(0.85);
+    transform-origin: top left;
+    width: 117.65%; /* 100% / 0.85 to compensate for scaling */
+    min-width: 280px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    font-size: 14px;
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Reset navbar to normal - let it use its own styles */
+  nav {
+    transform: none !important;
+    width: 100% !important;
+  }
+  
+  /* Ensure navbar content stays normal */
+  nav * {
+    transform: none !important;
+  }
+  
+  /* Fix all containers to prevent horizontal overflow */
+  .max-w-\[1400px\] {
+    max-width: 95vw !important;
+  }
+  
+  /* Fix grid layouts */
+  .grid {
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  /* Ensure all images scale properly */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+@media (max-width: 180px) {
+  /* Ultra-small smart watches */
+  html {
+    transform: scale(0.75);
+    width: 133.33%; /* 100% / 0.75 to compensate for scaling */
+  }
+  
+  body {
+    transform: scale(0.75);
+    width: 133.33%; /* 100% / 0.75 to compensate for scaling */
+    min-width: 240px;
+    font-size: 12px;
+  }
+  
+  /* Even more aggressive container sizing */
+  .max-w-\[1400px\] {
+    max-width: 92vw !important;
+  }
+  
+  /* Single column grid for ultra-small screens */
+  .grid-cols-2,
+  .grid-cols-4 {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  }
+  
+  /* Smaller padding and margins */
+  .p-5 {
+    padding: 0.5rem !important;
+  }
+  
+  .gap-4 {
+    gap: 0.25rem !important;
+  }
+}
+
+@media (max-width: 240px) {
+  /* Extremely small smart watches */
+  html {
+    transform: scale(0.65);
+    width: 153.85%; /* 100% / 0.65 to compensate for scaling */
+  }
+  
+  body {
+    transform: scale(0.65);
+    width: 153.85%; /* 100% / 0.65 to compensate for scaling */
+    min-width: 200px;
+    font-size: 10px;
+  }
+  
+  /* Maximum container compression */
+  .max-w-\[1400px\] {
+    max-width: 90vw !important;
+  }
+  
+  /* Ensure everything is single column */
+  .grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  }
+  
+  /* Minimal spacing */
+  .p-5,
+  .p-4 {
+    padding: 0.25rem !important;
+  }
+  
+  .gap-4,
+  .gap-3 {
+    gap: 0.125rem !important;
+  }
+  
+  /* Hide non-essential elements */
+  .absolute.top-3.right-3 {
+    display: none !important;
+  }
+}

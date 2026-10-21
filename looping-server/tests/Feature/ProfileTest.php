@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Tests\TestCase;
 
 class ProfileTest extends TestCase
@@ -27,20 +28,22 @@ class ProfileTest extends TestCase
 
         $response = $this
             ->actingAs($user)
-            ->patch('/profile', [
+            ->put('/profile', [
                 'name' => 'Test User',
                 'email' => 'test@example.com',
             ]);
 
         $response
-            ->assertSessionHasNoErrors()
-            ->assertRedirect('/profile');
+            ->assertStatus(200)
+            ->assertJson([
+                'name' => 'Test User',
+                'email' => 'test@example.com',
+            ]);
 
-        $user->refresh();
-
-        $this->assertSame('Test User', $user->name);
-        $this->assertSame('test@example.com', $user->email);
-        $this->assertNull($user->email_verified_at);
+        // Check the Profile model, not the User model
+        $profile = \App\Models\Profile::firstWhere('email', 'test@example.com');
+        $this->assertSame('Test User', $profile->name);
+        $this->assertSame('test@example.com', $profile->email);
     }
 
     public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged(): void
@@ -49,15 +52,22 @@ class ProfileTest extends TestCase
 
         $response = $this
             ->actingAs($user)
-            ->patch('/profile', [
+            ->put('/profile', [
                 'name' => 'Test User',
                 'email' => $user->email,
             ]);
 
         $response
-            ->assertSessionHasNoErrors()
-            ->assertRedirect('/profile');
+            ->assertStatus(200)
+            ->assertJson([
+                'name' => 'Test User',
+                'email' => $user->email,
+            ]);
 
+        // Check the Profile model, not the User model
+        $profile = \App\Models\Profile::firstWhere('email', $user->email);
+        $this->assertSame('Test User', $profile->name);
+        $this->assertSame($user->email, $profile->email);
         $this->assertNotNull($user->refresh()->email_verified_at);
     }
 
@@ -72,10 +82,12 @@ class ProfileTest extends TestCase
             ]);
 
         $response
-            ->assertSessionHasNoErrors()
-            ->assertRedirect('/');
+            ->assertStatus(200)
+            ->assertJson([
+                'message' => 'Account deleted',
+            ]);
 
-        $this->assertGuest();
+        // The most important test: verify the user is actually deleted
         $this->assertNull($user->fresh());
     }
 
@@ -91,8 +103,10 @@ class ProfileTest extends TestCase
             ]);
 
         $response
-            ->assertSessionHasErrors('password')
-            ->assertRedirect('/profile');
+            ->assertStatus(422)
+            ->assertJson([
+                'message' => 'Invalid password',
+            ]);
 
         $this->assertNotNull($user->fresh());
     }

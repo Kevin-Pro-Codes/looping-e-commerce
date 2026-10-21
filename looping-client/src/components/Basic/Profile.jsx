@@ -17,7 +17,7 @@ const recoverSession = async () => {
   try {
     console.log("🔄 Attempting session recovery...");
     
-    await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+    await fetch("/sanctum/csrf-cookie", {
       method: "GET",
       credentials: "include",
     });
@@ -31,7 +31,7 @@ const recoverSession = async () => {
       throw new Error("No CSRF token available");
     }
 
-    const testResponse = await fetch("http://localhost:8000/api/user", {
+    const testResponse = await fetch("/api/user", {
       method: "GET",
       credentials: "include",
       headers: {
@@ -94,7 +94,7 @@ const ProfilePage = () => {
     try {
       console.log("🗑️ Deleting address:", id);
 
-      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+      await fetch("/sanctum/csrf-cookie", {
         method: "GET",
         credentials: "include",
       });
@@ -106,7 +106,7 @@ const ProfilePage = () => {
 
       if (!csrfToken) throw new Error("CSRF token not found");
 
-      const res = await fetch(`http://localhost:8000/addresses/${id}`, {
+      const res = await fetch(`/addresses/${id}`, {
         method: "DELETE",
         credentials: "include",
         headers: {
@@ -143,12 +143,12 @@ const ProfilePage = () => {
     try {
       console.log("🔥 Fetching profile with session cookies...");
 
-      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+      await fetch("/sanctum/csrf-cookie", {
         method: "GET",
         credentials: "include",
       });
 
-      const res = await fetch("http://localhost:8000/profile", { 
+      const res = await fetch("/profile", { 
         method: "GET",
         credentials: "include",
         headers: {
@@ -193,7 +193,7 @@ const ProfilePage = () => {
 
     try {
       console.log("Getting CSRF cookie...");
-      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+      await fetch("/sanctum/csrf-cookie", {
         method: "GET",
         credentials: "include",
       });
@@ -205,7 +205,7 @@ const ProfilePage = () => {
 
       if (!csrfToken) throw new Error("CSRF token not found");
 
-      const res = await fetch("http://localhost:8000/profile", {
+      const res = await fetch("/profile", {
         method: "PUT",
         credentials: "include",
         headers: {
@@ -248,12 +248,12 @@ const ProfilePage = () => {
     try {
       console.log("🔄 Fetching addresses...");
 
-      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+      await fetch("/sanctum/csrf-cookie", {
         method: "GET",
         credentials: "include",
       });
 
-      const res = await fetch("http://localhost:8000/addresses", {
+      const res = await fetch("/addresses", {
         method: "GET",
         credentials: "include",
         headers: { 
@@ -285,7 +285,7 @@ const ProfilePage = () => {
 
     try {
       console.log("🌐 Requesting CSRF cookie...");
-      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+      await fetch("/sanctum/csrf-cookie", {
         method: "GET",
         credentials: "include",
       });
@@ -299,7 +299,7 @@ const ProfilePage = () => {
       console.log("🔑 CSRF token found");
 
       console.log("📨 Sending POST request to /addresses...", newAddress);
-      const res = await fetch("http://localhost:8000/addresses", {
+      const res = await fetch("/addresses", {
         method: "POST",
         credentials: "include",
         headers: {
@@ -339,7 +339,7 @@ const ProfilePage = () => {
     if (!addressToSave) return alert("Endereço não encontrado!");
 
     try {
-      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+      await fetch("/sanctum/csrf-cookie", {
         method: "GET",
         credentials: "include",
       });
@@ -350,7 +350,7 @@ const ProfilePage = () => {
         ?.split("=")[1];
       if (!csrfToken) throw new Error("CSRF token not found");
 
-      const res = await fetch(`http://localhost:8000/addresses/${id}`, {
+      const res = await fetch(`/addresses/${id}`, {
         method: "PUT",
         credentials: "include",
         headers: {
@@ -385,12 +385,12 @@ const ProfilePage = () => {
       setLoadingOrders(true);
       console.log("🔄 Fetching orders...");
 
-      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+      await fetch("/sanctum/csrf-cookie", {
         method: "GET",
         credentials: "include",
       });
 
-      const res = await fetch("http://localhost:8000/api/infos", {
+      const res = await fetch("/api/infos", {
         method: "GET",
         credentials: "include",
         headers: {
@@ -456,7 +456,7 @@ const ProfilePage = () => {
         throw new Error("Session invalid - please login again");
       }
   
-      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+      await fetch("/sanctum/csrf-cookie", {
         method: "GET",
         credentials: "include",
       });
@@ -466,7 +466,7 @@ const ProfilePage = () => {
         .find((row) => row.startsWith("XSRF-TOKEN="))
         ?.split("=")[1];
   
-      const wishlistUrl = "http://localhost:8000/api/wishlist";
+      const wishlistUrl = "/api/wishlist";
       
       const res = await fetch(wishlistUrl, {
         method: "GET",
@@ -517,7 +517,7 @@ const ProfilePage = () => {
     try {
       console.log("🗑️ Removing product from wishlist:", productId);
 
-      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+      await fetch("/sanctum/csrf-cookie", {
         method: "GET",
         credentials: "include",
       });
@@ -529,7 +529,7 @@ const ProfilePage = () => {
 
       if (!csrfToken) throw new Error("CSRF token not found");
 
-      const res = await fetch(`http://localhost:8000/api/wishlist/${productId}`, {
+      const res = await fetch(`/api/wishlist/${productId}`, {
         method: "DELETE",
         credentials: "include",
         headers: {
@@ -563,12 +563,12 @@ const ProfilePage = () => {
       setLoadingCart(true);
       console.log("🔄 Fetching cart from MongoDB...");
     
-      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+      await fetch("/sanctum/csrf-cookie", {
         method: "GET",
         credentials: "include",
       });
     
-      const res = await fetch("http://localhost:8000/api/cart", {
+      const res = await fetch("/api/cart", {
         method: "GET",
         credentials: "include",
         headers: {
@@ -613,7 +613,7 @@ const ProfilePage = () => {
     }
   
     try {
-      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+      await fetch("/sanctum/csrf-cookie", {
         method: "GET",
         credentials: "include",
       });
@@ -625,7 +625,7 @@ const ProfilePage = () => {
   
       if (!csrfToken) throw new Error("CSRF token not found");
   
-      const res = await fetch(`http://localhost:8000/api/cart/${productId}`, {
+      const res = await fetch(`/api/cart/${productId}`, {
         method: "PUT",
         credentials: "include",
         headers: {
@@ -669,7 +669,7 @@ const ProfilePage = () => {
   
   const removeFromCart = async (productId) => {
     try {
-      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+      await fetch("/sanctum/csrf-cookie", {
         method: "GET",
         credentials: "include",
       });
@@ -681,7 +681,7 @@ const ProfilePage = () => {
   
       if (!csrfToken) throw new Error("CSRF token not found");
   
-      const res = await fetch(`http://localhost:8000/api/cart/${productId}`, {
+      const res = await fetch(`/api/cart/${productId}`, {
         method: "DELETE",
         credentials: "include",
         headers: {
@@ -767,7 +767,7 @@ const ProfilePage = () => {
 
   const handleLogout = async () => {
     try {
-      await fetch("http://localhost:8000/logout", {
+      await fetch("/logout", {
         method: "POST",
         credentials: "include",
       });

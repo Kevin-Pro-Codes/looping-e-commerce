@@ -25,7 +25,7 @@ export default function ResetPassword() {
       }
 
       try {
-        await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+        await fetch("/sanctum/csrf-cookie", {
           method: "GET",
           credentials: "include",
         });
@@ -35,7 +35,7 @@ export default function ResetPassword() {
           .find((row) => row.startsWith("XSRF-TOKEN="))
           ?.split("=")[1];
 
-        const response = await fetch("http://localhost:8000/api/check-reset-token", {
+        const response = await fetch("/api/check-reset-token", {
           method: "POST",
           credentials: "include",
           headers: {
@@ -75,7 +75,7 @@ export default function ResetPassword() {
 
     try {
       // Get CSRF token
-      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+      await fetch("/sanctum/csrf-cookie", {
         method: "GET",
         credentials: "include",
       });
@@ -85,7 +85,7 @@ export default function ResetPassword() {
         .find((row) => row.startsWith("XSRF-TOKEN="))
         ?.split("=")[1];
 
-      const response = await fetch("http://localhost:8000/api/reset-password", {
+      const response = await fetch("/api/reset-password", {
         method: "POST",
         credentials: "include",
         headers: {

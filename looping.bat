@@ -9,18 +9,23 @@ timeout /t 5 /nobreak >nul
 
 :: === START MONGOSH ===
 echo Starting Mongo Shell...
-cd /d "C:\Users\Kevin\AppData\Local\Programs\mongosh\bin"
+cd /d "C:\Users\Kevin\AppData\Local\Programs\mongosh"
 start "MongoDB Shell" mongosh.exe "mongodb://admin:6bhcct53@127.0.0.1:27017/looping?authSource=admin"
 
 :: === START LARAVEL ===
 echo Starting Laravel server...
 cd /d "%~dp0looping-server"
-start "Laravel Server" php artisan serve
+start "Laravel Server" php artisan serve --port=8888
 
 :: === START REACT ===
 echo Starting React dev server...
 cd /d "%~dp0looping-client"
 start "React Server" npm run dev
+
+:: === START SSR ===
+echo Starting Node SSR dev server...
+cd /d "%~dp0looping-ssr"
+start "Node SSR Server" npm run dev
 
 echo.
 echo ✅ All services started!

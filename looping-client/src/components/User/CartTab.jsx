@@ -7,7 +7,7 @@ import { Card } from './SharedComponents';
 const CsrfTokenManager = {
   getCsrfToken: async () => {
     try {
-      const response = await fetch('http://localhost:8000/sanctum/csrf-cookie', {
+      const response = await fetch('/sanctum/csrf-cookie', {
         method: 'GET',
         credentials: 'include',
       });
@@ -174,12 +174,12 @@ const CartTab = () => {
       setLoadingCart(true);
       console.log("🔄 CartTab: Fetching cart from API...");
     
-      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+      await fetch("/sanctum/csrf-cookie", {
         method: "GET",
         credentials: "include",
       });
     
-      const res = await fetch("http://localhost:8000/api/cart", {
+      const res = await fetch("/api/cart", {
         method: "GET",
         credentials: "include",
         headers: {
@@ -223,7 +223,7 @@ const CartTab = () => {
     try {
       const csrfToken = await CsrfTokenManager.getCsrfToken();
       
-      const res = await fetch(`http://localhost:8000/api/cart/${productId}`, {
+      const res = await fetch(`/api/cart/${productId}`, {
         method: "PUT",
         credentials: "include",
         headers: {
@@ -253,6 +253,15 @@ const CartTab = () => {
       }, 0);
       setCartTotal(newTotal);
       
+      // ✅ ADD: Dispatch cart update event to notify Navbar
+      window.dispatchEvent(new CustomEvent('cartUpdated', { 
+        detail: { 
+          action: 'update',
+          product_id: productId,
+          quantity: newQuantity
+        } 
+      }));
+      
       console.log("✅ CartTab: Cart quantity updated");
     } catch (err) {
       console.error("❌ CartTab: Error updating cart quantity:", err);
@@ -263,9 +272,21 @@ const CartTab = () => {
   // Remove from cart API
   const removeFromCartApi = async (productId) => {
     try {
+      // ✅ FIXED: Dispatch event immediately for instant UI update
+      const removedItem = cart.find(item => item.product_id === productId);
+      if (removedItem) {
+        window.dispatchEvent(new CustomEvent('cartUpdated', { 
+          detail: { 
+            action: 'remove',
+            product_id: productId,
+            quantity: removedItem.quantity
+          } 
+        }));
+      }
+
       const csrfToken = await CsrfTokenManager.getCsrfToken();
       
-      const res = await fetch(`http://localhost:8000/api/cart/${productId}`, {
+      const res = await fetch(`/api/cart/${productId}`, {
         method: "DELETE",
         credentials: "include",
         headers: {
@@ -298,6 +319,8 @@ const CartTab = () => {
   
     } catch (err) {
       console.error("❌ CartTab: Error removing from cart:", err);
+      // ✅ FIXED: Refresh cart on error to sync state
+      fetchCart();
       alert("Erro ao remover produto do carrinho!");
     }
   };
@@ -330,6 +353,20 @@ const CartTab = () => {
     try {
       setRemovingItems(prev => ({ ...prev, [itemId]: true }));
 
+      // Find the item to be removed for event dispatch
+      const removedItem = cart.find(item => getItemId(item) === itemId);
+      
+      // ✅ FIXED: Dispatch event immediately for instant UI update
+      if (removedItem) {
+        window.dispatchEvent(new CustomEvent('cartUpdated', { 
+          detail: { 
+            action: 'remove',
+            product_id: itemId,
+            quantity: removedItem.quantity
+          } 
+        }));
+      }
+
       // Optimistic update first
       setOptimisticCart(prevCart => 
         prevCart.filter(item => getItemId(item) !== itemId)
@@ -347,6 +384,8 @@ const CartTab = () => {
       console.error('❌ Error removing item:', error);
       // Rollback optimistic update
       setOptimisticCart(cartRef.current);
+      // ✅ FIXED: Refresh cart to sync state on error
+      fetchCart();
       alert('Erro ao remover item. Tente novamente.');
     } finally {
       setRemovingItems(prev => ({ ...prev, [itemId]: false }));
@@ -361,7 +400,7 @@ const CartTab = () => {
       console.log('🔄 Removing item directly via API:', itemId);
       
       // Try DELETE request first
-      let response = await fetch(`http://localhost:8000/api/cart/${itemId}`, {
+      let response = await fetch(`/api/cart/${itemId}`, {
         method: 'DELETE',
         credentials: 'include',
         headers: {
@@ -374,7 +413,7 @@ const CartTab = () => {
       // If DELETE fails, try POST with _method=DELETE (Laravel style)
       if (!response.ok) {
         console.log('🔄 DELETE failed, trying POST with _method=DELETE');
-        response = await fetch(`http://localhost:8000/api/cart/${itemId}`, {
+        response = await fetch(`/api/cart/${itemId}`, {
           method: 'POST',
           credentials: 'include',
           headers: {
@@ -450,7 +489,7 @@ const CartTab = () => {
     try {
       const csrfToken = await CsrfTokenManager.getCsrfToken();
       
-      const response = await fetch(`http://localhost:8000/api/cart/${itemId}`, {
+      const response = await fetch(`/api/cart/${itemId}`, {
         method: 'PUT',
         credentials: 'include',
         headers: {
@@ -770,7 +809,7 @@ const CartTab = () => {
               id: item.product_id,
               name: item.title || item.name || 'Product ' + (item.product_id || item.id),
               price: item.price || 0,
-              image: item.image,
+              image: (item.image || "").replace('http://localhost:8000', 'http://localhost:8888'),
               description: item.description || 'Product information not available',
               category: item.category || 'Unknown'
             };

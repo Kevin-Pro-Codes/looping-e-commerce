@@ -7,6 +7,9 @@ use Illuminate\Support\Facades\Hash;
 use App\Http\Controllers\Basic\RegisterController; // UPDATED
 use App\Http\Controllers\Basic\LoginController; // UPDATED
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\Auth\PasswordController;
 use App\Models\User;
 use Laravel\Sanctum\Sanctum;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
@@ -18,6 +21,11 @@ use App\Http\Controllers\Basic\ProductController; // UPDATED
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful; 
 use App\Http\Controllers\Basic\ProfileController; // UPDATED
 use App\Http\Controllers\Basic\AddressController; // UPDATED
+
+// Root route for testing
+Route::get('/', function () {
+    return response()->json(['message' => 'API is running']);
+});
 
 
 
@@ -32,16 +40,22 @@ Route::middleware(['web'])->group(function () {
     Route::post('/logout', [LoginController::class, 'logout']); // Uses Basic\LoginController
     Route::post('/register', [RegisterController::class, 'register']); // Uses Basic\RegisterController
     
+    // ✅ PASSWORD RESET
+    Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])->middleware('guest');
+    Route::post('/reset-password', [NewPasswordController::class, 'store'])->middleware('guest');
+    
     // ✅ GET PROFILE (web + sanctum = CSRF OK)
     Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/profile', [ProfileController::class, 'show']); // Uses Basic\ProfileController
         Route::get('/addresses', [AddressController::class, 'index']); // Uses Basic\AddressController
+        Route::put('/profile', [ProfileController::class, 'update']); // Uses Basic\ProfileController
     });
 });
 
 // 🔥 PUT/POST/DELETE = SANCTUM ONLY (NO web = NO 401!)
 Route::middleware(['auth:sanctum'])->group(function () {
-    Route::put('/profile', [ProfileController::class, 'update']); // Uses Basic\ProfileController
+    Route::put('/password', [PasswordController::class, 'update']); // Password update
+    Route::delete('/profile', [ProfileController::class, 'destroy']); // Account deletion
     Route::post('/addresses', [AddressController::class, 'store']); // Uses Basic\AddressController        
     Route::put('/addresses/{address}', [AddressController::class, 'update']); // Uses Basic\AddressController
     Route::delete('/addresses/{address}', [AddressController::class, 'destroy']); // Uses Basic\AddressController

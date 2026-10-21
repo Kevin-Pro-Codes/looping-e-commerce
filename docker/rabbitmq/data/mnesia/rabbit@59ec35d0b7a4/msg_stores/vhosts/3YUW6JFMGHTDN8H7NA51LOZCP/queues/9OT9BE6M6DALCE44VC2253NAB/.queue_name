@@ -1,0 +1,2 @@
+VHOST: looping
+QUEUE: payments.low_priority.delay.300000

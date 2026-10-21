@@ -18,7 +18,18 @@ class RegistrationTest extends TestCase
             'password_confirmation' => 'password',
         ]);
 
-        $this->assertAuthenticated();
-        $response->assertNoContent();
+        // The controller returns JSON but doesn't authenticate the user
+        $response->assertStatus(200);
+        $response->assertJson([
+            'message' => 'Registration successful. Check your email for verification link.'
+        ]);
+        
+        // Assert the user was created but not authenticated
+        $this->assertGuest();
+        $this->assertDatabaseHas('users', [
+            'email' => 'test@example.com',
+            'name' => 'Test User',
+            'is_verified' => false,
+        ]);
     }
 }

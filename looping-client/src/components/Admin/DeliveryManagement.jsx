@@ -13,7 +13,7 @@ const DeliveryManagement = () => {
   const [lastRefresh, setLastRefresh] = useState(null);
 
   // ✅ API Configuration
-  const API_BASE_URL = 'http://localhost:8000/api';
+  const API_BASE_URL = '/api';
   const API_ENDPOINTS = {
     infos: `${API_BASE_URL}/infos`,
     updateStatus: (id) => `${API_BASE_URL}/infos/${id}/status`,

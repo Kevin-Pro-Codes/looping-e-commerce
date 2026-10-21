@@ -22,7 +22,7 @@ const ProductDetail = () => {
   const [rating, setRating] = useState({
     average: 0,
     count: 0,
-    distribution: [0, 0, 0, 0, 0] // Distribuição de 1-5 estrelas
+    distribution: [0, 0, 0, 0, 0]
   });
 
   // Check authentication status
@@ -36,48 +36,36 @@ const ProductDetail = () => {
 
   // Calcular preço com desconto
   const calculateDiscountedPrice = (price) => {
-    return (price * 0.67).toFixed(2); // 33% de desconto
+    return (price * 0.67).toFixed(2);
   };
 
-  // Gerar avaliações aleatórias para o produto - SEMPRE MAIS DE 4.0 ESTRELAS
+  // Gerar avaliações aleatórias para o produto
   const generateRandomRating = () => {
-    // Gera uma média entre 4.1 e 5.0 (sempre mais que 4.0)
     const average = (Math.random() * 0.9 + 4.1).toFixed(1);
-    
-    // Gera um número aleatório de avaliações entre 10 e 500
     const count = Math.floor(Math.random() * 491) + 10;
-    
-    // Gera distribuição com foco em 4 e 5 estrelas
     const distribution = Array(5).fill(0);
-    
-    // Garante que 4 e 5 estrelas tenham a maior parte das avaliações
     let remaining = count;
-    
-    // 1-2 estrelas: mínimo (0-5% do total)
+
     for (let i = 0; i < 2; i++) {
-      const max = Math.floor(count * 0.05); // Máximo 5%
+      const max = Math.floor(count * 0.05);
       const value = Math.floor(Math.random() * (max + 1));
       distribution[i] = value;
       remaining -= value;
     }
-    
-    // 3 estrelas: baixo (5-15% do restante)
+
     const maxThree = Math.floor(remaining * 0.15);
     const threeStars = Math.floor(Math.random() * (maxThree + 1));
     distribution[2] = threeStars;
     remaining -= threeStars;
-    
-    // 4 estrelas: substancial (30-50% do restante)
+
     const maxFour = Math.floor(remaining * 0.5);
     const minFour = Math.floor(remaining * 0.3);
     const fourStars = Math.floor(Math.random() * (maxFour - minFour + 1)) + minFour;
     distribution[3] = fourStars;
     remaining -= fourStars;
-    
-    // 5 estrelas: o restante (garante maioria)
+
     distribution[4] = remaining;
-    
-    // Verifica e ajusta se necessário para garantir média > 4.0
+
     const calculatedAverage = (
       (1 * distribution[0] + 
        2 * distribution[1] + 
@@ -85,17 +73,14 @@ const ProductDetail = () => {
        4 * distribution[3] + 
        5 * distribution[4]) / count
     );
-    
-    // Se por algum motivo a média for menor que 4.0, ajusta
+
     if (calculatedAverage < 4.0) {
-      // Transfere algumas avaliações de 3 para 4 estrelas
       const neededIncrease = (4.0 - calculatedAverage) * count;
       const transferFromThree = Math.min(distribution[2], Math.ceil(neededIncrease));
       
       distribution[2] -= transferFromThree;
       distribution[3] += transferFromThree;
       
-      // Se ainda não for suficiente, transfere de 2 para 4
       const newAverage = (
         (1 * distribution[0] + 
          2 * distribution[1] + 
@@ -152,7 +137,7 @@ const ProductDetail = () => {
         setLoading(true);
         setError("");
         
-        const response = await fetch(`http://localhost:8000/api/products/${id}`, {
+        const response = await fetch(`/api/products/${id}`, {
           credentials: "include",
           headers: {
             'Content-Type': 'application/json',
@@ -165,13 +150,12 @@ const ProductDetail = () => {
 
         const productData = await response.json();
         
-        // Normalizar os dados do produto
         const normalizedProduct = {
           _id: productData._id?.$oid || productData._id || id,
           title: productData.title || "Sem título",
           price: productData.price || 0,
           description: productData.description || "Sem descrição disponível",
-          image: productData.image || "",
+          image: (productData.image || "").replace('http://localhost:8000', 'http://localhost:8888'),
           category: productData.category || "Sem categoria",
           size: Array.isArray(productData.size) ? productData.size : ["P", "M", "G"],
           color: Array.isArray(productData.color) ? productData.color : ["#000000", "#FFFFFF", "#1E90FF", "#FF69B4"],
@@ -180,18 +164,15 @@ const ProductDetail = () => {
           care: productData.care || "Lavar na máquina",
           origin: productData.origin || "Portugal",
           sku: productData.sku || productData._id?.$oid || productData._id,
-          images: productData.images || [productData.image].filter(Boolean)
+          images: (productData.images || [productData.image]).filter(Boolean).map(img => img.replace('http://localhost:8000', 'http://localhost:8888'))
         };
 
         setProduct(normalizedProduct);
         setMainImage(normalizedProduct.image);
         setImageGallery(normalizedProduct.images);
-        
-        // Definir seleções padrão
         setSelectedSize(normalizedProduct.size[0] || "");
         setSelectedColor(normalizedProduct.color[0] || "#000000");
         
-        // Gerar avaliações aleatórias para o produto (sempre > 4.0)
         const randomRating = generateRandomRating();
         setRating(randomRating);
         
@@ -209,7 +190,6 @@ const ProductDetail = () => {
     }
   }, [id]);
 
-  // ✅ ENHANCED: Add to cart function with proper size and color attributes
   const addToCart = async () => {
     if (!product) return;
     
@@ -218,7 +198,6 @@ const ProductDetail = () => {
       return;
     }
 
-    // Check authentication first
     if (!isLoggedIn) {
       alert("Por favor, faça login para adicionar itens ao carrinho");
       window.location.href = '/login';
@@ -228,13 +207,11 @@ const ProductDetail = () => {
     try {
       setAddingToCart(true);
 
-      // Get CSRF cookie first
-      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+      await fetch("/sanctum/csrf-cookie", {
         method: "GET",
         credentials: "include",
       });
 
-      // Extract CSRF token
       const getCsrfToken = () => {
         return document.cookie
           .split('; ')
@@ -245,20 +222,11 @@ const ProductDetail = () => {
       const csrfToken = getCsrfToken();
       
       if (!csrfToken) {
-        console.error("❌ CSRF token not found - authentication issue");
         alert("Erro de autenticação. Por favor, tente fazer login novamente.");
         return;
       }
 
-      console.log("🛒 Adding product to cart with attributes:", {
-        product_id: product._id,
-        quantity: quantity,
-        size: selectedSize,
-        color: selectedColor
-      });
-
-      // Send request to add product to cart with size and color
-      const res = await fetch("http://localhost:8000/api/cart/add", {
+      const res = await fetch("/api/cart/add", {
         method: "POST",
         credentials: "include",
         headers: {
@@ -270,15 +238,12 @@ const ProductDetail = () => {
         body: JSON.stringify({ 
           product_id: product._id,
           quantity: quantity,
-          size: selectedSize, // ✅ Include selected size
-          color: selectedColor // ✅ Include selected color
+          size: selectedSize,
+          color: selectedColor
         }),
       });
 
-      console.log("📬 Add to cart response status:", res.status);
-
       if (res.status === 401) {
-        console.error("🚨 401 Unauthorized - User not authenticated");
         setIsLoggedIn(false);
         localStorage.removeItem('user');
         localStorage.removeItem('loggedIn');
@@ -288,16 +253,21 @@ const ProductDetail = () => {
       }
 
       if (res.ok) {
-        const data = await res.json();
-        console.log("✅ Product added to cart:", data);
+        // Dispatch custom event to notify Navbar of cart update
+        window.dispatchEvent(new CustomEvent('cartUpdated', { 
+          detail: { 
+            action: 'add',
+            product_id: product._id,
+            quantity: quantity,
+            size: selectedSize,
+            color: selectedColor,
+            title: product.title
+          } 
+        }));
         
-        // Show success message with size and color
-        alert(`✅ "${product.title}" (Tamanho: ${selectedSize}, Cor: ${getColorName(selectedColor)}) adicionado ao carrinho!`);
-        
+        alert(`"${product.title}" (Tamanho: ${selectedSize}, Cor: ${getColorName(selectedColor)}) adicionado ao carrinho!`);
       } else {
         const errorData = await res.json();
-        console.error("❌ Failed to add to cart:", errorData);
-        
         if (res.status === 404) {
           alert("Produto não encontrado. Por favor, tente novamente.");
         } else {
@@ -305,14 +275,13 @@ const ProductDetail = () => {
         }
       }
     } catch (err) {
-      console.error("❌ Error adding to cart:", err);
+      console.error("Error adding to cart:", err);
       alert("Erro de rede. Por favor, verifique sua conexão e tente novamente.");
     } finally {
       setAddingToCart(false);
     }
   };
 
-  // Enhanced quantity handlers
   const increaseQuantity = () => {
     if (product && quantity < product.stock) {
       setQuantity(prev => prev + 1);
@@ -321,7 +290,6 @@ const ProductDetail = () => {
   
   const decreaseQuantity = () => setQuantity(prev => prev > 1 ? prev - 1 : 1);
 
-  // Enhanced quantity change handler
   const handleQuantityChange = (e) => {
     const value = parseInt(e.target.value);
     if (!isNaN(value) && value >= 1) {
@@ -335,7 +303,6 @@ const ProductDetail = () => {
     }
   };
 
-  // Obter nome da cor para tooltip
   const getColorName = (color) => {
     const colorMap = {
       "#000000": "Preto",
@@ -414,40 +381,42 @@ const ProductDetail = () => {
   const discountedPrice = calculateDiscountedPrice(product.price);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-40">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Botão Voltar */}
-        <button 
-          onClick={() => navigate(-1)}
-          className="flex items-center text-black mb-6 hover:text-red-600 transition-colors"
-          style={{ fontFamily: "'Calibri', 'sans-serif'" }}
-        >
-          <IoIosArrowRoundBack size={24} className="mr-2" />
-          Voltar para Produtos
-        </button>
+    <div className="min-h-screen bg-gray-50 py-4 md:py-8">
+      <div className="max-w-6xl mt-28 mx-auto px-3 sm:px-6 lg:px-8">
+      {/* Botão Voltar - Aligned left on all screens */}
+<div className="w-full">
+  <button 
+    onClick={() => navigate(-1)}
+    className="flex items-center text-black mb-4 hover:text-red-600 transition-colors text-sm"
+    style={{ fontFamily: "'Calibri', 'sans-serif'" }}
+  >
+    <IoIosArrowRoundBack size={20} className="mr-1" />
+    Voltar para Produtos
+  </button>
+</div>
 
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 p-4 sm:p-6">
             {/* Imagens do Produto */}
-            <div className="space-y-4">
+            <div className="space-y-3">
               {/* Imagem Principal */}
-              <div className="bg-gray-100 rounded-xl overflow-hidden h-auto">
+              <div className="bg-white rounded-lg overflow-hidden aspect-square flex items-center justify-center">
                 <img 
                   src={mainImage} 
                   alt={product.title}
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-contain p-4"
                 />
               </div>
 
               {/* Galeria de Imagens */}
               {imageGallery.length > 1 && (
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
                   {imageGallery.map((img, index) => (
                     <button
                       key={index}
                       onClick={() => setMainImage(img)}
-                      className={`aspect-square bg-gray-100 rounded-lg overflow-hidden border-2 ${
-                        mainImage === img ? 'border-red-600' : 'border-transparent'
+                      className={`aspect-square bg-gray-50 rounded-md overflow-hidden border ${
+                        mainImage === img ? 'border-red-600' : 'border-gray-200'
                       }`}
                     >
                       <img 
@@ -462,79 +431,79 @@ const ProductDetail = () => {
             </div>
 
             {/* Informações do Produto */}
-            <div className="space-y-6">
-              {/* Título e Avaliações - MESMA LINHA */}
-              <div className="flex items-center justify-between gap-4">
-                {/* Título com Calibri */}
+            <div className="space-y-4 text-center sm:text-left">
+              {/* Título e Avaliações */}
+              <div className="flex flex-col gap-2 items-center sm:items-start">
+                {/* Título */}
                 <h1 
-                  className="text-3xl font-bold text-black flex-1"
+                  className="text-xl sm:text-2xl lg:text-3xl font-bold text-black text-center sm:text-left"
                   style={{ fontFamily: "'Calibri', 'sans-serif'" }}
                 >
                   {product.title}
                 </h1>
 
-                {/* Sistema de Estrelas - TUDO NA MESMA LINHA COM CALIBRI */}
-                <div className="flex items-center space-x-3" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
+                {/* Sistema de Estrelas */}
+                <div className="flex items-center justify-center sm:justify-start flex-wrap gap-2" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
                   {/* Estrelas */}
                   <div className="flex items-center">
                     {renderStars(rating.average)}
                   </div>
                   
-                  {/* Número da avaliação e quantidade - MESMA LINHA COM CALIBRI */}
-                  <div className="flex items-center space-x-2">
-                    <span className="text-gray-800 font-bold text-lg">
+                  {/* Número da avaliação e quantidade */}
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-800 font-bold text-sm sm:text-base">
                       {rating.average.toFixed(1)}
                     </span>
-                    <span className="text-gray-400 text-lg">|</span>
-                    <span className="text-gray-500 text-sm">
+                    <span className="text-gray-400 text-sm">|</span>
+                    <span className="text-gray-500 text-xs sm:text-sm">
                       {rating.count} avaliações
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Preços COM CALIBRI */}
-              <div className="flex items-center space-x-4" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
-                <p className="text-3xl font-bold text-black">
+              {/* Preços - Centralizado em mobile */}
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
+                <p className="text-xl sm:text-2xl font-bold text-black">
                   ${product.price}
                 </p>
-                <p className="text-xl font-semibold text-gray-500 line-through">
+                <p className="text-base sm:text-lg font-semibold text-gray-500 line-through">
                   ${Math.floor(parseFloat(product.price) + parseFloat(product.price) * 0.4968 + 0.20)}.99
                 </p>
-                <span className="bg-red-100 text-red-600 px-2 py-1 rounded-md text-sm font-semibold">
+                <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded text-xs font-semibold">
                   -33%
                 </span>
               </div>
 
-              {/* Categoria COM CALIBRI */}
-              <div className="flex items-center space-x-4" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
-                <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm">
+              {/* Categoria e Stock - Centralizado em mobile */}
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
+                <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs">
                   {product.category}
                 </span>
-                <span className="text-green-600 font-semibold">
+                <span className="text-green-600 text-sm font-semibold">
                   {product.stock > 0 ? 'Em Stock' : 'Fora de Stock'}
                 </span>
               </div>
 
-              {/* Descrição COM CALIBRI */}
-              <p className="text-gray-700 text-lg leading-relaxed" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
+              {/* Descrição */}
+              <p className="text-gray-700 text-sm leading-relaxed text-center sm:text-left" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
                 {product.description}
               </p>
 
-              {/* Seleção de Tamanho - COM GEORGIA (mantido do original) */}
+              {/* Seleção de Tamanho */}
               <div>
                 <label 
-                  className="block text-lg font-semibold text-black mb-3"
+                  className="block text-base font-semibold text-black mb-2 text-center sm:text-left"
                   style={{ fontFamily: "'Georgia', 'Times New Roman', 'Palatino', serif" }}
                 >
                   Tamanho
                 </label>
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap justify-center sm:justify-start gap-2">
                   {product.size.map((size) => (
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
-                      className={`w-14 h-14 flex items-center justify-center border-2 rounded-lg font-bold text-lg transition-all duration-200 ${
+                      className={`w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center border rounded-md font-bold text-base transition-all duration-200 ${
                         selectedSize === size
                           ? 'bg-black text-white border-black'
                           : 'bg-white text-black border-gray-300 hover:border-black'
@@ -547,23 +516,23 @@ const ProductDetail = () => {
                 </div>
               </div>
 
-              {/* Seleção de Cor - COM GEORGIA (mantido do original) */}
+              {/* Seleção de Cor */}
               <div>
                 <label 
-                  className="block text-lg font-semibold text-black mb-3"
+                  className="block text-base font-semibold text-black mb-2 text-center sm:text-left"
                   style={{ fontFamily: "'Georgia', 'Times New Roman', 'Palatino', serif" }}
                 >
                   Cor
                 </label>
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap justify-center sm:justify-start gap-2">
                   {product.color.map((color, index) => (
                     <button
                       key={index}
                       onClick={() => setSelectedColor(color)}
-                      className={`w-12 h-12 rounded-full border-2 transition-all duration-200 ${
+                      className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border transition-all duration-200 ${
                         selectedColor === color
-                          ? 'border-black ring-2 ring-offset-2 ring-black'
-                          : 'border-gray-300 hover:scale-110'
+                          ? 'border-black ring-1 ring-offset-1 ring-black'
+                          : 'border-gray-300 hover:scale-105'
                       } ${
                         color === "#FFFFFF" ? 'border-gray-300' : ''
                       }`}
@@ -573,26 +542,26 @@ const ProductDetail = () => {
                   ))}
                 </div>
                 {selectedColor && (
-                  <p className="text-sm text-gray-600 mt-2" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
+                  <p className="text-xs text-gray-600 mt-1 text-center sm:text-left" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
                     Cor selecionada: {getColorName(selectedColor)}
                   </p>
                 )}
               </div>
 
-              {/* Seletor de Quantidade - COM GEORGIA (mantido do original) */}
+              {/* Seletor de Quantidade */}
               <div>
                 <label 
-                  className="block text-lg font-semibold text-black mb-3"
+                  className="block text-base font-semibold text-black mb-2 text-center sm:text-left"
                   style={{ fontFamily: "'Georgia', 'Times New Roman', 'Palatino', serif" }}
                 >
                   Quantidade
                 </label>
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center border-2 border-gray-300 rounded-lg">
+                <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-3">
+                  <div className="flex items-center border border-gray-300 rounded-md">
                     <button
                       onClick={decreaseQuantity}
                       disabled={quantity <= 1}
-                      className={`w-12 h-12 flex items-center justify-center text-xl font-bold transition-colors ${
+                      className={`w-8 h-8 flex items-center justify-center font-bold transition-colors ${
                         quantity <= 1 
                           ? 'text-gray-400 cursor-not-allowed' 
                           : 'hover:bg-gray-100 text-black'
@@ -607,13 +576,13 @@ const ProductDetail = () => {
                       max={product.stock}
                       value={quantity}
                       onChange={handleQuantityChange}
-                      className="w-12 h-12 flex items-center justify-center text-lg font-semibold text-center border-0 focus:outline-none focus:ring-0 text-black"
+                      className="w-8 h-8 flex items-center justify-center font-semibold text-center border-0 focus:outline-none focus:ring-0 text-black text-sm"
                       style={{ fontFamily: "'Calibri', 'sans-serif'" }}
                     />
                     <button
                       onClick={increaseQuantity}
                       disabled={quantity >= product.stock}
-                      className={`w-12 h-12 flex items-center justify-center text-xl font-bold transition-colors ${
+                      className={`w-8 h-8 flex items-center justify-center font-bold transition-colors ${
                         quantity >= product.stock
                           ? 'text-gray-400 cursor-not-allowed'
                           : 'hover:bg-gray-100 text-black'
@@ -623,23 +592,23 @@ const ProductDetail = () => {
                       +
                     </button>
                   </div>
-                  <span className="text-gray-600" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
+                  <span className="text-gray-600 text-sm text-center sm:text-left" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
                     {product.stock} disponíveis
                   </span>
                 </div>
                 {quantity >= product.stock && (
-                  <p className="text-red-500 text-sm mt-2" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
+                  <p className="text-red-500 text-xs mt-1 text-center sm:text-left" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
                     Quantidade máxima atingida
                   </p>
                 )}
               </div>
 
-              {/* Botões de Ação - COM GEORGIA (mantido do original) */}
-              <div className="flex space-x-4 pt-4">
+              {/* Botões de Ação */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-3">
                 <button
                   onClick={addToCart}
                   disabled={product.stock === 0 || addingToCart}
-                  className={`flex-1 py-4 px-6 rounded-lg font-semibold text-lg transition-colors flex items-center justify-center ${
+                  className={`flex-1 py-3 px-4 rounded-md font-semibold text-base transition-colors flex items-center justify-center ${
                     product.stock === 0 || addingToCart
                       ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
                       : 'bg-red-600 text-white hover:bg-red-700'
@@ -648,37 +617,38 @@ const ProductDetail = () => {
                 >
                   {addingToCart ? (
                     <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                       Adicionando...
                     </>
                   ) : (
                     <>
-                      <FiShoppingCart className="mr-3" size={25} />
-                      {product.stock === 0 ? 'Fora de Stock' : ''}
+                      <FiShoppingCart className="mr-2" size={18} />                      
                     </>
                   )}
                 </button>
-                <button
-                  onClick={() => setFavorite(!favorite)}
-                  className="w-14 h-14 flex items-center justify-center border-2 border-gray-300 rounded-lg hover:border-red-600 transition-colors"
-                >
-                  <FiHeart 
-                    size={24} 
-                    style={{ 
-                      stroke: favorite ? "red" : "black", 
-                      strokeWidth: 1.5, 
-                      fill: favorite ? "red" : "none" 
-                    }} 
-                  />
-                </button>
-                <button className="w-14 h-14 flex items-center justify-center border-2 border-gray-300 rounded-lg hover:border-red-600 transition-colors">
-                  <FiShare2 size={24} style={{ stroke: "black", strokeWidth: 1.5 }} />
-                </button>
+                <div className="flex justify-center sm:justify-start gap-2">
+                  <button
+                    onClick={() => setFavorite(!favorite)}
+                    className="flex-1 sm:w-10 h-10 flex items-center justify-center border border-gray-300 rounded-md hover:border-red-600 transition-colors"
+                  >
+                    <FiHeart 
+                      size={18} 
+                      style={{ 
+                        stroke: favorite ? "red" : "black", 
+                        strokeWidth: 1.5, 
+                        fill: favorite ? "red" : "none" 
+                      }} 
+                    />
+                  </button>
+                  <button className="flex-1 sm:w-10 h-10 flex items-center justify-center border border-gray-300 rounded-md hover:border-red-600 transition-colors">
+                    <FiShare2 size={18} style={{ stroke: "black", strokeWidth: 1.5 }} />
+                  </button>
+                </div>
               </div>
 
-              {/* Informações Adicionais COM CALIBRI */}
-              <div className="border-t border-gray-200 pt-6">
-                <div className="grid grid-cols-2 gap-4 text-sm text-gray-600" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
+              {/* Informações Adicionais */}
+              <div className="border-t border-gray-200 pt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-600 text-center sm:text-left" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
                   <div>
                     <span className="font-semibold">Categoria:</span> {product.category}
                   </div>
@@ -697,13 +667,13 @@ const ProductDetail = () => {
           </div>
 
           {/* Abas do Produto */}
-          <div className="border-t border-gray-200 mt-8">
-            <div className="flex border-b border-gray-200">
+          <div className="border-t border-gray-200 mt-4 sm:mt-6">
+            <div className="flex flex-wrap sm:flex-nowrap border-b border-gray-200 overflow-x-auto justify-center sm:justify-start">
               {['description', 'reviews', 'specifications', 'shipping'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`flex-1 py-4 px-6 text-lg font-semibold text-center capitalize transition-colors ${
+                  className={`flex-1 min-w-[120px] py-3 px-2 sm:px-4 text-sm font-semibold text-center capitalize transition-colors whitespace-nowrap ${
                     activeTab === tab
                       ? 'text-red-600 border-b-2 border-red-600'
                       : 'text-gray-600 hover:text-red-600'
@@ -717,61 +687,61 @@ const ProductDetail = () => {
               ))}
             </div>
 
-            <div className="p-8">
+            <div className="p-4 sm:p-6">
               {activeTab === 'description' && (
-                <div className="prose max-w-none">
-                  <h3 className="text-2xl font-bold text-black mb-4" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
+                <div className="text-center sm:text-left">
+                  <h3 className="text-lg font-bold text-black mb-3" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
                     Descrição do Produto
                   </h3>
-                  <p className="text-gray-700 leading-relaxed" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
+                  <p className="text-gray-700 text-sm leading-relaxed" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
                     {product.description}
                   </p>
                 </div>
               )}
 
               {activeTab === 'reviews' && (
-                <div className="space-y-6">
-                  <h3 className="text-2xl font-bold text-black mb-4" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold text-black mb-3 text-center sm:text-left" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
                     Avaliações dos Clientes
                   </h3>
                   
-                  {/* Resumo das avaliações COM CALIBRI */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="bg-gray-50 p-6 rounded-xl">
-                      <div className="flex flex-col items-center mb-4" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
-                        <div className="text-5xl font-bold text-black mb-2">
+                  {/* Resumo das avaliações */}
+                  <div className="flex flex-col md:flex-row gap-4">
+                    <div className="bg-gray-50 p-4 rounded-lg flex-1">
+                      <div className="flex flex-col items-center" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
+                        <div className="text-3xl font-bold text-black mb-1">
                           {rating.average.toFixed(1)}
                         </div>
-                        <div className="flex mb-2">
+                        <div className="flex mb-1">
                           {renderStars(rating.average)}
                         </div>
-                        <p className="text-gray-600">
+                        <p className="text-gray-600 text-sm">
                           {rating.count} avaliações
                         </p>
                       </div>
                     </div>
                     
-                    {/* Distribuição de estrelas COM CALIBRI */}
-                    <div className="space-y-3" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
+                    {/* Distribuição de estrelas */}
+                    <div className="space-y-2 flex-1" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
                       {[5, 4, 3, 2, 1].map((stars) => {
                         const count = rating.distribution[stars - 1];
                         const percentage = calculatePercentage(count, rating.count);
                         
                         return (
-                          <div key={stars} className="flex items-center">
-                            <div className="w-20 flex items-center">
-                              <span className="text-gray-700 mr-2">{stars}</span>
-                              <FaStar className="text-yellow-500" />
+                          <div key={stars} className="flex items-center text-xs">
+                            <div className="w-8 flex items-center">
+                              <span className="text-gray-700 mr-1 min-w-[16px]">{stars}</span>
+                              <FaStar className="text-yellow-500 text-xs" />
                             </div>
-                            <div className="flex-1 mx-4">
-                              <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div className="flex-1 mx-2">
+                              <div className="w-full bg-gray-200 rounded-full h-1.5">
                                 <div 
-                                  className="bg-yellow-500 h-2 rounded-full"
+                                  className="bg-yellow-500 h-1.5 rounded-full"
                                   style={{ width: `${percentage}%` }}
                                 ></div>
                               </div>
                             </div>
-                            <div className="w-12 text-right text-gray-700">
+                            <div className="w-10 text-right text-gray-700">
                               {percentage}%
                             </div>
                           </div>
@@ -780,60 +750,57 @@ const ProductDetail = () => {
                     </div>
                   </div>
                   
-                  {/* Exemplo de avaliações (simuladas) COM CALIBRI */}
-                  <div className="mt-8">
-                    <h4 className="text-xl font-semibold text-black mb-4" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
+                  {/* Exemplo de avaliações */}
+                  <div className="mt-6">
+                    <h4 className="text-base font-semibold text-black mb-3 text-center sm:text-left" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
                       Avaliações recentes
                     </h4>
-                    <div className="space-y-6" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
-                      {/* Avaliação 1 */}
-                      <div className="border-b border-gray-200 pb-4">
-                        <div className="flex items-center mb-2">
-                          <div className="flex mr-2">
+                    <div className="space-y-4" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
+                      <div className="border-b border-gray-200 pb-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 mb-1">
+                          <div className="flex justify-center sm:justify-start">
                             {renderStars(5)}
                           </div>
-                          <span className="font-semibold">Excelente produto!</span>
+                          <span className="font-semibold text-sm text-center sm:text-left">Excelente produto!</span>
                         </div>
-                        <p className="text-gray-700 mb-2">
+                        <p className="text-gray-700 text-sm mb-1 text-center sm:text-left">
                           "Qualidade excepcional e confortável. Superou minhas expectativas!"
                         </p>
-                        <div className="flex items-center justify-between text-sm text-gray-500">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-gray-500 gap-1">
                           <span>João Silva</span>
-                          <span>15 de Janeiro, 2024</span>
+                          <span>15 Jan, 2024</span>
                         </div>
                       </div>
                       
-                      {/* Avaliação 2 */}
-                      <div className="border-b border-gray-200 pb-4">
-                        <div className="flex items-center mb-2">
-                          <div className="flex mr-2">
+                      <div className="border-b border-gray-200 pb-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 mb-1">
+                          <div className="flex justify-center sm:justify-start">
                             {renderStars(4)}
                           </div>
-                          <span className="font-semibold">Muito bom</span>
+                          <span className="font-semibold text-sm text-center sm:text-left">Muito bom</span>
                         </div>
-                        <p className="text-gray-700 mb-2">
+                        <p className="text-gray-700 text-sm mb-1 text-center sm:text-left">
                           "Gostei muito, mas poderia ter mais cores disponíveis."
                         </p>
-                        <div className="flex items-center justify-between text-sm text-gray-500">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-gray-500 gap-1">
                           <span>Maria Santos</span>
-                          <span>10 de Janeiro, 2024</span>
+                          <span>10 Jan, 2024</span>
                         </div>
                       </div>
                       
-                      {/* Avaliação 3 */}
-                      <div className="border-b border-gray-200 pb-4">
-                        <div className="flex items-center mb-2">
-                          <div className="flex mr-2">
+                      <div className="pb-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 mb-1">
+                          <div className="flex justify-center sm:justify-start">
                             {renderStars(5)}
                           </div>
-                          <span className="font-semibold">Perfeito!</span>
+                          <span className="font-semibold text-sm text-center sm:text-left">Perfeito!</span>
                         </div>
-                        <p className="text-gray-700 mb-2">
+                        <p className="text-gray-700 text-sm mb-1 text-center sm:text-left">
                           "Exatamente como na foto. Entrega rápida e produto de alta qualidade."
                         </p>
-                        <div className="flex items-center justify-between text-sm text-gray-500">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-gray-500 gap-1">
                           <span>Carlos Oliveira</span>
-                          <span>5 de Janeiro, 2024</span>
+                          <span>5 Jan, 2024</span>
                         </div>
                       </div>
                     </div>
@@ -842,25 +809,26 @@ const ProductDetail = () => {
               )}
 
               {activeTab === 'specifications' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
-                  <div>
-                    <h4 className="text-lg font-semibold text-black mb-3">Detalhes do Produto</h4>
-                    <dl className="space-y-2">
-                      <div className="flex justify-between border-b border-gray-100 py-2">
-                        <dt className="text-gray-600">Material</dt>
-                        <dd className="text-black">{product.material}</dd>
+                <div className="space-y-4" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
+                  <h3 className="text-lg font-bold text-black mb-3 text-center sm:text-left">Especificações</h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="text-base font-semibold text-black mb-2 text-center sm:text-left">Detalhes do Produto</h4>
+                    <dl className="space-y-2 text-sm">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b border-gray-200 py-2">
+                        <dt className="text-gray-600 mb-1 sm:mb-0 text-center sm:text-left">Material</dt>
+                        <dd className="text-black font-medium text-center sm:text-left">{product.material}</dd>
                       </div>
-                      <div className="flex justify-between border-b border-gray-100 py-2">
-                        <dt className="text-gray-600">Instruções de Cuidado</dt>
-                        <dd className="text-black">{product.care}</dd>
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b border-gray-200 py-2">
+                        <dt className="text-gray-600 mb-1 sm:mb-0 text-center sm:text-left">Instruções de Cuidado</dt>
+                        <dd className="text-black font-medium text-center sm:text-left">{product.care}</dd>
                       </div>
-                      <div className="flex justify-between border-b border-gray-100 py-2">
-                        <dt className="text-gray-600">Origem</dt>
-                        <dd className="text-black">{product.origin}</dd>
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b border-gray-200 py-2">
+                        <dt className="text-gray-600 mb-1 sm:mb-0 text-center sm:text-left">Origem</dt>
+                        <dd className="text-black font-medium text-center sm:text-left">{product.origin}</dd>
                       </div>
-                      <div className="flex justify-between border-b border-gray-100 py-2">
-                        <dt className="text-gray-600">SKU</dt>
-                        <dd className="text-black">{product.sku}</dd>
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2">
+                        <dt className="text-gray-600 mb-1 sm:mb-0 text-center sm:text-left">SKU</dt>
+                        <dd className="text-black font-medium text-center sm:text-left">{product.sku}</dd>
                       </div>
                     </dl>
                   </div>
@@ -868,21 +836,21 @@ const ProductDetail = () => {
               )}
 
               {activeTab === 'shipping' && (
-                <div className="space-y-4" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
-                  <h3 className="text-2xl font-bold text-black mb-4">Envio & Devoluções</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <h4 className="text-lg font-semibold text-black mb-3">Informações de Envio</h4>
-                      <ul className="space-y-2 text-gray-700">
+                <div className="space-y-3" style={{ fontFamily: "'Calibri', 'sans-serif'" }}>
+                  <h3 className="text-lg font-bold text-black mb-3 text-center sm:text-left">Envio & Devoluções</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h4 className="text-base font-semibold text-black mb-2 text-center sm:text-left">Informações de Envio</h4>
+                      <ul className="space-y-1 text-sm text-gray-700 text-center sm:text-left">
                         <li>• Envio gratuito mundial</li>
                         <li>• Entrega em 2-5 dias úteis</li>
                         <li>• Envio expresso disponível</li>
                         <li>• Acompanhe seu pedido online</li>
                       </ul>
                     </div>
-                    <div>
-                      <h4 className="text-lg font-semibold text-black mb-3">Política de Devolução</h4>
-                      <ul className="space-y-2 text-gray-700">
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h4 className="text-base font-semibold text-black mb-2 text-center sm:text-left">Política de Devolução</h4>
+                      <ul className="space-y-1 text-sm text-gray-700 text-center sm:text-left">
                         <li>• Política de devolução de 30 dias</li>
                         <li>• Devoluções gratuitas</li>
                         <li>• Processo de devolução fácil</li>

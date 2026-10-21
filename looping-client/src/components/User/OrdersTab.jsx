@@ -72,7 +72,7 @@ const getColorName = (color) => {
 const CsrfTokenManager = {
   getCsrfToken: async () => {
     try {
-      const response = await fetch('http://localhost:8000/sanctum/csrf-cookie', {
+      const response = await fetch('/sanctum/csrf-cookie', {
         method: 'GET',
         credentials: 'include',
       });
@@ -101,7 +101,7 @@ const OrdersAPI = {
     try {
       const csrfToken = await CsrfTokenManager.getCsrfToken();
       
-      const endpoint = 'http://localhost:8000/api/infos';
+      const endpoint = '/api/infos';
       
       console.log(`🔄 Fetching orders from: ${endpoint}`);
       const response = await fetch(endpoint, {
@@ -139,7 +139,7 @@ const OrdersAPI = {
     try {
       const csrfToken = await CsrfTokenManager.getCsrfToken();
       
-      const response = await fetch(`http://localhost:8000/api/infos/${orderId}`, {
+      const response = await fetch(`/api/infos/${orderId}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',

@@ -120,7 +120,7 @@ const SearchBar = forwardRef(({
             onChange={handleInputChange}
             onFocus={onFocus}
             onBlur={onBlur}
-            className="block w-full pl-10 pr-10 py-4 h-11 border border-black rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-black focus:border-black sm:text-sm"
+            className="block w-full pl-10 pr-10 py-4 h-11 border border-black rounded-md leading-5 bg-white text-gray-800 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-black focus:border-black sm:text-sm"
             placeholder={placeholder}
           />
           {query && (

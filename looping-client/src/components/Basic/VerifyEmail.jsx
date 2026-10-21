@@ -9,7 +9,7 @@ export default function VerifyEmail() {
     const verifyEmail = async () => {
       try {
         const res = await fetch(
-          `http://localhost:8000/email/verify/${id}/${hash}`,
+          `/email/verify/${id}/${hash}`,
           {
             method: "GET",
             credentials: "include", // send cookies if using Sanctum

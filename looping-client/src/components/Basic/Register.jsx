@@ -69,7 +69,7 @@ export default function Register() {
 
     try {
       // 1. Get CSRF token
-      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+      await fetch("/sanctum/csrf-cookie", {
         method: "GET",
         credentials: "include",
       });
@@ -79,7 +79,7 @@ export default function Register() {
       if (!csrfToken) throw new Error("CSRF token not found");
 
       // 2. Send resend request to backend
-      const res = await fetch("http://localhost:8000/api/email/verification-resend", {
+      const res = await fetch("/api/email/verification-resend", {
         method: "POST",
         credentials: "include",
         headers: {
@@ -125,7 +125,7 @@ export default function Register() {
 
     try {
       // 1. Get CSRF token
-      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+      await fetch("/sanctum/csrf-cookie", {
         method: "GET",
         credentials: "include",
       });
@@ -135,7 +135,7 @@ export default function Register() {
       if (!csrfToken) throw new Error("CSRF token not found");
 
       // 2. Send resend request to backend
-      const res = await fetch("http://localhost:8000/api/email/verification-resend", {
+      const res = await fetch("/api/email/verification-resend", {
         method: "POST",
         credentials: "include",
         headers: {
@@ -183,7 +183,7 @@ export default function Register() {
 
     try {
       // 1️⃣ Get CSRF cookie from Sanctum
-      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+      await fetch("/sanctum/csrf-cookie", {
         method: "GET",
         credentials: "include",
       });
@@ -192,7 +192,7 @@ export default function Register() {
       const xsrfToken = getCookie("XSRF-TOKEN");
 
       // 3️⃣ POST to /register with X-XSRF-TOKEN header
-      const res = await fetch("http://localhost:8000/register", {
+      const res = await fetch("/register", {
         method: "POST",
         credentials: "include",
         headers: {
@@ -257,7 +257,7 @@ export default function Register() {
 
       // 1️⃣ Get CSRF cookie (required by Sanctum)
       console.log("Getting CSRF cookie...");
-      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+      await fetch("/sanctum/csrf-cookie", {
         method: "GET",
         credentials: "include", // include cookies
       });
@@ -272,7 +272,7 @@ export default function Register() {
 
       // 3️⃣ Send Google token to backend
       console.log("Sending Google token to backend...");
-      const res = await fetch("http://localhost:8000/google-auth", {
+      const res = await fetch("/google-auth", {
         method: "POST",
         credentials: "include", // keep Sanctum cookies
         headers: {

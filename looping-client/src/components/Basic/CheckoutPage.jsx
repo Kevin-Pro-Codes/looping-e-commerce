@@ -9,8 +9,8 @@ const CsrfTokenManager = {
   getCsrfToken: async () => {
     try {
       console.log('🔄 Fetching CSRF token...');
-      
-      const response = await fetch('http://localhost:8000/sanctum/csrf-cookie', {
+
+      const response = await fetch('/sanctum/csrf-cookie', {
         method: 'GET',
         credentials: 'include',
       });
@@ -18,17 +18,17 @@ const CsrfTokenManager = {
       if (response.ok) {
         const cookies = document.cookie;
         const tokenMatch = cookies.match(/XSRF-TOKEN=([^;]+)/);
-        
+
         if (tokenMatch && tokenMatch[1]) {
           const token = decodeURIComponent(tokenMatch[1]);
           console.log('✅ CSRF token obtained');
           return token;
         }
       }
-      
+
       const metaToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
       return metaToken || 'fallback-csrf-token';
-      
+
     } catch (error) {
       console.error('❌ Error getting CSRF token:', error);
       return 'fallback-csrf-token';
@@ -39,10 +39,10 @@ const CsrfTokenManager = {
 // ✅ Color Utility Functions
 const getEnglishColorName = (colorValue) => {
   if (!colorValue || colorValue === 'undefined') return 'Não especificada';
-  
+
   // Convert to lowercase and trim
   const color = colorValue.toString().toLowerCase().trim();
-  
+
   // Map of color values to Portuguese names
   const colorMap = {
     // Hex codes
@@ -73,7 +73,7 @@ const getEnglishColorName = (colorValue) => {
     '#da70d6': 'Orquídea',
     '#f0e68c': 'Cáqui',
     '#d2691e': 'Chocolate',
-    
+
     // Portuguese color names
     'preto': 'Preto',
     'branco': 'Branco',
@@ -93,7 +93,7 @@ const getEnglishColorName = (colorValue) => {
     'lilás': 'Lilás',
     'turquesa': 'Turquesa',
     'coral': 'Coral',
-    
+
     // English color names (translate to Portuguese)
     'black': 'Preto',
     'white': 'Branco',
@@ -125,30 +125,30 @@ const getEnglishColorName = (colorValue) => {
     'turquoise': 'Turquesa',
     'coral': 'Coral',
   };
-  
+
   // Check for exact match first
   if (colorMap[color]) {
     return colorMap[color];
   }
-  
+
   // Remove # for hex code matching
   const cleanColor = color.replace('#', '');
   if (colorMap[`#${cleanColor}`]) {
     return colorMap[`#${cleanColor}`];
   }
-  
+
   // Check for partial matches
   for (const [key, value] of Object.entries(colorMap)) {
     if (color.includes(key) || key.includes(color)) {
       return value;
     }
   }
-  
+
   // If it's a valid hex code, keep it as hex
   if (/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(colorValue)) {
     return colorValue.toUpperCase();
   }
-  
+
   // Capitalize first letter for unknown colors
   return color.charAt(0).toUpperCase() + color.slice(1);
 };
@@ -184,7 +184,7 @@ const getColorForSwatch = (colorName) => {
     'Turquesa': '#40E0D0',
     'Coral': '#FF7F50',
   };
-  
+
   return colorMap[colorName] || '#ccc';
 };
 
@@ -193,8 +193,8 @@ const OrderAPI = {
   createOrder: async (orderData) => {
     try {
       const csrfToken = await CsrfTokenManager.getCsrfToken();
-      
-      const response = await fetch('http://localhost:8000/api/infos', {
+
+      const response = await fetch('/api/infos', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -210,11 +210,11 @@ const OrderAPI = {
       }
 
       const result = await response.json();
-      
+
       if (!result.success) {
         throw new Error(result.message || 'Order creation failed');
       }
-      
+
       return result;
     } catch (error) {
       console.error('❌ Order API Error:', error);
@@ -225,8 +225,8 @@ const OrderAPI = {
   updateOrderStatus: async (orderId, status, paymentStatus) => {
     try {
       const csrfToken = await CsrfTokenManager.getCsrfToken();
-      
-      const response = await fetch(`http://localhost:8000/api/infos/${orderId}/status`, {
+
+      const response = await fetch(`/api/infos/${orderId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -245,11 +245,11 @@ const OrderAPI = {
       }
 
       const result = await response.json();
-      
+
       if (!result.success) {
         throw new Error(result.message || 'Status update failed');
       }
-      
+
       return result;
     } catch (error) {
       console.error('❌ Order Status Update Error:', error);
@@ -270,15 +270,13 @@ const StepIndicator = ({ currentStep, goToStep }) => (
       <React.Fragment key={step.number}>
         <button
           onClick={() => goToStep(step.number)}
-          className={`flex flex-col items-center group ${
-            step.number <= currentStep ? 'text-green-600' : 'text-gray-400'
-          }`}
+          className={`flex flex-col items-center group ${step.number <= currentStep ? 'text-green-600' : 'text-gray-400'
+            }`}
         >
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all ${
-            step.number <= currentStep 
-              ? 'bg-green-600 border-green-600 text-white' 
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all ${step.number <= currentStep
+              ? 'bg-green-600 border-green-600 text-white'
               : 'border-gray-300 group-hover:border-gray-400'
-          }`}>
+            }`}>
             {step.number < currentStep ? (
               <step.icon size={18} />
             ) : step.number === currentStep ? (
@@ -295,9 +293,8 @@ const StepIndicator = ({ currentStep, goToStep }) => (
           )}
         </button>
         {index < 3 && (
-          <div className={`w-16 h-1 mx-2 ${
-            step.number < currentStep ? 'bg-green-600' : 'bg-gray-300'
-          }`} />
+          <div className={`w-16 h-1 mx-2 ${step.number < currentStep ? 'bg-green-600' : 'bg-gray-300'
+            }`} />
         )}
       </React.Fragment>
     ))}
@@ -305,12 +302,12 @@ const StepIndicator = ({ currentStep, goToStep }) => (
 );
 
 // ✅ CustomerStep Component
-const CustomerStep = ({ 
-  customerData, 
-  setCustomerData, 
-  isProfileLoaded, 
-  fetchUserProfile, 
-  nextStep 
+const CustomerStep = ({
+  customerData,
+  setCustomerData,
+  isProfileLoaded,
+  fetchUserProfile,
+  nextStep
 }) => {
   return (
     <div className="bg-white p-6 rounded-lg shadow-md" style={{ fontFamily: 'Calibri, sans-serif' }}>
@@ -318,7 +315,7 @@ const CustomerStep = ({
         <h2 className="text-xl font-semibold">Dados Pessoais</h2>
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-500">Passo 1 de 4</span>
-          <button 
+          <button
             onClick={fetchUserProfile}
             className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200 transition-colors flex items-center gap-1"
           >
@@ -327,7 +324,7 @@ const CustomerStep = ({
           </button>
         </div>
       </div>
-      
+
       {!isProfileLoaded ? (
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
@@ -379,12 +376,12 @@ const CustomerStep = ({
               <input
                 type="text"
                 value={customerData.name}
-                onChange={(e) => setCustomerData(prev => ({...prev, name: e.target.value}))}
+                onChange={(e) => setCustomerData(prev => ({ ...prev, name: e.target.value }))}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
                 placeholder="Seu nome completo"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 E-mail *
@@ -392,12 +389,12 @@ const CustomerStep = ({
               <input
                 type="email"
                 value={customerData.email}
-                onChange={(e) => setCustomerData(prev => ({...prev, email: e.target.value}))}
+                onChange={(e) => setCustomerData(prev => ({ ...prev, email: e.target.value }))}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
                 placeholder="seu@email.com"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Telefone *
@@ -405,7 +402,7 @@ const CustomerStep = ({
               <input
                 type="tel"
                 value={customerData.phone}
-                onChange={(e) => setCustomerData(prev => ({...prev, phone: e.target.value}))}
+                onChange={(e) => setCustomerData(prev => ({ ...prev, phone: e.target.value }))}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
                 placeholder="(11) 99999-9999"
               />
@@ -418,13 +415,13 @@ const CustomerStep = ({
               <input
                 type="text"
                 value={customerData.cpf}
-                onChange={(e) => setCustomerData(prev => ({...prev, cpf: e.target.value}))}
+                onChange={(e) => setCustomerData(prev => ({ ...prev, cpf: e.target.value }))}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
                 placeholder="000.000.000-00"
               />
             </div>
           </div>
-          
+
           <div className="flex justify-end mt-6">
             <button
               onClick={nextStep}
@@ -442,12 +439,12 @@ const CustomerStep = ({
 };
 
 // ✅ CEP Input Component
-const CepInput = ({ 
-  cep, 
-  onCepChange, 
-  loading, 
+const CepInput = ({
+  cep,
+  onCepChange,
+  loading,
   shippingData,
-  onAutoFillAddress 
+  onAutoFillAddress
 }) => {
   const [isValidCep, setIsValidCep] = useState(false);
   const [showError, setShowError] = useState(false);
@@ -455,16 +452,16 @@ const CepInput = ({
   const handleCepChange = (e) => {
     const value = e.target.value.replace(/\D/g, '');
     let formattedCep = value;
-    
+
     if (value.length > 5) {
       formattedCep = value.substring(0, 5) + '-' + value.substring(5, 8);
     }
-    
+
     onCepChange(formattedCep);
-    
+
     const hasValidLength = value.length === 8;
     setIsValidCep(hasValidLength);
-    
+
     if (value.length > 0 && !hasValidLength && value.length < 8) {
       setShowError(false);
     } else {
@@ -475,9 +472,9 @@ const CepInput = ({
   const handleCepBlur = () => {
     const cleanCep = cep.replace(/\D/g, '');
     const hasValidLength = cleanCep.length === 8;
-    
+
     setShowError(cleanCep.length > 0 && !hasValidLength);
-    
+
     if (hasValidLength) {
       onAutoFillAddress(cep);
     }
@@ -494,7 +491,7 @@ const CepInput = ({
         <FiMapPin className="text-blue-600" size={20} />
         <h3 className="text-lg font-semibold text-gray-800">Calcular Frete</h3>
       </div>
-      
+
       <div className="flex gap-3">
         <div className="flex-1">
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -516,11 +513,11 @@ const CepInput = ({
               )}
             </div>
           </div>
-          
+
           {showError && (
             <p className="text-red-500 text-xs mt-1">CEP deve ter 8 dígitos</p>
           )}
-          
+
           {cep && cep.replace(/\D/g, '').length > 0 && cep.replace(/\D/g, '').length < 8 && !showError && (
             <p className="text-gray-500 text-xs mt-1">
               Digite mais {getMissingDigits()} dígito{getMissingDigits() !== 1 ? 's' : ''}
@@ -549,18 +546,18 @@ const CepInput = ({
 };
 
 // ✅ ShippingStep Component
-const ShippingStep = ({ 
-  shippingData, 
-  setShippingData, 
-  userAddresses, 
-  selectedAddressId, 
-  handleAddressSelect, 
-  fetchUserAddresses, 
+const ShippingStep = ({
+  shippingData,
+  setShippingData,
+  userAddresses,
+  selectedAddressId,
+  handleAddressSelect,
+  fetchUserAddresses,
   selectedShipping,
   onShippingSelect,
   cartItems,
-  prevStep, 
-  nextStep 
+  prevStep,
+  nextStep
 }) => {
   const [cepLoading, setCepLoading] = useState(false);
 
@@ -572,7 +569,7 @@ const ShippingStep = ({
     try {
       const response = await fetch(`https://viacep.com.br/ws/${cleanCEP}/json/`);
       const data = await response.json();
-      
+
       if (!data.erro) {
         setShippingData(prev => ({
           ...prev,
@@ -627,8 +624,8 @@ const ShippingStep = ({
     }
   ];
 
-  const canProceed = shippingData.cep && shippingData.street && shippingData.number && 
-                   shippingData.city && shippingData.state && selectedShipping;
+  const canProceed = shippingData.cep && shippingData.street && shippingData.number &&
+    shippingData.city && shippingData.state && selectedShipping;
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md" style={{ fontFamily: 'Calibri, sans-serif' }}>
@@ -636,7 +633,7 @@ const ShippingStep = ({
         <h2 className="text-xl font-semibold">Endereço de Entrega</h2>
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-500">Passo 2 de 4</span>
-          <button 
+          <button
             onClick={fetchUserAddresses}
             className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200 transition-colors flex items-center gap-1"
           >
@@ -645,7 +642,7 @@ const ShippingStep = ({
           </button>
         </div>
       </div>
-      
+
       <CepInput
         cep={shippingData.cep}
         onCepChange={handleCepChange}
@@ -653,7 +650,7 @@ const ShippingStep = ({
         shippingData={shippingData}
         onAutoFillAddress={fetchAddressByCEP}
       />
-      
+
       {userAddresses.length > 0 && selectedAddressId && (
         <div className="mb-6">
           <h3 className="text-lg font-medium text-gray-900 mb-3">Endereços Carregados</h3>
@@ -665,7 +662,7 @@ const ShippingStep = ({
                     <span className="font-medium text-gray-700 w-20">Rua:</span>
                     <span className="text-green-900 font-semibold -ml-11">{shippingData.street}</span>
                   </div>
-                  
+
                   <div className="flex items-center">
                     <span className="font-medium text-gray-700 w-20">Número:</span>
                     <span className="text-green-900 font-semibold -ml-4">{shippingData.number}</span>
@@ -723,7 +720,7 @@ const ShippingStep = ({
           <input
             type="text"
             value={shippingData.street}
-            onChange={(e) => setShippingData(prev => ({...prev, street: e.target.value}))}
+            onChange={(e) => setShippingData(prev => ({ ...prev, street: e.target.value }))}
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
             placeholder="Nome da Rua"
           />
@@ -736,7 +733,7 @@ const ShippingStep = ({
           <input
             type="text"
             value={shippingData.number}
-            onChange={(e) => setShippingData(prev => ({...prev, number: e.target.value}))}
+            onChange={(e) => setShippingData(prev => ({ ...prev, number: e.target.value }))}
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
             placeholder="123"
           />
@@ -749,7 +746,7 @@ const ShippingStep = ({
           <input
             type="text"
             value={shippingData.complement}
-            onChange={(e) => setShippingData(prev => ({...prev, complement: e.target.value}))}
+            onChange={(e) => setShippingData(prev => ({ ...prev, complement: e.target.value }))}
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
             placeholder="Apartamento, bloco, etc."
           />
@@ -762,7 +759,7 @@ const ShippingStep = ({
           <input
             type="text"
             value={shippingData.hood}
-            onChange={(e) => setShippingData(prev => ({...prev, hood: e.target.value}))}
+            onChange={(e) => setShippingData(prev => ({ ...prev, hood: e.target.value }))}
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
             placeholder="Bairro"
           />
@@ -775,7 +772,7 @@ const ShippingStep = ({
           <input
             type="text"
             value={shippingData.city}
-            onChange={(e) => setShippingData(prev => ({...prev, city: e.target.value}))}
+            onChange={(e) => setShippingData(prev => ({ ...prev, city: e.target.value }))}
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
             placeholder="Cidade"
           />
@@ -787,7 +784,7 @@ const ShippingStep = ({
           </label>
           <select
             value={shippingData.state}
-            onChange={(e) => setShippingData(prev => ({...prev, state: e.target.value}))}
+            onChange={(e) => setShippingData(prev => ({ ...prev, state: e.target.value }))}
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
           >
             <option value="">Selecione</option>
@@ -825,30 +822,28 @@ const ShippingStep = ({
       {/* Shipping Options */}
       <div className="mt-6">
         <h3 className="text-lg font-semibold text-black mb-4">Opções de Entrega</h3>
-        
+
         <div className="space-y-3">
           {shippingOptions.map((shipping) => (
             <div
               key={shipping.id}
-              className={`border-2 rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
-                selectedShipping?.id === shipping.id 
-                  ? 'border-blue-500 bg-blue-50 shadow-sm' 
+              className={`border-2 rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${selectedShipping?.id === shipping.id
+                  ? 'border-blue-500 bg-blue-50 shadow-sm'
                   : 'border-gray-200 hover:border-gray-300'
-              }`}
+                }`}
               onClick={() => onShippingSelect(shipping)}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-start space-x-3 flex-1">
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mt-1 flex-shrink-0 ${
-                    selectedShipping?.id === shipping.id 
-                      ? 'border-blue-500 bg-blue-500' 
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mt-1 flex-shrink-0 ${selectedShipping?.id === shipping.id
+                      ? 'border-blue-500 bg-blue-500'
                       : 'border-gray-300'
-                  }`}>
+                    }`}>
                     {selectedShipping?.id === shipping.id && (
                       <FiCheck size={12} className="text-white" />
                     )}
                   </div>
-                  
+
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2 mb-1">
                       <span className="font-semibold text-black">{shipping.name}</span>
@@ -856,7 +851,7 @@ const ShippingStep = ({
                         {shipping.company}
                       </span>
                     </div>
-                    
+
                     <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
                       <div className="flex items-center space-x-1">
                         <FiCalendar size={14} />
@@ -868,7 +863,7 @@ const ShippingStep = ({
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="text-right pl-4">
                   <div className="font-bold text-lg text-black">
                     R$ {shipping.price.toFixed(2)}
@@ -889,7 +884,7 @@ const ShippingStep = ({
           ))}
         </div>
       </div>
-      
+
       <div className="flex justify-between mt-6">
         <button
           onClick={prevStep}
@@ -901,11 +896,10 @@ const ShippingStep = ({
         <button
           onClick={nextStep}
           disabled={!canProceed}
-          className={`py-3 px-8 rounded-lg font-semibold transition-colors flex items-center ${
-            canProceed 
-              ? 'bg-green-600 hover:bg-green-700 text-white' 
+          className={`py-3 px-8 rounded-lg font-semibold transition-colors flex items-center ${canProceed
+              ? 'bg-green-600 hover:bg-green-700 text-white'
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-          }`}
+            }`}
         >
           {selectedShipping ? (
             <>
@@ -924,31 +918,29 @@ const ShippingStep = ({
 };
 
 // ✅ PaymentStep Component
-const PaymentStep = ({ 
-  paymentMethod, 
-  setPaymentMethod, 
-  cardData, 
-  setCardData, 
-  calculateTotal, 
-  prevStep, 
-  processCheckout, 
-  loading 
+const PaymentStep = ({
+  paymentMethod,
+  setPaymentMethod,
+  cardData,
+  setCardData,
+  calculateTotal,
+  prevStep,
+  processCheckout,
+  loading
 }) => (
   <div className="bg-white p-6 rounded-lg shadow-md" style={{ fontFamily: 'Calibri, sans-serif' }}>
     <div className="flex items-center justify-between mb-4">
       <h2 className="text-xl font-semibold text-black">Forma de Pagamento</h2>
       <span className="text-sm text-gray-500">Passo 3 de 4</span>
     </div>
-    
+
     <div className="space-y-4">
-      <div className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-        paymentMethod === 'pix' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
-      }`} onClick={() => setPaymentMethod('pix')}>
+      <div className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${paymentMethod === 'pix' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
+        }`} onClick={() => setPaymentMethod('pix')}>
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-              paymentMethod === 'pix' ? 'border-green-500 bg-green-500' : 'border-gray-300'
-            }`}>
+            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'pix' ? 'border-green-500 bg-green-500' : 'border-gray-300'
+              }`}>
               {paymentMethod === 'pix' && <FiCheck size={14} className="text-white" />}
             </div>
             <SiPix size={24} className="text-green-600" />
@@ -965,13 +957,11 @@ const PaymentStep = ({
         </div>
       </div>
 
-      <div className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-        paymentMethod === 'boleto' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
-      }`} onClick={() => setPaymentMethod('boleto')}>
+      <div className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${paymentMethod === 'boleto' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
+        }`} onClick={() => setPaymentMethod('boleto')}>
         <div className="flex items-center space-x-3">
-          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-            paymentMethod === 'boleto' ? 'border-green-500 bg-green-500' : 'border-gray-300'
-          }`}>
+          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'boleto' ? 'border-green-500 bg-green-500' : 'border-gray-300'
+            }`}>
             {paymentMethod === 'boleto' && <FiCheck size={14} className="text-white" />}
           </div>
           <FiFileText size={20} className="text-gray-600" />
@@ -982,13 +972,11 @@ const PaymentStep = ({
         </div>
       </div>
 
-      <div className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-        paymentMethod === 'credit' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
-      }`} onClick={() => setPaymentMethod('credit')}>
+      <div className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${paymentMethod === 'credit' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
+        }`} onClick={() => setPaymentMethod('credit')}>
         <div className="flex items-center space-x-3">
-          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-            paymentMethod === 'credit' ? 'border-green-500 bg-green-500' : 'border-gray-300'
-          }`}>
+          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'credit' ? 'border-green-500 bg-green-500' : 'border-gray-300'
+            }`}>
             {paymentMethod === 'credit' && <FiCheck size={14} className="text-white" />}
           </div>
           <FiCreditCard size={20} className="text-gray-600" />
@@ -999,13 +987,11 @@ const PaymentStep = ({
         </div>
       </div>
 
-      <div className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-        paymentMethod === 'debit' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
-      }`} onClick={() => setPaymentMethod('debit')}>
+      <div className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${paymentMethod === 'debit' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
+        }`} onClick={() => setPaymentMethod('debit')}>
         <div className="flex items-center space-x-3">
-          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-            paymentMethod === 'debit' ? 'border-green-500 bg-green-500' : 'border-gray-300'
-          }`}>
+          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'debit' ? 'border-green-500 bg-green-500' : 'border-gray-300'
+            }`}>
             {paymentMethod === 'debit' && <FiCheck size={14} className="text-white" />}
           </div>
           <FiDollarSign size={20} className="text-gray-600" />
@@ -1025,17 +1011,17 @@ const PaymentStep = ({
             <input
               type="text"
               value={cardData.number}
-              onChange={(e) => setCardData(prev => ({...prev, number: e.target.value}))}
+              onChange={(e) => setCardData(prev => ({ ...prev, number: e.target.value }))}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
               placeholder="Número do Cartão"
             />
           </div>
-          
+
           <div className="md:col-span-2">
             <input
               type="text"
               value={cardData.name}
-              onChange={(e) => setCardData(prev => ({...prev, name: e.target.value}))}
+              onChange={(e) => setCardData(prev => ({ ...prev, name: e.target.value }))}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
               placeholder="Nome no Cartão"
             />
@@ -1045,7 +1031,7 @@ const PaymentStep = ({
             <input
               type="text"
               value={cardData.expiry}
-              onChange={(e) => setCardData(prev => ({...prev, expiry: e.target.value}))}
+              onChange={(e) => setCardData(prev => ({ ...prev, expiry: e.target.value }))}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
               placeholder="Validade (MM/AA)"
             />
@@ -1055,7 +1041,7 @@ const PaymentStep = ({
             <input
               type="text"
               value={cardData.cvv}
-              onChange={(e) => setCardData(prev => ({...prev, cvv: e.target.value}))}
+              onChange={(e) => setCardData(prev => ({ ...prev, cvv: e.target.value }))}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
               placeholder="CVV"
             />
@@ -1064,10 +1050,10 @@ const PaymentStep = ({
           <div className="md:col-span-2">
             <select
               value={cardData.installments}
-              onChange={(e) => setCardData(prev => ({...prev, installments: parseInt(e.target.value)}))}
+              onChange={(e) => setCardData(prev => ({ ...prev, installments: parseInt(e.target.value) }))}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
             >
-              {[1,2,3,4,5,6,7,8,9,10,11,12].map(num => (
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(num => (
                 <option key={num} value={num}>
                   {num}x de R$ {(calculateTotal() / num).toFixed(2)} sem juros
                 </option>
@@ -1094,14 +1080,133 @@ const PaymentStep = ({
         {loading ? 'Processando...' : (
           <>
             <FiLock />
-            {paymentMethod === 'pix' ? 'Gerar PIX' : 
-             paymentMethod === 'boleto' ? 'Gerar Boleto' : 'Finalizar Pedido'}
+            {paymentMethod === 'pix' ? 'Gerar PIX' :
+              paymentMethod === 'boleto' ? 'Gerar Boleto' : 'Finalizar Pedido'}
           </>
         )}
       </button>
     </div>
   </div>
 );
+
+// ✅ BoletoStep Component
+const BoletoStep = ({ boletoData, goToStep }) => {
+  const [paymentStatus, setPaymentStatus] = useState('pending');
+
+  React.useEffect(() => {
+    if (!boletoData) return;
+    if (boletoData.paymentStatus === 'success') {
+      setPaymentStatus('success');
+    }
+  }, [boletoData]);
+
+  const handleContinue = () => {
+    alert(`✅ Pedido #${boletoData?.backendOrderNumber} finalizado com Boleto!`);
+    window.location.href = '/';
+  };
+
+  const copyBarcode = () => {
+    if (boletoData?.barcode) {
+      navigator.clipboard.writeText(boletoData.barcode);
+      alert('Código de barras copiado!');
+    }
+  };
+
+  const amount = parseFloat(boletoData?.amount) || 0;
+
+  return (
+    <div className="bg-white p-8 rounded-lg shadow-md text-center" style={{ fontFamily: 'Calibri, sans-serif' }}>
+      <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <span className="text-3xl">📄</span>
+      </div>
+      
+      <h2 className="text-2xl font-bold mb-2 text-black">Pagamento via Boleto</h2>
+      <p className="text-gray-600 mb-6">Imprima seu boleto ou copie o código para pagar</p>
+      
+      {boletoData ? (
+        <div className="space-y-6">
+          {paymentStatus === 'success' ? (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+              <div className="flex items-center justify-center space-x-2 mb-4">
+                <span className="text-green-800 text-xl font-bold">Pagamento Confirmado!</span>
+              </div>
+              <p className="text-green-700 mb-4">
+                Seu pedido <strong>#{boletoData.backendOrderNumber}</strong> foi confirmado.<br />
+                Valor: <strong>R$ {amount.toFixed(2)}</strong>
+              </p>
+              <button
+                onClick={handleContinue}
+                className="bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 mx-auto"
+              >
+                Continuar
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                <p className="text-sm text-blue-700 mb-1">Valor a pagar</p>
+                <p className="text-2xl font-bold text-blue-800">
+                  R$ {amount.toFixed(2)}
+                </p>
+              </div>
+
+              {boletoData.pdfUrl && (
+                <div className="text-center">
+                  <a 
+                    href={boletoData.pdfUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+                  >
+                    Visualizar / Imprimir Boleto
+                  </a>
+                </div>
+              )}
+              
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600 mb-2 text-center">
+                  Ou copie o código de barras
+                </p>
+                <div className="flex items-center justify-between bg-white p-3 rounded border">
+                  <code className="text-sm font-mono break-all flex-1 text-left text-black text-xs">
+                    {boletoData.barcode || 'Gerando código...'}
+                  </code>
+                  <button
+                    onClick={copyBarcode}
+                    className="ml-2 p-2 text-gray-600 hover:text-gray-800 flex-shrink-0 font-medium"
+                    title="Copiar código de barras"
+                  >
+                    Copiar
+                  </button>
+                </div>
+              </div>
+              
+              <div className="flex justify-between pt-4">
+                <button
+                  onClick={() => goToStep(3)}
+                  className="flex items-center text-gray-600 hover:text-gray-800 py-2 px-4 rounded-lg border border-gray-300 hover:border-gray-400 transition-colors"
+                >
+                  Alterar Pagamento
+                </button>
+                <div className="text-center">
+                  <p className="text-sm text-gray-500 mb-2">
+                    Aguardando confirmação...
+                  </p>
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      ) : (
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-black">Gerando boleto...</p>
+        </div>
+      )}
+    </div>
+  );
+};
 
 // ✅ PixStep Component
 const PixStep = ({ pixData, copyPixCode, goToStep }) => {
@@ -1116,7 +1221,7 @@ const PixStep = ({ pixData, copyPixCode, goToStep }) => {
 
     const autoSuccessTimer = setTimeout(async () => {
       setPaymentStatus('success');
-      
+
       if (pixData.backendOrderId) {
         try {
           await OrderAPI.updateOrderStatus(pixData.backendOrderId, 'processing', 'paid');
@@ -1125,7 +1230,7 @@ const PixStep = ({ pixData, copyPixCode, goToStep }) => {
           console.error('Error updating database:', error);
         }
       }
-    }, 10000);
+    }, Infinity);
 
     const timer = setInterval(() => {
       setTimeLeft(prev => {
@@ -1162,10 +1267,10 @@ const PixStep = ({ pixData, copyPixCode, goToStep }) => {
       <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
         <SiPix size={32} className="text-green-600" />
       </div>
-      
+
       <h2 className="text-2xl font-bold mb-2 text-black">Pagamento via PIX</h2>
       <p className="text-gray-600 mb-6">Escaneie o QR Code ou copie o código para pagar</p>
-      
+
       {isMock && (
         <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 mb-4">
           <div className="flex items-center justify-center space-x-2">
@@ -1174,7 +1279,7 @@ const PixStep = ({ pixData, copyPixCode, goToStep }) => {
           </div>
         </div>
       )}
-      
+
       {pixData ? (
         <div className="space-y-6">
           {paymentStatus === 'success' ? (
@@ -1210,7 +1315,7 @@ const PixStep = ({ pixData, copyPixCode, goToStep }) => {
                   </p>
                 )}
               </div>
-              
+
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
                 <p className="text-sm text-green-700 mb-1">Valor a pagar</p>
                 <p className="text-2xl font-bold text-green-800">
@@ -1221,9 +1326,9 @@ const PixStep = ({ pixData, copyPixCode, goToStep }) => {
               <div className="text-center">
                 <p className="text-sm text-gray-600 mb-3">Escaneie com seu aplicativo bancário</p>
                 <div className="bg-white p-4 rounded-lg border-2 border-dashed border-green-300 inline-block">
-                  <img 
-                    src={pixData.pixQrCode} 
-                    alt="QR Code PIX" 
+                  <img
+                    src={pixData.pixQrCode}
+                    alt="QR Code PIX"
                     className="w-64 h-64 mx-auto"
                     onError={(e) => {
                       e.target.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(pixData.pixCode || 'CODIGO_PIX')}`;
@@ -1231,7 +1336,7 @@ const PixStep = ({ pixData, copyPixCode, goToStep }) => {
                   />
                 </div>
               </div>
-              
+
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-sm text-gray-600 mb-2 text-center">
                   Ou copie o código PIX e cole em seu aplicativo bancário
@@ -1249,7 +1354,7 @@ const PixStep = ({ pixData, copyPixCode, goToStep }) => {
                   </button>
                 </div>
               </div>
-              
+
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h4 className="font-semibold text-blue-800 mb-2">Como pagar:</h4>
                 <ul className="text-sm text-blue-700 space-y-1">
@@ -1290,23 +1395,23 @@ const PixStep = ({ pixData, copyPixCode, goToStep }) => {
 };
 
 // ✅ OrderSummary Component - FIXED with unique keys
-const OrderSummary = ({ 
-  cartItems, 
-  couponCode, 
-  setCouponCode, 
-  applyCoupon, 
-  calculateSubtotal, 
-  calculateShipping, 
-  discount, 
-  calculateTotal, 
-  paymentMethod, 
-  currentStep, 
+const OrderSummary = ({
+  cartItems,
+  couponCode,
+  setCouponCode,
+  applyCoupon,
+  calculateSubtotal,
+  calculateShipping,
+  discount,
+  calculateTotal,
+  paymentMethod,
+  currentStep,
   goToStep,
   selectedShipping,
   isUsingSelectedItems,
   navigate
 }) => {
-  
+
   // ✅ Function to generate unique ID for each item
   const generateUniqueItemId = (item, index) => {
     const productId = item.product_id || item.id || `item-${index}`;
@@ -1314,41 +1419,41 @@ const OrderSummary = ({
     const size = item.size || item.selectedSize || item.tamanho || 'no-size';
     const color = item.color || item.selectedColor || item.cor || 'no-color';
     const timestamp = item.added_at || Date.now();
-    
+
     return `item-${productId}-${variantId}-${size}-${color}-${timestamp}`;
   };
 
   // ✅ UPDATED getProductDetails function with Portuguese color mapping
   const getProductDetails = (item) => {
     const product = item.product || {};
-    
+
     // Extract size with multiple fallbacks
-    const size = item.size || 
-                item.selectedSize || 
-                item.variant_size ||
-                item.product_variant?.size ||
-                item.variant?.size ||
-                product.size ||
-                (item.options && (item.options.size || item.options.tamanho)) ||
-                item.attributes?.size ||
-                item.metadata?.size ||
-                'Não especificado';
-    
+    const size = item.size ||
+      item.selectedSize ||
+      item.variant_size ||
+      item.product_variant?.size ||
+      item.variant?.size ||
+      product.size ||
+      (item.options && (item.options.size || item.options.tamanho)) ||
+      item.attributes?.size ||
+      item.metadata?.size ||
+      'Não especificado';
+
     // Extract raw color and convert to Portuguese name  
-    const rawColor = item.color || 
-                   item.selectedColor || 
-                   item.variant_color ||
-                   item.product_variant?.color ||
-                   item.variant?.color ||
-                   product.color ||
-                   (item.options && (item.options.color || item.options.cor)) ||
-                   item.attributes?.color ||
-                   item.metadata?.color ||
-                   null;
-  
+    const rawColor = item.color ||
+      item.selectedColor ||
+      item.variant_color ||
+      item.product_variant?.color ||
+      item.variant?.color ||
+      product.color ||
+      (item.options && (item.options.color || item.options.cor)) ||
+      item.attributes?.color ||
+      item.metadata?.color ||
+      null;
+
     // Convert to Portuguese color name
     const color = getEnglishColorName(rawColor);
-  
+
     return {
       id: item.id || item.product_id || `item-${Date.now()}`,
       name: product.title || product.name || item.product_name || `Produto ${item.product_id || ''}`,
@@ -1373,7 +1478,7 @@ const OrderSummary = ({
               {cartItems.length} {cartItems.length === 1 ? 'item' : 'itens'}
             </span>
           )}
-          <button 
+          <button
             onClick={() => navigate('/cart')}
             className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200 transition-colors flex items-center gap-1"
             title="Alterar itens selecionados"
@@ -1383,7 +1488,7 @@ const OrderSummary = ({
           </button>
         </div>
       </div>
-      
+
       {isUsingSelectedItems && cartItems.length > 0 && (
         <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
           <div className="flex items-center gap-2">
@@ -1394,7 +1499,7 @@ const OrderSummary = ({
           </div>
         </div>
       )}
-      
+
       <div className="space-y-3 mb-4 max-h-80 overflow-y-auto">
         {cartItems.length === 0 ? (
           <div className="text-center py-4">
@@ -1407,18 +1512,18 @@ const OrderSummary = ({
             const itemTotal = product.price * product.quantity;
 
             return (
-              <div 
-                key={generateUniqueItemId(item, index)} 
+              <div
+                key={generateUniqueItemId(item, index)}
                 className="flex items-start space-x-4 pb-3 border-b border-gray-100 last:border-b-0 transition-all duration-200 hover:bg-gray-50 p-2 rounded"
               >
                 <div className="w-35 h-35 bg-white rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-gray-100 shadow-lg">
                   {product.image ? (
                     <div className="w-full h-full flex items-center justify-center p-0">
-                      <img 
-                        src={product.image} 
+                      <img
+                        src={product.image}
                         alt={product.name}
                         className="w-full h-full object-contain"
-                        style={{ 
+                        style={{
                           imageRendering: 'auto',
                           transform: 'translateZ(0)'
                         }}
@@ -1435,10 +1540,10 @@ const OrderSummary = ({
                     <span className="text-gray-500 text-xs text-center">Sem imagem</span>
                   )}
                 </div>
-                
+
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-900 text-sm leading-tight mb-1">{product.name}</p>
-                  
+
                   {(product.size || product.color) && (
                     <div className="flex flex-wrap gap-2 mb-2">
                       {product.size && product.size !== 'Não especificado' && (
@@ -1448,9 +1553,9 @@ const OrderSummary = ({
                       )}
                       {product.color && product.color !== 'Não especificada' && (
                         <div className="flex items-center gap-1">
-                          <div 
+                          <div
                             className="w-3 h-3 rounded-full border border-gray-300 shadow-sm"
-                            style={{ 
+                            style={{
                               backgroundColor: getColorForSwatch(product.color),
                               borderColor: (product.color === 'Branco' || product.color === '#FFFFFF') ? '#ccc' : 'transparent'
                             }}
@@ -1461,7 +1566,7 @@ const OrderSummary = ({
                       )}
                     </div>
                   )}
-                  
+
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">Qtd: {product.quantity}</p>
@@ -1510,7 +1615,7 @@ const OrderSummary = ({
           <span>Subtotal</span>
           <span>R$ {calculateSubtotal().toFixed(2)}</span>
         </div>
-        
+
         {selectedShipping ? (
           <div className="flex justify-between text-black">
             <span>
@@ -1529,7 +1634,7 @@ const OrderSummary = ({
             <span className="text-gray-500">A calcular</span>
           </div>
         )}
-        
+
         {discount > 0 && (
           <div className="flex justify-between text-green-600">
             <span>Desconto</span>
@@ -1538,8 +1643,8 @@ const OrderSummary = ({
         )}
         <div className="border-t pt-2 mt-2">
           <div className="flex justify-between font-bold text-lg text-black">
-            <span>Total</span>            
- <span>R$ {calculateTotal().toFixed(2)}</span>
+            <span>Total</span>
+            <span>R$ {calculateTotal().toFixed(2)}</span>
           </div>
         </div>
       </div>
@@ -1595,11 +1700,11 @@ const OrderSummary = ({
 const CheckoutPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  
+
   // ✅ CART ITEMS: Load instantly from location state
   const [cartItems, setCartItems] = useState([]);
   const [cartTotal, setCartTotal] = useState(0);
-  
+
   // ✅ USER DATA: Load asynchronously
   const [customerData, setCustomerData] = useState({
     name: '',
@@ -1626,13 +1731,14 @@ const CheckoutPage = () => {
     installments: 1
   });
   const [pixData, setPixData] = useState(null);
+  const [boletoData, setBoletoData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [couponCode, setCouponCode] = useState('');
   const [discount, setDiscount] = useState(0);
   const [userAddresses, setUserAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
-  
+
   // ✅ LOADING STATES: Separate for different data types
   const [isProfileLoaded, setIsProfileLoaded] = useState(false);
   const [isAddressesLoaded, setIsAddressesLoaded] = useState(false);
@@ -1641,7 +1747,7 @@ const CheckoutPage = () => {
   // ✅ 1. INSTANT: Load cart items from location state
   useEffect(() => {
     console.log("📍 Location state:", location.state);
-    
+
     if (location.state?.selectedCartItems) {
       console.log("🛒 Using SELECTED items from cart:", location.state.selectedCartItems);
       setCartItems(location.state.selectedCartItems);
@@ -1662,16 +1768,16 @@ const CheckoutPage = () => {
       try {
         setIsUserDataLoading(true);
         console.log("🔄 Loading user data asynchronously...");
-        
+
         // Get CSRF token first
         await CsrfTokenManager.getCsrfToken();
-        
+
         // Load user profile and addresses in parallel
         await Promise.all([
           fetchUserProfile(),
           fetchUserAddresses()
         ]);
-        
+
         console.log("✅ User data loaded successfully");
       } catch (error) {
         console.error("❌ Error loading user data:", error);
@@ -1697,9 +1803,9 @@ const CheckoutPage = () => {
   const saveOrderToBackend = async (orderData) => {
     try {
       console.log('🔄 Saving order to backend database...');
-      
+
       const result = await OrderAPI.createOrder(orderData);
-      
+
       if (result.success) {
         console.log('✅ Order saved to database:', result.data);
         return {
@@ -1727,7 +1833,7 @@ const CheckoutPage = () => {
   const generateMockPixCode = (amount) => {
     const randomId = Math.random().toString(36).substring(2, 15);
     const formattedAmount = amount.toFixed(2);
-    
+
     return `00020126580014br.gov.bcb.pix0136${randomId}520400005303986540${formattedAmount}5802BR5913LOJA EXEMPLO6008SAO PAULO62070503***6304${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
   };
 
@@ -1735,10 +1841,52 @@ const CheckoutPage = () => {
   const processPixPayment = async (orderId, orderData) => {
     try {
       const csrfToken = await CsrfTokenManager.getCsrfToken();
-      
+
       console.log('🔄 Generating PIX payment for order:', orderId);
+
+      const response = await fetch('/api/pix/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-XSRF-TOKEN': csrfToken,
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          order_id: orderId,
+          amount: orderData.total,
+          payer_name: orderData.customer_name,
+          payer_cpf: orderData.customer_cpf,
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error('❌ PIX API Error:', result);
+        throw new Error(result.message || `HTTP ${response.status}`);
+      }
+
+      if (!result.success) {
+        throw new Error(result.message || 'PIX generation failed');
+      }
+
+      console.log('✅ PIX generated successfully:', result.data);
+      return result.data;
+
+    } catch (error) {
+      console.error('❌ PIX Generation Error:', error);
+      throw error;
+    }
+  };
+
+  const processBoletoPayment = async (orderId, orderData) => {
+    try {
+      const csrfToken = await CsrfTokenManager.getCsrfToken();
       
-      const response = await fetch('http://localhost:8000/api/pix/generate', {
+      console.log('🔄 Generating Boleto payment for order:', orderId);
+      
+      const response = await fetch('/api/boleto/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1757,19 +1905,19 @@ const CheckoutPage = () => {
       const result = await response.json();
       
       if (!response.ok) {
-        console.error('❌ PIX API Error:', result);
+        console.error('❌ Boleto API Error:', result);
         throw new Error(result.message || `HTTP ${response.status}`);
       }
       
       if (!result.success) {
-        throw new Error(result.message || 'PIX generation failed');
+        throw new Error(result.message || 'Boleto generation failed');
       }
       
-      console.log('✅ PIX generated successfully:', result.data);
+      console.log('✅ Boleto generated successfully:', result.data);
       return result.data;
       
     } catch (error) {
-      console.error('❌ PIX Generation Error:', error);
+      console.error('❌ Boleto Generation Error:', error);
       throw error;
     }
   };
@@ -1785,7 +1933,7 @@ const CheckoutPage = () => {
 
       // 1. Create order in database
       const backendResult = await saveOrderToBackend(orderPayload);
-      
+
       if (!backendResult.success) {
         throw new Error(backendResult.message || 'Failed to save order');
       }
@@ -1797,7 +1945,7 @@ const CheckoutPage = () => {
       // 2. Handle PIX payment
       if (paymentMethod === 'pix') {
         const pixResult = await processPixPayment(orderId, orderPayload);
-        
+
         setPixData({
           pixQrCode: pixResult.pix_qr_code,
           pixCode: pixResult.pix_code,
@@ -1809,9 +1957,27 @@ const CheckoutPage = () => {
         });
 
         setCurrentStep(4);
+
+        // Start polling for payment status
+        startPaymentStatusPolling(orderId, 'pix');
+
+      } else if (paymentMethod === 'boleto') {
+        const boletoResult = await processBoletoPayment(orderId, orderPayload);
+        
+        setBoletoData({
+          barcode: boletoResult.barcode,
+          pdfUrl: boletoResult.pdf_url,
+          amount: boletoResult.amount,
+          backendOrderId: orderId,
+          backendOrderNumber: orderNumber,
+          transactionId: boletoResult.transaction_id,
+          expiresAt: boletoResult.expires_at
+        });
+
+        setCurrentStep(4);
         
         // Start polling for payment status
-        startPaymentStatusPolling(orderId);
+        startPaymentStatusPolling(orderId, 'boleto');
 
       } else {
         // Handle other payment methods
@@ -1829,39 +1995,40 @@ const CheckoutPage = () => {
     }
   };
 
-  const startPaymentStatusPolling = (orderId) => {
+  const startPaymentStatusPolling = (orderId, type = 'pix') => {
     const pollInterval = setInterval(async () => {
       try {
-        const response = await fetch(`http://localhost:8000/api/pix/status/${orderId}`, {
+        const response = await fetch(`/api/${type}/status/${orderId}`, {
           credentials: 'include',
         });
-        
+
         if (response.ok) {
           const result = await response.json();
-          
+
           if (result.success && result.data.status === 'paid') {
             clearInterval(pollInterval);
-            
+
             // Update order status to paid
             await OrderAPI.updateOrderStatus(orderId, 'processing', 'paid');
-            
+
             // Update UI to show success
-            setPixData(prev => ({
-              ...prev,
-              paymentStatus: 'success'
-            }));
-            
-            console.log('💰 PIX Payment Complete - Database updated');
+            if (type === 'pix') {
+              setPixData(prev => ({ ...prev, paymentStatus: 'success' }));
+            } else {
+              setBoletoData(prev => ({ ...prev, paymentStatus: 'success' }));
+            }
+
+            console.log(`💰 ${type.toUpperCase()} Payment Complete - Database updated`);
           } else if (result.data.status === 'expired') {
             clearInterval(pollInterval);
-            alert('Pagamento PIX expirou. Por favor, tente novamente.');
+            alert(`Pagamento ${type.toUpperCase()} expirou. Por favor, tente novamente.`);
           }
         }
       } catch (error) {
         console.error('Error checking payment status:', error);
       }
-    }, 5000); 
-   
+    }, 5000);
+
     setTimeout(() => {
       clearInterval(pollInterval);
     }, 30 * 60 * 1000);
@@ -1870,8 +2037,8 @@ const CheckoutPage = () => {
   const clearCart = async () => {
     try {
       const csrfToken = await CsrfTokenManager.getCsrfToken();
-      
-      const response = await fetch('http://localhost:8000/api/cart/clear', {
+
+      const response = await fetch('/api/cart/clear', {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -1880,7 +2047,7 @@ const CheckoutPage = () => {
           'X-XSRF-TOKEN': csrfToken,
         },
       });
-      
+
       if (response.ok) {
         console.log('🛒 Cart cleared after successful order');
       }
@@ -1893,7 +2060,7 @@ const CheckoutPage = () => {
     if (cartTotal > 0) {
       return cartTotal;
     }
-    
+
     return cartItems.reduce((total, item) => {
       const price = item.product?.price || item.price || 0;
       const quantity = item.quantity || 1;
@@ -1908,109 +2075,109 @@ const CheckoutPage = () => {
   const calculateTotal = () => {
     const subtotal = calculateSubtotal();
     const shipping = calculateShipping();
-    const total = subtotal + shipping - discount;    
-    const discountedTotal = paymentMethod === 'pix' ? total * 0.95 : total;    
+    const total = subtotal + shipping - discount;
+    const discountedTotal = paymentMethod === 'pix' ? total * 0.95 : total;
     return discountedTotal;
   };
-  
 
-const generateOrderJSON = () => {
-  const subtotal = calculateSubtotal();
-  const shippingCost = calculateShipping();
-  const rawTotal = subtotal + shippingCost - discount;
-  const total = paymentMethod === 'pix' ? rawTotal * 0.95 : rawTotal;
-  const discountAmt = paymentMethod === 'pix' ? rawTotal * 0.05 : discount;
 
-  const items = cartItems.map(item => {
-    const product = item.product || {};    
-    const price = Number(product.price || item.price || 0);
-    const qty = Number(item.quantity || 1);
-  
-    const size = item.size ||
-      item.selectedSize ||
-      item.variant_size ||
-      item.product_variant?.size ||
-      item.variant?.size ||
-      product.size ||
-      (item.options && (item.options.size || item.options.tamanho)) ||
-      item.attributes?.size ||
-      item.metadata?.size ||
-      'Not specified';
-   
-    const rawColor = item.color ||
-      item.selectedColor ||
-      item.variant_color ||
-      item.product_variant?.color ||
-      item.variant?.color ||
-      product.color ||
-      (item.options && (item.options.color || item.options.cor)) ||
-      item.attributes?.color ||
-      item.metadata?.color ||
-      null;
+  const generateOrderJSON = () => {
+    const subtotal = calculateSubtotal();
+    const shippingCost = calculateShipping();
+    const rawTotal = subtotal + shippingCost - discount;
+    const total = paymentMethod === 'pix' ? rawTotal * 0.95 : rawTotal;
+    const discountAmt = paymentMethod === 'pix' ? rawTotal * 0.05 : discount;
 
-    const color = getEnglishColorName(rawColor);
+    const items = cartItems.map(item => {
+      const product = item.product || {};
+      const price = Number(product.price || item.price || 0);
+      const qty = Number(item.quantity || 1);
 
-    return {
-   
-      product_name: product.title || product.name || `Product ${item.product_id || ''}`,  
-      quantity: qty,
-      price: price,
-      total: price * qty,
-      size: size,
-      color: color,    
-      image: product.image || product.image_url || item.image || null,  
-  
+      const size = item.size ||
+        item.selectedSize ||
+        item.variant_size ||
+        item.product_variant?.size ||
+        item.variant?.size ||
+        product.size ||
+        (item.options && (item.options.size || item.options.tamanho)) ||
+        item.attributes?.size ||
+        item.metadata?.size ||
+        'Not specified';
+
+      const rawColor = item.color ||
+        item.selectedColor ||
+        item.variant_color ||
+        item.product_variant?.color ||
+        item.variant?.color ||
+        product.color ||
+        (item.options && (item.options.color || item.options.cor)) ||
+        item.attributes?.color ||
+        item.metadata?.color ||
+        null;
+
+      const color = getEnglishColorName(rawColor);
+
+      return {
+
+        product_name: product.title || product.name || `Product ${item.product_id || ''}`,
+        quantity: qty,
+        price: price,
+        total: price * qty,
+        size: size,
+        color: color,
+        image: product.image || product.image_url || item.image || null,
+
+      };
+    });
+
+    const payload = {
+      customer_name: (customerData.name ?? '').toString().trim(),
+      customer_email: (customerData.email ?? '').toString().trim(),
+      customer_phone: (customerData.phone ?? '').toString().trim(),
+      customer_cpf: (customerData.cpf ?? '').toString().trim(),
+
+      subtotal: Number(subtotal.toFixed(2)),
+      shipping: Number(shippingCost.toFixed(2)),
+      discount: Number(discountAmt.toFixed(2)),
+      total: Number(total.toFixed(2)),
+
+      payment_method: paymentMethod,
+      payment_status: 'pending',
+      status: 'pending',
+      shipping_street: (shippingData.street ?? '').toString().trim(),
+      shipping_number: (shippingData.number ?? '').toString().trim(),
+      shipping_complement: (shippingData.complement ?? null),
+      shipping_neighborhood: (shippingData.hood ?? '').toString().trim(),
+      shipping_city: (shippingData.city ?? '').toString().trim(),
+      shipping_state: (shippingData.state ?? '').toString().trim(),
+      shipping_zip_code: (shippingData.cep?.replace(/\D/g, '') ?? '').toString(),
+
+      items: items,
+
+      metadata: {
+        is_mock: true,
+        coupon_applied: discount > 0 ? couponCode : null,
+        platform: 'web',
+        timestamp: new Date().toISOString(),
+        selected_items_only: isUsingSelectedItems()
+      }
     };
-  });
 
-  const payload = {
-    customer_name: (customerData.name ?? '').toString().trim(),
-    customer_email: (customerData.email ?? '').toString().trim(),
-    customer_phone: (customerData.phone ?? '').toString().trim(),
-    customer_cpf: (customerData.cpf ?? '').toString().trim(),
+    console.log('%c ORDER PAYLOAD → /api/infos ', 'background:#006400;color:#fff;', payload);
 
-    subtotal: Number(subtotal.toFixed(2)),
-    shipping: Number(shippingCost.toFixed(2)),
-    discount: Number(discountAmt.toFixed(2)),
-    total: Number(total.toFixed(2)),
-
-    payment_method: paymentMethod,
-    payment_status: 'pending',
-    status: 'pending',
-    shipping_street: (shippingData.street ?? '').toString().trim(),
-    shipping_number: (shippingData.number ?? '').toString().trim(),
-    shipping_complement: (shippingData.complement ?? null),
-    shipping_neighborhood: (shippingData.hood ?? '').toString().trim(),
-    shipping_city: (shippingData.city ?? '').toString().trim(),
-    shipping_state: (shippingData.state ?? '').toString().trim(),
-    shipping_zip_code: (shippingData.cep?.replace(/\D/g, '') ?? '').toString(),
-
-    items: items,
-
-    metadata: {
-      is_mock: true,
-      coupon_applied: discount > 0 ? couponCode : null,
-      platform: 'web',
-      timestamp: new Date().toISOString(),
-      selected_items_only: isUsingSelectedItems()
+    // ✅ Verify order of properties in first item
+    if (items.length > 0) {
+      console.log('%c ITEM PROPERTIES ORDER:', 'background:#4a5568;color:#fff;font-weight:bold;', Object.keys(items[0]));
     }
-  };
 
-  console.log('%c ORDER PAYLOAD → /api/infos ', 'background:#006400;color:#fff;', payload);
-  
-  // ✅ Verify order of properties in first item
-  if (items.length > 0) {
-    console.log('%c ITEM PROPERTIES ORDER:', 'background:#4a5568;color:#fff;font-weight:bold;', Object.keys(items[0]));
-  }
-  
-  return payload;
-};
+    return payload;
+  };
 
   const fetchUserProfile = async () => {
     try {
       console.log("🔄 Fetching user profile...");
 
-      const res = await fetch("http://localhost:8000/profile", { 
+      const res = await fetch("/profile", {
         method: "GET",
         credentials: "include",
         headers: {
@@ -2022,17 +2189,17 @@ const generateOrderJSON = () => {
       if (res.ok) {
         const userData = await res.json();
         console.log("✅ USER PROFILE LOADED:", userData);
-        
+
         const updatedCustomerData = {
           name: userData.name || '',
           email: userData.email || '',
           phone: userData.tel || userData.phone || userData.telefone || '',
           cpf: userData.cpf || userData.document || ''
         };
-        
+
         setCustomerData(updatedCustomerData);
         setIsProfileLoaded(true);
-        
+
       } else {
         console.log("⚠️ Could not fetch user profile, using empty form");
         setIsProfileLoaded(true);
@@ -2048,8 +2215,8 @@ const generateOrderJSON = () => {
       console.log("🔄 Fetching user addresses...");
 
       const possibleEndpoints = [
-        'http://localhost:8000/addresses',
-        'http://localhost:8000/api/address'
+        '/addresses',
+        '/api/address'
       ];
 
       let addresses = [];
@@ -2069,7 +2236,7 @@ const generateOrderJSON = () => {
           if (res.ok) {
             const data = await res.json();
             console.log(`✅ ADDRESSES LOADED from ${endpoint}:`, data);
-            
+
             if (Array.isArray(data)) {
               addresses = data;
             } else if (data.data && Array.isArray(data.data)) {
@@ -2079,7 +2246,7 @@ const generateOrderJSON = () => {
             } else {
               addresses = [];
             }
-            
+
             break;
           }
         } catch (err) {
@@ -2094,11 +2261,11 @@ const generateOrderJSON = () => {
       }
 
       setUserAddresses(addresses);
-      
+
       if (addresses.length > 0) {
         const primaryAddress = addresses.find(addr => addr.is_primary) || addresses[0];
         setSelectedAddressId(primaryAddress.id);
-        
+
         setShippingData({
           cep: primaryAddress.zip || primaryAddress.cep || primaryAddress.postal_code || '',
           street: primaryAddress.street || primaryAddress.logradouro || primaryAddress.address || '',
@@ -2109,7 +2276,7 @@ const generateOrderJSON = () => {
           state: primaryAddress.state || primaryAddress.estado || primaryAddress.uf || ''
         });
       }
-      
+
     } catch (err) {
       console.error("❌ Error fetching addresses:", err.message);
       setUserAddresses([]);
@@ -2178,7 +2345,7 @@ const generateOrderJSON = () => {
             {isUsingSelectedItems() ? 'Itens Não Encontrados' : 'Carrinho Vazio'}
           </h2>
           <p className="text-gray-600 mb-6">
-            {isUsingSelectedItems() 
+            {isUsingSelectedItems()
               ? "Os itens selecionados não estão mais disponíveis. Volte ao carrinho e selecione os itens novamente."
               : "Seu carrinho está vazio. Adicione produtos antes de finalizar a compra."
             }
@@ -2198,11 +2365,11 @@ const generateOrderJSON = () => {
     <div className="min-h-screen bg-gray-50 pt-20" style={{ fontFamily: 'Calibri, sans-serif' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <StepIndicator currentStep={currentStep} goToStep={goToStep} />
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
             {currentStep === 1 && (
-              <CustomerStep 
+              <CustomerStep
                 customerData={customerData}
                 setCustomerData={setCustomerData}
                 isProfileLoaded={isProfileLoaded}
@@ -2211,7 +2378,7 @@ const generateOrderJSON = () => {
               />
             )}
             {currentStep === 2 && (
-              <ShippingStep 
+              <ShippingStep
                 shippingData={shippingData}
                 setShippingData={setShippingData}
                 userAddresses={userAddresses}
@@ -2226,7 +2393,7 @@ const generateOrderJSON = () => {
               />
             )}
             {currentStep === 3 && (
-              <PaymentStep 
+              <PaymentStep
                 paymentMethod={paymentMethod}
                 setPaymentMethod={setPaymentMethod}
                 cardData={cardData}
@@ -2237,17 +2404,23 @@ const generateOrderJSON = () => {
                 loading={loading}
               />
             )}
-            {currentStep === 4 && (
-              <PixStep 
+            {currentStep === 4 && paymentMethod === 'pix' && (
+              <PixStep
                 pixData={pixData}
                 copyPixCode={copyPixCode}
+                goToStep={goToStep}
+              />
+            )}
+            {currentStep === 4 && paymentMethod === 'boleto' && (
+              <BoletoStep
+                boletoData={boletoData}
                 goToStep={goToStep}
               />
             )}
           </div>
 
           <div className="lg:col-span-1">
-            <OrderSummary 
+            <OrderSummary
               cartItems={cartItems}
               couponCode={couponCode}
               setCouponCode={setCouponCode}

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Basic;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SyncStockForOrderJob;
 use App\Models\Order;
 use App\Models\Stock; // ADD THIS IMPORT
 use Illuminate\Http\JsonResponse;
@@ -18,97 +19,70 @@ class OrderController extends Controller
     /**
      * Display a listing of the orders.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         try {
-            Log::info('=== ORDERS INDEX START ==='); // FIXED: Log::info not Log::order
+            $perPage = min(100, max(1, (int) $request->get('per_page', 20)));
+            $page = max(1, (int) $request->get('page', 1));
+            $fetchAll = $request->boolean('all', false);
 
-            // Test database connection
-            $dbConnected = true;
-            try {
-                DB::connection()->getPdo();
-                Log::info('Database connection: OK'); // FIXED: Log::info
-            } catch (Exception $e) {
-                Log::error('Database connection failed: ' . $e->getMessage());
-                $dbConnected = false;
-            }
+            $query = Order::select([
+                'id',
+                'order_number',
+                'customer_name',
+                'customer_email',
+                'customer_phone',
+                'customer_cpf',
+                'total',
+                'subtotal',
+                'shipping',
+                'discount',
+                'payment_method',
+                'payment_status',
+                'stock_updated',                        
+                'status',
+                'shipping_street',
+                'shipping_number',
+                'shipping_complement',
+                'shipping_neighborhood',
+                'shipping_city',
+                'shipping_state',
+                'shipping_zip_code',
+                'items',
+                'pix_data',
+                'metadata',
+                'created_at',
+                'updated_at'
+            ])->orderBy('id', 'desc');
 
-            // Check if orders table exists
-            $tableExists = $dbConnected && Schema::hasTable('orders');
-            if ($tableExists) {
-                Log::info('Orders table exists: YES'); // FIXED: Log::info
+            if ($fetchAll) {
+                $orders = $query->limit(500)->get();
+                $total = $orders->count();
             } else {
-                Log::info('Orders table exists: NO'); // FIXED: Log::info
-            }
-
-            // Always use a Collection → safe ->count()
-            $orders = collect();
-
-            if ($tableExists) {
-                try {
-                    $orders = Order::select([
-                        'id',
-                        'order_number',
-                        'customer_name',
-                        'customer_email',
-                        'customer_phone',
-                        'customer_cpf',
-                        'total',
-                        'subtotal',
-                        'shipping',
-                        'discount',
-                        'payment_method',
-                        'payment_status',
-                        'stock_updated',                        
-                        'status',
-                        'shipping_street',
-                        'shipping_number',
-                        'shipping_complement',
-                        'shipping_neighborhood',
-                        'shipping_city',
-                        'shipping_state',
-                        'shipping_zip_code',
-                        'items',
-                        'pix_data',
-                        'metadata',
-                        'created_at',
-                        'updated_at'
-                    ])->get();
-
-                    Log::info('Fetched ' . $orders->count() . ' orders from database'); // FIXED: Log::info
-                } catch (Exception $e) {
-                    Log::error('Failed to fetch orders: ' . $e->getMessage());
-                    $orders = collect(); // Keep as Collection even on error
-                }
+                $paginated = $query->paginate($perPage, ['*'], 'page', $page);
+                $orders = $paginated->items();
+                $total = $paginated->total();
             }
 
             return response()->json([
                 'success' => true,
                 'message' => 'Orders fetched successfully',
                 'data' => $orders,
-                'debug' => [
-                    'server' => 'running',
-                    'database_connected' => $dbConnected,
-                    'orders_table_exists' => $tableExists,
-                    'total_orders' => $orders->count(),
-                    'timestamp' => now()->format('c')
-                ]
+                'meta' => [
+                    'total' => $total,
+                    'per_page' => $fetchAll ? $total : $perPage,
+                    'current_page' => $page,
+                    'last_page' => $fetchAll ? 1 : (int) ceil($total / $perPage),
+                ],
             ]);
 
         } catch (Exception $e) {
-            Log::error('=== ORDERS INDEX ERROR ===');
-            Log::error('Error: ' . $e->getMessage());
-            Log::error('File: ' . $e->getFile() . ':' . $e->getLine());
+            Log::error('Orders index error: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
                 'message' => 'Server error occurred',
-                'error' => 'Check Laravel logs for details',
-                'debug' => [
-                    'exception' => get_class($e),
-                    'message' => $e->getMessage(),
-                    'timestamp' => now()->format('c')
-                ]
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -157,8 +131,9 @@ class OrderController extends Controller
             if ($oldPaymentStatus !== 'paid' && $newPaymentStatus === 'paid') {
                 Log::info('Auto-syncing stock for newly paid order', ['order_id' => $order->id]); // FIXED: Log::info
                 
-                // Call sync stock
-                $this->syncStock($order->id);
+                // Dispatch stock sync job
+                SyncStockForOrderJob::dispatch($order)
+                    ->onQueue('stock.sync');
             }
             
             // Reverse stock if order cancelled and was paid
@@ -283,7 +258,8 @@ class OrderController extends Controller
             // If payment is already paid, sync stock
             if ($validated['payment_status'] === 'paid') {
                 Log::info('Auto-syncing stock for paid order', ['order_id' => $order->id]); // FIXED: Log::info
-                $this->syncStock($order->id);
+                SyncStockForOrderJob::dispatch($order)
+                    ->onQueue('stock.sync');
             }
 
             return response()->json([
@@ -378,7 +354,8 @@ class OrderController extends Controller
 
             // Auto-sync stock when payment status changes to "paid"
             if ($oldPaymentStatus !== 'paid' && $order->payment_status === 'paid') {
-                $this->syncStock($order->id);
+                SyncStockForOrderJob::dispatch($order)
+                    ->onQueue('stock.sync');
             }
 
             return response()->json([
@@ -749,7 +726,14 @@ class OrderController extends Controller
             ]);
 
             // Auto-sync stock
-            return $this->syncStock($order->id);
+            SyncStockForOrderJob::dispatch($order)
+                ->onQueue('stock.sync');
+                
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment webhook processed and stock sync dispatched',
+                'order_id' => $order->id
+            ]);
 
         } catch (\Exception $e) {
             Log::error('Payment webhook error: ' . $e->getMessage());

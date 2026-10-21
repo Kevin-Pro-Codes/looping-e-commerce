@@ -1,0 +1,26 @@
+{
+  "name": "looping-ssr",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "server/index.jsx",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "tsx watch server/index.jsx",
+    "dev:client": "vite",
+    "start": "tsx server/index.jsx",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@inertiajs/react": "2.3.23",
+    "express": "^4.18.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tsx": "^4.21.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.0.0",
+    "@vitejs/plugin-react-oxc": "^0.4.3",
+    "concurrently": "^9.2.1",
+    "vite": "^8.0.11"
+  }
+}

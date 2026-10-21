@@ -54,11 +54,19 @@ class ProfileController extends Controller
     {
         $user = Auth::user();
 
-        // Find the profile by email
+        // Find the profile by email (or create if missing)
         $profile = Profile::firstWhere('email', $user->email);
 
         if (!$profile) {
-            return response()->json(['message' => 'Profile not found'], 404);
+            // Create profile if it doesn't exist
+            $profile = Profile::create([
+                'name' => $user->name ?? '',
+                'email' => $user->email,
+                'tel' => '',
+                'cpf' => '',
+                'birth_date' => null,        
+                'marketing' => false,
+            ]);
         }
 
         // Validate incoming request
@@ -87,5 +95,36 @@ class ProfileController extends Controller
 
             'payment' => [],   // load real payment order if needed
         ]);
+    }
+
+    /**
+     * Delete the authenticated user's account.
+     */
+    public function destroy(Request $request)
+    {
+        $user = Auth::user();
+
+        // Validate password for account deletion
+        try {
+            $request->validate([
+                'password' => ['required', 'current_password'],
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Invalid password',
+                'errors' => $e->errors()
+            ], 422);
+        }
+
+        // Delete the user's profile if it exists
+        $profile = Profile::firstWhere('email', $user->email);
+        if ($profile) {
+            $profile->delete();
+        }
+
+        // Delete the user account
+        $user->delete();
+
+        return response()->json(['message' => 'Account deleted']);
     }
 }

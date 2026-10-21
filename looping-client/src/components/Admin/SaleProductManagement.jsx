@@ -1,4 +1,3 @@
-// src/components/admin/SaleProducts.jsx
 import React, { useEffect, useState } from "react";
 import { 
   FiHeart, FiShoppingCart, FiPlus, FiTrash2, FiSearch, FiImage, 
@@ -45,9 +44,9 @@ const SaleProducts = () => {
   const loadProducts = async () => {
     setLoading(true);
     try {
-      console.log("Fetching products from:", "http://localhost:8000/api/products");
+      console.log("Fetching products from:", "/api/products");
       
-      const response = await fetch("http://localhost:8000/api/products", {
+      const response = await fetch("/api/products", {
         credentials: "include",
       });
 
@@ -77,12 +76,26 @@ const SaleProducts = () => {
       
       console.log("Final products array:", productsArray);
 
+      const normalizeImageUrl = (url) => {
+        if (!url) return "";
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+          if (url.includes('/storage/')) {
+            return url.replace(/^https?:\/\/[^\/]+/, '');
+          }
+          return url;
+        }
+        if (url.startsWith('/storage/')) return url;
+        if (url.startsWith('storage/')) return '/' + url;
+        if (url.startsWith('uploads/')) return '/storage/' + url;
+        return '/storage/uploads/' + url;
+      };
+
       const normalized = productsArray.map((p) => ({
         _id: p._id?.$oid || p._id || Math.random().toString(),
         title: p.title || "No title",
         price: p.price || 0,
         description: p.description || "",
-        image: p.image || "",
+        image: normalizeImageUrl(p.image || ""),
         category: p.category || "",
         stock: p.stock || 0,
         tags: p.tags || [],
@@ -246,7 +259,7 @@ const SaleProducts = () => {
 
       console.log('Updating product with data:', productData);
 
-      const response = await fetch(`http://localhost:8000/api/products/${editingProduct._id}`, {
+      const response = await fetch(`/api/products/${editingProduct._id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -300,7 +313,7 @@ const SaleProducts = () => {
     formData.append('image', file);
   
     try {
-      const API_BASE = 'http://localhost:8000';
+      const API_BASE = '';
       
       console.log("🔐 Getting CSRF token...");
       await fetch(`${API_BASE}/sanctum/csrf-cookie`, {
@@ -382,7 +395,7 @@ const SaleProducts = () => {
         discount: parseFloat(newProduct.discount)
       };
 
-      const response = await fetch("http://localhost:8000/api/products", {
+      const response = await fetch("/api/products", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -434,7 +447,7 @@ const SaleProducts = () => {
           ?.split("=")[1]
       );
 
-      const response = await fetch(`http://localhost:8000/api/products/${id}`, {
+      const response = await fetch(`/api/products/${id}`, {
         method: "DELETE",
         headers: { "X-XSRF-TOKEN": token },
         credentials: "include",
@@ -459,7 +472,7 @@ const SaleProducts = () => {
           ?.split("=")[1]
       );
 
-      const response = await fetch(`http://localhost:8000/api/products/${id}`, {
+      const response = await fetch(`/api/products/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -494,7 +507,7 @@ const SaleProducts = () => {
           ?.split("=")[1]
       );
 
-      const response = await fetch(`http://localhost:8000/api/products/${productId}`, {
+      const response = await fetch(`/api/products/${productId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -815,11 +828,13 @@ const SaleProducts = () => {
               <h4 className="font-semibold text-black mb-3" style={{ fontFamily: 'Calibri, sans-serif' }}>Current Image</h4>
               <div className="flex items-center space-x-4">
                 {editingProduct.image ? (
-                  <img 
-                    src={editingProduct.image} 
-                    alt="Current product" 
-                    className="w-32 h-32 object-cover rounded-lg border"
-                  />
+                  <div className="w-32 h-32 border rounded-lg p-2 bg-white flex items-center justify-center">
+                    <img 
+                      src={editingProduct.image} 
+                      alt="Current product" 
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  </div>
                 ) : (
                   <div className="w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center">
                     <FiImage className="text-gray-400" size={32} />
@@ -887,7 +902,7 @@ const SaleProducts = () => {
               </button>
 
               {/* Fixed Image Container */}
-              <div className="w-full aspect-square max-w-[200px] p-2 relative flex items-center justify-center bg-gray-50 rounded-xl border border-gray-200 overflow-hidden group mb-3">
+              <div className="w-full aspect-square max-w-[200px] p-2 relative flex items-center justify-center bg-white rounded-xl border border-gray-200 overflow-hidden group mb-3">
                 {product.image ? (
                   <>
                     <img 
@@ -983,17 +998,19 @@ const SaleProducts = () => {
                 if (imageUrl) {
                   return (
                     <div className="flex flex-col items-center">
-                      <img 
-                        src={imageUrl} 
-                        alt="Current product preview" 
-                        className="w-full max-h-48 object-contain rounded-lg border mb-2"
-                        onError={(e) => {
-                          console.error('Error loading image:', imageUrl);
-                          e.target.style.display = 'none';
-                          const fallback = document.getElementById(`fallback-${editingImage}`);
-                          if (fallback) fallback.style.display = 'flex';
-                        }}
-                      />
+                      <div className="w-full max-h-48 border rounded-lg p-3 bg-white flex items-center justify-center mb-2">
+                        <img 
+                          src={imageUrl} 
+                          alt="Current product preview" 
+                          className="max-w-full max-h-full object-contain"
+                          onError={(e) => {
+                            console.error('Error loading image:', imageUrl);
+                            e.target.style.display = 'none';
+                            const fallback = document.getElementById(`fallback-${editingImage}`);
+                            if (fallback) fallback.style.display = 'flex';
+                          }}
+                        />
+                      </div>
                       <div id={`fallback-${editingImage}`} className="hidden w-full h-48 bg-gray-100 rounded-lg flex flex-col items-center justify-center mb-2">
                         <FiImage className="text-gray-400" size={48} />
                         <p className="text-sm text-gray-500 mt-2" style={{ fontFamily: 'Calibri, sans-serif' }}>

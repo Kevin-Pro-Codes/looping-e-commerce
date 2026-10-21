@@ -39,7 +39,7 @@ class CsrfTokenManager {
 
     try {
       console.log('🛡️ Buscando CSRF token...');
-      const response = await fetch('http://localhost:8000/sanctum/csrf-cookie', {
+      const response = await fetch('/sanctum/csrf-cookie', {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -98,7 +98,7 @@ const OrdersManagement = () => {
     direction: 'desc'
   });
 
-  const API_BASE_URL = 'http://localhost:8000/api';
+  const API_BASE_URL = '/api';
 
   const sortableFields = {
     order_number: { label: 'Número do Pedido', type: 'string' },

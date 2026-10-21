@@ -165,7 +165,7 @@ const StockManagement = () => {
   const hasFetchedRef = useRef(false);
 
   const getCsrfToken = async () => {
-    await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+    await fetch("/sanctum/csrf-cookie", {
       method: "GET",
       credentials: "include",
     });
@@ -185,7 +185,7 @@ const StockManagement = () => {
     try {
       const csrfToken = await getCsrfToken();
       
-      const response = await fetch(`http://localhost:8000/api/infos/stock/fetch`, {
+      const response = await fetch(`/api/infos/stock/fetch`, {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -344,7 +344,7 @@ const StockManagement = () => {
   
       const csrfToken = await getCsrfToken();
       
-      const fieldResponse = await fetch(`http://localhost:8000/api/infos/stock/product/${editingProduct.product_id}/update-field`, {
+      const fieldResponse = await fetch(`/api/infos/stock/product/${editingProduct.product_id}/update-field`, {
         method: 'PUT',
         credentials: 'include',
         headers: {
@@ -372,7 +372,7 @@ const StockManagement = () => {
         sale_price: parseFloat(formToUse.sale_price) || 0,
       };
   
-      const pricingResponse = await fetch(`http://localhost:8000/api/infos/stock/product/${editingProduct.product_id}/pricing`, {
+      const pricingResponse = await fetch(`/api/infos/stock/product/${editingProduct.product_id}/pricing`, {
         method: 'PUT',
         credentials: 'include',
         headers: {
@@ -427,7 +427,7 @@ const StockManagement = () => {
           pricingData.total_value = totalStock * pricingData.sale_price;
 
           const csrfToken = await getCsrfToken();
-          const response = await fetch(`http://localhost:8000/api/infos/stock/product/${editingPrice.productId}/pricing`, {
+          const response = await fetch(`/api/infos/stock/product/${editingPrice.productId}/pricing`, {
             method: 'PUT',
             credentials: 'include',
             headers: {
@@ -545,7 +545,7 @@ const StockManagement = () => {
     try {
       const csrfToken = await getCsrfToken();
       
-      const response = await fetch(`http://localhost:8000/api/infos/stock/${variantId}/update`, {
+      const response = await fetch(`/api/infos/stock/${variantId}/update`, {
         method: 'PUT',
         credentials: 'include',
         headers: {
@@ -596,7 +596,7 @@ const StockManagement = () => {
         stock: parseInt(stockData.stock) || 0,
       };
 
-      const response = await fetch(`http://localhost:8000/api/infos/stock/samples`, {
+      const response = await fetch(`/api/infos/stock/samples`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -691,7 +691,7 @@ const StockManagement = () => {
       };
 
       const csrfToken = await getCsrfToken();
-      const response = await fetch(`http://localhost:8000/api/infos/stock/product/${editingProduct.product_id}/pricing`, {
+      const response = await fetch(`/api/infos/stock/product/${editingProduct.product_id}/pricing`, {
         method: 'PUT',
         credentials: 'include',
         headers: {
@@ -729,7 +729,7 @@ const StockManagement = () => {
     try {
       const csrfToken = await getCsrfToken();
       
-      const response = await fetch(`http://localhost:8000/api/infos/stock/product/${productId}`, {
+      const response = await fetch(`/api/infos/stock/product/${productId}`, {
         method: 'DELETE',
         credentials: 'include',
         headers: {
@@ -799,7 +799,7 @@ const deleteVariant = async (variantId, color, size) => {
     try {
       const csrfToken = await getCsrfToken();
       
-      const response = await fetch(`http://localhost:8000/api/infos/stock/variant/${variantId}`, {
+      const response = await fetch(`/api/infos/stock/variant/${variantId}`, {
         method: 'DELETE',
         credentials: 'include',
         headers: {

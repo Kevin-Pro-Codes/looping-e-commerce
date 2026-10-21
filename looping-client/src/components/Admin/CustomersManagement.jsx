@@ -9,7 +9,7 @@ const CustomersManagement = () => {
   const [lastRefresh, setLastRefresh] = useState(null);
   const [error, setError] = useState(null);
 
-  const API_BASE_URL = 'http://localhost:8000/api';
+  const API_BASE_URL = '/api';
 
   const API_ENDPOINTS = {
     getCustomers: `${API_BASE_URL}/infos/all`,

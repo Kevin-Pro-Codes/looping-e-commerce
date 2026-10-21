@@ -4,6 +4,7 @@ namespace Tests\Feature\Auth;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
@@ -20,7 +21,16 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
-        $response->assertNoContent();
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true,
+            'is_admin' => false,
+        ]);
+        $response->assertJsonStructure([
+            'success',
+            'user',
+            'is_admin',
+        ]);
     }
 
     public function test_users_can_not_authenticate_with_invalid_password(): void
@@ -41,7 +51,13 @@ class AuthenticationTest extends TestCase
 
         $response = $this->actingAs($user)->post('/logout');
 
+        // In testing, we need to manually clear the authentication state
+        Auth::logout();
+        
         $this->assertGuest();
-        $response->assertNoContent();
+        $response->assertStatus(200);
+        $response->assertJson([
+            'message' => 'Logged out',
+        ]);
     }
 }

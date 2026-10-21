@@ -121,11 +121,15 @@ class Product extends Model
         parent::boot();
 
         static::saved(function ($product) {
-            $product->indexSingleProduct();
+            if (class_exists(\MeiliSearch\Client::class)) {
+                $product->indexSingleProduct();
+            }
         });
 
         static::deleted(function ($product) {
-            $product->removeFromMeilisearch();
+            if (class_exists(\MeiliSearch\Client::class)) {
+                $product->removeFromMeilisearch();
+            }
         });
     }
 }

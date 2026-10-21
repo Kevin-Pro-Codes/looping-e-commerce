@@ -22,6 +22,11 @@ class VerifyEmailController extends Controller
             return redirect(config('app.frontend_url').'/login?user_not_found=1');
         }
 
+        // Validate hash matches user email
+        if (! hash_equals((string) $request->route('hash'), sha1($user->getEmailForVerification()))) {
+            return redirect(config('app.frontend_url').'/login?invalid=1');
+        }
+
         // Already verified
         if ($user->hasVerifiedEmail()) {
             return redirect(config('app.frontend_url').'/login?verified=1');

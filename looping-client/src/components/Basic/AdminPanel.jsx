@@ -24,15 +24,15 @@ const AdminPanel = () => {
   const [mobileDropdownOpen, setMobileDropdownOpen] = useState(false);
 
   const tabs = [
-    { id: "dashboard", name: "Dashboard", icon: FiBarChart2, color: "red" },
-    { id: "stock", name: "Stock", icon: FiPackage, color: "green" },
-    { id: "products", name: "Products", icon: FiPackage, color: "green" },
-    { id: "orders", name: "Orders", icon: FiShoppingBag, color: "green" },
-    { id: "customers", name: "Customers", icon: FiUsers, color: "green" },
-    { id: "delivery", name: "Delivery", icon: FiTruck, color: "green" },           
-    { id: "promotions", name: "Promotions", icon: FiSend, color: "yellow" },
-    { id: "backups", name: "Backups", icon: LuDatabaseBackup, color: "yellow" },
-    { id: "settings", name: "Settings", icon: FiSettings, color: "yellow" }
+    { id: "dashboard", name: "Dashboard", icon: FiBarChart2, color: "black" },
+    { id: "stock", name: "Stock", icon: FiPackage, color: "black" },
+    { id: "products", name: "Products", icon: FiPackage, color: "black" },
+    { id: "orders", name: "Orders", icon: FiShoppingBag, color: "black" },
+    { id: "customers", name: "Customers", icon: FiUsers, color: "black" },
+    { id: "delivery", name: "Delivery", icon: FiTruck, color: "black" },           
+    { id: "promotions", name: "Promotions", icon: FiSend, color: "black" },
+    { id: "backups", name: "Backups", icon: LuDatabaseBackup, color: "black" },
+    { id: "settings", name: "Settings", icon: FiSettings, color: "black" }
   ];
 
   const getTabColorClasses = (tabId, isActive) => {

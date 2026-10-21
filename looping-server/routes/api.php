@@ -11,7 +11,9 @@ use App\Http\Controllers\Basic\AddressController;
 use App\Http\Controllers\Basic\ProfileController;
 use App\Http\Controllers\Basic\ProductController;
 use App\Http\Controllers\Basic\PixPaymentController;
+use App\Http\Controllers\Basic\BoletoPaymentController;
 use App\Http\Controllers\Basic\OrderInfoController;
+use App\Http\Controllers\Basic\OrderController;
 use App\Http\Controllers\Basic\StockController;
 use App\Http\Controllers\Basic\PasswordResetController;
 use App\Http\Controllers\Basic\ResendVerificationController;
@@ -20,11 +22,11 @@ use App\Http\Controllers\Basic\UploadController;
 use App\Http\Controllers\Basic\WishlistController;
 use App\Http\Controllers\Basic\CartController;
 use App\Http\Controllers\SearchController;
-use App\Http\Controllers\TestController;
+// use App\Http\Controllers\TestController;
 use App\Http\Controllers\SimpleSearchController;
-use App\Http\Controllers\DebugController;
+// use App\Http\Controllers\DebugController;
 
-use MongoDB\Client; 
+use MongoDB\Client;
 use MongoDB\BSON\ObjectId;
 use App\Models\Wishlist;
 
@@ -37,11 +39,12 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return response()->json($request->user());
 });
 
+
 Route::middleware('auth:sanctum')->put('/user/{id}', function (Request $request, $id) {
     if ($request->user()->id != $id) {
         return response()->json(['error' => 'Unauthorized'], 403);
     }
-    
+
     $request->user()->update($request->only([
         'nome',
         'email',
@@ -140,7 +143,7 @@ Route::delete('/products/{id}', function ($id) {
     }
 });
 
-Route::middleware(['auth:sanctum', 'admin'])->get('/admin/products', function () { 
+Route::middleware(['auth:sanctum', 'admin'])->get('/admin/products', function () {
     try {
         $client = new MongoDB\Client(env('MONGO_URI'));
         $db = $client->selectDatabase(env('MONGO_DB'));
@@ -164,7 +167,7 @@ Route::post('/debug-upload', function (Request $request) {
     Log::info('Has file: ' . ($request->hasFile('image') ? 'YES' : 'NO'));
     Log::info('All files:', $request->allFiles());
     Log::info('All input:', $request->all());
-    
+
     if ($request->hasFile('image')) {
         $file = $request->file('image');
         Log::info('File details:', [
@@ -174,9 +177,9 @@ Route::post('/debug-upload', function (Request $request) {
             'extension' => $file->getClientOriginalExtension(),
         ]);
     }
-    
+
     Log::info('=== DEBUG UPLOAD END ===');
-    
+
     return response()->json([
         'success' => true,
         'message' => 'Debug endpoint working',
@@ -202,6 +205,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/cart/{productId}', [CartController::class, 'updateQuantity']);
     Route::delete('/cart/{productId}', [CartController::class, 'removeFromCart']);
     Route::delete('/cart', [CartController::class, 'clearCart']);
+
+    // Order routes
+    Route::get('/orders', [OrderController::class, 'index']);
+    Route::post('/orders', [OrderController::class, 'store']);
+    Route::get('/orders/{id}', [OrderController::class, 'show']);
+    Route::put('/orders/{id}', [OrderController::class, 'update']);
+    Route::delete('/orders/{id}', [OrderController::class, 'destroy']);
 });
 
 // Search routes (using SimpleSearchController as fallback)
@@ -210,10 +220,10 @@ Route::get('/search/suggestions', [SimpleSearchController::class, 'suggestions']
 Route::get('/search/categories', [SimpleSearchController::class, 'categories']);
 
 // Test routes
-Route::get('/test/connection', [TestController::class, 'testConnection']);
-Route::get('/test/meilisearch', [TestController::class, 'testMeilisearch']);
-Route::get('/debug/database', [DebugController::class, 'testDatabase']);
-Route::get('/debug/search', [DebugController::class, 'testSearchQuery']);
+// Route::get('/test/connection', [TestController::class, 'testConnection']);
+// Route::get('/test/meilisearch', [TestController::class, 'testMeilisearch']);
+// Route::get('/debug/database', [DebugController::class, 'testDatabase']);
+// Route::get('/debug/search', [DebugController::class, 'testSearchQuery']);
 
 
 // Info routes
@@ -223,8 +233,8 @@ Route::delete('/infos/{id}', [OrderInfoController::class, 'destroy']);
 Route::post('/infos', [OrderInfoController::class, 'store']);
 Route::post('/infos/generate-samples', [OrderInfoController::class, 'generateSamples']);
 Route::delete('/admin/infos/clear', [OrderInfoController::class, 'clearAll']);
-Route::get('/infos/all', [OrderInfoController::class, 'getCustomersFromOrders']); 
-Route::get('/infos/stats', [OrderInfoController::class, 'getCustomerStats']); 
+Route::get('/infos/all', [OrderInfoController::class, 'getCustomersFromOrders']);
+Route::get('/infos/stats', [OrderInfoController::class, 'getCustomerStats']);
 Route::get('/infos/{email}', [OrderInfoController::class, 'getCustomerByEmail']);
 Route::get('/infos/search/customers', [OrderInfoController::class, 'searchCustomers']);
 
@@ -249,27 +259,35 @@ Route::post('/pix/generate', [PixPaymentController::class, 'generatePix']);
 Route::get('/pix/status/{orderId}', [PixPaymentController::class, 'checkPaymentStatus']);
 Route::post('/pix/webhook', [PixPaymentController::class, 'handleWebhook']);
 
+// Boleto routes
+Route::post('/boleto/generate', [BoletoPaymentController::class, 'generateBoleto']);
+Route::get('/boleto/status/{orderId}', [BoletoPaymentController::class, 'checkPaymentStatus']);
+
 // Password reset routes
 Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink']);
 Route::post('/reset-password', [PasswordResetController::class, 'resetPassword']);
 Route::post('/check-reset-token', [PasswordResetController::class, 'checkToken']);
 
+// Password update route for authenticated users
+Route::post('/password', [PasswordResetController::class, 'updatePassword'])
+    ->middleware('auth:sanctum');
+
 // Email verification
 Route::post('/email/verification-resend', function (Request $request) {
     $request->validate(['email' => 'required|email']);
-    
+
     $user = \App\Models\User::where('email', $request->email)->first();
-    
+
     if (!$user) {
         return response()->json(['message' => 'Usuário não encontrado.'], 404);
     }
-    
+
     if ($user->hasVerifiedEmail()) {
         return response()->json(['message' => 'Email já verificado.'], 400);
     }
-    
+
     $user->sendEmailVerificationNotification();
-    
+
     return response()->json(['message' => 'Email de verificação reenviado!']);
 });
 
@@ -282,17 +300,17 @@ Route::prefix('basic')->group(function () {
     Route::post('/register', [RegisterController::class, 'register']);
     Route::post('/login', [LoginController::class, 'login']);
     Route::post('/logout', [LoginController::class, 'logout']);
-    
+
     // User routes
     Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
         return response()->json($request->user());
     });
-    
+
     Route::middleware('auth:sanctum')->put('/user/{id}', function (Request $request, $id) {
         if ($request->user()->id != $id) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
-        
+
         $request->user()->update($request->only([
             'nome',
             'email',
@@ -305,7 +323,7 @@ Route::prefix('basic')->group(function () {
 
         return response()->json($request->user());
     });
-    
+
     // Address routes
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/addresses', [AddressController::class, 'index']);
@@ -313,7 +331,7 @@ Route::prefix('basic')->group(function () {
         Route::put('/addresses/{id}', [AddressController::class, 'update']);
         Route::delete('/addresses/{id}', [AddressController::class, 'destroy']);
     });
-    
+
     // Wishlist routes
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/wishlist', [WishlistController::class, 'index']);
@@ -322,7 +340,7 @@ Route::prefix('basic')->group(function () {
         Route::get('/wishlist/check/{productId}', [WishlistController::class, 'check']);
         Route::get('/wishlist/count', [WishlistController::class, 'count']);
     });
-    
+
     // Cart routes
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/cart', [CartController::class, 'index']);
@@ -333,9 +351,9 @@ Route::prefix('basic')->group(function () {
         Route::delete('/cart/{productId}', [CartController::class, 'removeFromCart']);
         Route::delete('/cart', [CartController::class, 'clearCart']);
     });
-    
 
-    
+
+
     // Stock routes
     Route::put('/stock/sync-order', [StockController::class, 'syncOrderStock'])->name('stock.sync-order');
     Route::put('/stock/reverse-order', [StockController::class, 'reverseOrderStock'])->name('stock.reverse-order');
@@ -351,20 +369,19 @@ Route::prefix('basic')->group(function () {
     Route::post('/stock/samples', [StockController::class, 'store'])->name('stock.store');
     Route::delete('/stock/variant/{id}', [StockController::class, 'destroy'])->name('stock.destroy-variant');
     Route::delete('/stock/product/{productId}', [StockController::class, 'destroyByProductId'])->name('stock.destroy-product');
-    
+
     // PIX routes
     Route::post('/pix/generate', [PixPaymentController::class, 'generatePix']);
     Route::get('/pix/status/{orderId}', [PixPaymentController::class, 'checkPaymentStatus']);
     Route::post('/pix/webhook', [PixPaymentController::class, 'handleWebhook']);
-    
+
     // Password reset routes
     Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink']);
     Route::post('/reset-password', [PasswordResetController::class, 'resetPassword']);
     Route::post('/check-reset-token', [PasswordResetController::class, 'checkToken']);
-    
-    // Upload routes
-    Route::post('/upload', [UploadController::class, 'store']);
-     
+
+
+
 });
 
 

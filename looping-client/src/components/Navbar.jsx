@@ -6,184 +6,19 @@ import { FaPlus, FaMinus } from "react-icons/fa";
 import { CiSquarePlus, CiSquareMinus } from "react-icons/ci";
 import { IoOpenOutline } from "react-icons/io5";
 import { BsSquare } from "react-icons/bs";
-import logo from '../assets/finito.png';
 import enFlag from "../assets/us.png";
 import ptFlag from "../assets/br.png";
-import eightBall from "../assets/8ball.png";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import SearchBar from './Basic/SearchBar';
-
-const categories = [
-  "Finito", "Música", "Games", "Cinema", "Esportes",
-  "Viagem", "Motociclismo",
-  "Tecnologia", "Profissões", "Países", "Engraçados", "Motivacional", "Política", "Gênios", "Memes", "Psicodélico", "Minimalismo", "Sustentável", "Sci-Fi", "Espiritualidade", "Astrologia", "Aleatório"
-];
-
-// Subcategorias de Esportes
-const sportsSubcategories = [
-  "Fitness", "Futebol", "Basquete", "Skateboarding", "Luta", "Hiking"
-];
-
-// Subcategorias de Cinema
-const cinemaSubcategories = [
-  "Desenhos", "Filmes", "Séries", "Super-heróis"
-];
-
-// Subcategorias de Espiritualidade
-const spiritualitySubcategories = [
-  "Yoga", "Cristianismo", "Judaismo", "Hinduismo", "Islamismo", "Esoterismo", "Espiritismo", "Umbanda", "Candomblé", "Bruxaria", "Mitologia"
-];
-
-// Music Subcategories - Updated structure with separate tabs for each major genre
-const musicSubcategories = {
-  "Rock": {
-    "Classic Rock / Mainstream": [
-      "Classic rock", "Soft rock", 
-      "Pop rock", "Blues rock", "Folk rock", "Garage rock", "Rock Brasileiro"
-    ],
-    "Punk & Alternative": [
-      "Punk rock", "Post-punk", "Hardcore punk", "Pop punk",
-      "Emo / Post-emo", "Indie rock", "Grunge", "Post-grunge", "Noise rock", "College rock",
-      "Shoegaze", "Dream pop", "Post-rock", "Britpop"
-    ],
-    "Progressive / Experimental": [
-      "Progressive rock (Prog rock)", "Art rock", "Psychedelic rock",
-      "Krautrock", "Space rock", "Math rock", "Avant-rock", "Experimental rock"
-    ],
-    "Hard Rock / Arena Rock": [
-      "Hard rock", "Arena rock / Stadium rock", "Southern rock",
-      "Glam rock / Glitter rock", "Boogie rock"
-    ],
-    "Outros / Regional": [
-      "Surf rock", "Rockabilly", "Garage rock revival",
-      "Stoner rock", "Neo-psychedelia", "Desert rock", "Tropical rock"
-    ]
-  },
-  "Metal": {
-    "Traditional / Classic Metal": [
-      "Heavy metal", "NWOBHM (New Wave of British Heavy Metal)",
-      "Speed metal", "Power metal", "US power metal"
-    ],
-    "Extreme Metal": [
-      "Thrash metal", "Death metal", "Black metal", "Doom metal",
-      "Viking / Folk metal", "Gothic metal", "Melodic death metal",
-      "Symphonic black metal", "Funeral doom"
-    ],
-    "Modern / Fusion Metal": [
-      "Metalcore", "Deathcore", "Progressive metal", "Industrial metal",
-      "Nu-metal", "Alternative metal", "Symphonic metal", "Rap metal"
-    ],
-    "Derivative / Experimental Styles": [
-      "Stoner metal", "Sludge metal", "Post-metal", "Djent", "Groove metal",
-      "Avant-garde metal", "Neoclassical metal"
-    ]
-  },
-  "Rap & Hip Hop": {
-    "Old School & Boom Bap": [
-      "Old school hip hop", "Boom bap", "Jazz rap",
-      "Golden age hip hop", "Underground hip hop"
-    ],
-    "Modern Styles": [
-      "Trap", "Drill", "Mumble rap", "Cloud rap",
-      "Emo rap", "Alternative hip hop"
-    ],
-    "Regional & Geographic": [
-      "East Coast hip hop", "West Coast hip hop", "Southern hip hop",
-      "Midwest hip hop", "UK drill", "Latin hip hop"
-    ],
-    "Subgêneros Específicos": [
-      "Gangsta rap", "Conscious hip hop", "Political hip hop",
-      "Hardcore hip hop", "Horrorcore", "Comedy hip hop"
-    ]
-  },
-  "Reggae": {
-    "Estilos Tradicionais": [
-      "Roots reggae", "Rocksteady", "Ska",
-      "Early reggae", "Dub"
-    ],
-    "Estilos Modernos": [
-      "Dancehall", "Raggamuffin", "Reggae fusion",
-      "Lovers rock", "Modern roots"
-    ],
-    "Fusões Regionais": [
-      "Reggae brasileiro", "Reggae mexicano", "UK reggae",
-      "African reggae", "Spanish reggae"
-    ]
-  },
-  "Pop": {
-    "Pop Mainstream": [
-      "Pop mainstream", "Dance-pop", "Teen pop",
-      "Bubblegum pop", "Latin pop"
-    ],
-    "Pop Alternativo": [
-      "Indie pop", "Dream pop", "Baroque pop",
-      "Orchestral pop", "Chamber pop"
-    ],
-    "Pop Eletrônico": [
-      "Synth-pop", "Electropop", "Europop",
-      "Italo disco", "Futurepop"
-    ],
-    "Pop Internacional": [
-      "K-pop", "J-pop", "C-pop",
-      "Latin pop", "World pop"
-    ]
-  },
-  "Eletrônica": {
-    "House": [
-      "Deep house", "Tech house", "Progressive house",
-      "Electro house", "French house"
-    ],
-    "Techno": [
-      "Detroit techno", "Minimal techno", "Industrial techno",
-      "Acid techno", "Hard techno"
-    ],
-    "Brasileira": [
-      "Funk carioca", "Brega funk", "Tecnobrega",
-      "Brazilian bass", "Samba rock"
-    ],
-    "Outros Estilos": [
-      "Trance", "Dubstep", "Drum & Bass",
-      "Ambient", "IDM", "Downtempo"
-    ]
-  },
-  "Outros": {
-    "Brasileira": [
-      "MPB", "Samba", "Forró", "Axé",
-      "Pagode", "Bossa nova", "Sertanejo"
-    ],
-    "Internacional": [
-      "R&B", "Soul", "Funk", "Jazz",
-      "Blues", "Country", "Folk"
-    ],
-    "Clássica & Erudita": [
-      "Música clássica", "Ópera", "Barroco",
-      "Romantismo", "Contemporânea"
-    ],
-    "Diversos": [
-      "Gospel", "New age", "World music",
-      "Experimental", "Avant-garde"
-    ]
-  }
-};
-
-const products = [
-  "Masculino",
-  "Feminino",  
-  "Infantil",  
-  "Camisetas",
-  "Regatas",
-  "Blusas",
-  "Shorts",
-  "Toucas",
-  "Bonés",
-  "Meias",
-  "Chinelos",
-  "Óculos",     
-  "Canecas",
-  "Almofadas",
-  "Tapetes",
-  "Ingressos"
-];
+import AudioPlayer from './AudioPlayer';
+import {
+  categories,
+  sportsSubcategories,
+  cinemaSubcategories,
+  spiritualitySubcategories,
+  musicSubcategories,
+  products
+} from "../config/navigationData";
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -315,7 +150,7 @@ const Navbar = () => {
     const controller = new AbortController();
     const timeout = setTimeout(async () => {
       try {
-        const response = await fetch(`http://localhost:8000/api/search/suggestions?q=${encodeURIComponent(q)}`, {
+        const response = await fetch(`/api/search/suggestions?q=${encodeURIComponent(q)}`, {
           signal: controller.signal
         });
         const data = await response.json();
@@ -328,7 +163,7 @@ const Navbar = () => {
           const suggestionsWithImages = await Promise.all(
             apiSuggestions.map(async (suggestion) => {
               try {
-                const productResponse = await fetch(`http://localhost:8000/api/search?q=${encodeURIComponent(suggestion.title)}`);
+                const productResponse = await fetch(`/api/search?q=${encodeURIComponent(suggestion.title)}`);
                 const productData = await productResponse.json();
                 const products = Array.isArray(productData?.hits) ? productData.hits : [];
                 const matchingProduct = products.find(p => p.title?.toLowerCase() === suggestion.title?.toLowerCase());
@@ -386,17 +221,17 @@ const Navbar = () => {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (profileRef.current && !profileRef.current.contains(event.target)) {
+      if (profileRef.current && !profileRef.current.contains(event.target) && !event.target.closest('.profile-toggle-btn')) {
         setProfileOpen(false);
       }
 
-      if (cartRef.current && !cartRef.current.contains(event.target)) {
+      if (cartRef.current && !cartRef.current.contains(event.target) && !event.target.closest('.cart-toggle-btn')) {
         setCartOpen(false);
       }
 
       const clickedInsideNavbar = navRef.current && navRef.current.contains(event.target);
       const clickedInsideSuggestions = suggestionsRef.current && suggestionsRef.current.contains(event.target);
-      
+
       if (!clickedInsideNavbar && !clickedInsideSuggestions) {
         setSuggestionsOpen(false);
       }
@@ -407,20 +242,33 @@ const Navbar = () => {
 
   useEffect(() => {
     const checkAuthStatus = () => {
-      const token = localStorage.getItem("token");
-      const storedStatus = localStorage.getItem("loggedIn");
-      const user = localStorage.getItem("user");
-      
-      const isAuthenticated = (token !== null && token !== "null") || 
-                             (storedStatus === "true") || 
-                             (user && user !== "null" && user !== "{}");
-      
-      console.log("Navbar Auth check:", { token, storedStatus, user, isAuthenticated });
+      // Check both localStorage and sessionStorage for authentication
+      const localStorageLoggedIn = localStorage.getItem("loggedIn") === "true";
+      const sessionStorageLoggedIn = sessionStorage.getItem("loggedIn") === "true";
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      const user = localStorage.getItem("user") || sessionStorage.getItem("user");
+
+      // Less strict authentication check - require login status OR valid token/user
+      const isAuthenticated = ((localStorageLoggedIn || sessionStorageLoggedIn) || 
+        (token !== null && token !== "null" && token !== undefined) ||
+        (user && user !== "null" && user !== "{}" && user !== undefined));
+
+      console.log("Navbar Auth check:", { 
+        localStorageLoggedIn, 
+        sessionStorageLoggedIn, 
+        token, 
+        user, 
+        isAuthenticated 
+      });
       setLoggedIn(isAuthenticated);
-      
-      // Fetch cart if user is authenticated
+
+      // Only fetch cart if user is properly authenticated
       if (isAuthenticated) {
         fetchCart();
+      } else {
+        // Clear cart data when not authenticated
+        setCartItems([]);
+        setCartTotal(0);
       }
     };
 
@@ -430,9 +278,9 @@ const Navbar = () => {
       if (e.key === "loggedIn" || e.key === "token" || e.key === "user") {
         const oldLoggedIn = e.oldValue === "true";
         const newLoggedIn = e.newValue === "true";
-        
+
         checkAuthStatus();
-        
+
         // Fetch cart when user logs in
         if (!oldLoggedIn && newLoggedIn) {
           fetchCart();
@@ -446,12 +294,79 @@ const Navbar = () => {
       fetchCart();
     };
 
+    const handleCartUpdate = (event) => {
+      console.log("Navbar: Cart update event received:", event.detail);
+
+      // Handle different cart actions
+      if (event.detail?.action === 'add') {
+        // Add item to local state immediately for instant feedback
+        const newItem = {
+          id: event.detail.product.id,
+          product_id: event.detail.product.id,
+          name: event.detail.product.title,
+          title: event.detail.product.title,
+          price: 0, // Will be updated when API returns
+          quantity: 1,
+          image: null // Will be updated when API returns
+        };
+
+        setCartItems(prev => {
+          const existingItem = prev.find(item => (item.id || item.product_id) === newItem.id);
+          if (existingItem) {
+            // Update existing item quantity
+            return prev.map(item =>
+              (item.id || item.product_id) === newItem.id
+                ? { ...item, quantity: item.quantity + 1 }
+                : item
+            );
+          } else {
+            // Add new item
+            return [...prev, newItem];
+          }
+        });
+
+        // Update total immediately (estimated)
+        setCartTotal(prev => prev + 1);
+      } else if (event.detail?.action === 'update') {
+        // Handle quantity updates from CartTab
+        setCartItems(prev => {
+          const updatedItems = prev.map(item =>
+            (item.id || item.product_id) === event.detail.product_id
+              ? { ...item, quantity: event.detail.quantity }
+              : item
+          );
+
+          // Recalculate total based on updated items
+          const newTotal = updatedItems.reduce((sum, item) => sum + item.quantity, 0);
+          setCartTotal(newTotal);
+
+          return updatedItems;
+        });
+      } else if (event.detail?.action === 'remove') {
+        // Handle item removal from CartTab
+        setCartItems(prev => {
+          const removedQuantity = event.detail.quantity || 1;
+          const updatedItems = prev.filter(item => (item.id || item.product_id) !== event.detail.product_id);
+
+          // Update total immediately by subtracting removed quantity
+          setCartTotal(currentTotal => Math.max(0, currentTotal - removedQuantity));
+
+          return updatedItems;
+        });
+      }
+
+      // Always fetch actual cart data from backend in background to sync
+      fetchCart();
+    };
+
     window.addEventListener("storage", handleStorageChange);
     window.addEventListener("loginStateChange", handleLoginStateChange);
-    
+    window.addEventListener("cartUpdated", handleCartUpdate);
+
     return () => {
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("loginStateChange", handleLoginStateChange);
+      window.removeEventListener("cartUpdated", handleCartUpdate);
     };
   }, []);
 
@@ -507,7 +422,7 @@ const Navbar = () => {
   const handleRegister = () => {
     setProfileOpen(false);
   };
-  
+
   const handleLogin = () => {
     setProfileOpen(false);
   };
@@ -519,13 +434,17 @@ const Navbar = () => {
     localStorage.removeItem("loggedIn");
     localStorage.removeItem("isAdmin");
     localStorage.removeItem("loginTimestamp");
-    
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("user");
+    sessionStorage.removeItem("loggedIn");
+    sessionStorage.removeItem("isAdmin");
+
     window.dispatchEvent(new Event("loginStateChange"));
     window.dispatchEvent(new StorageEvent('storage', {
       key: 'loggedIn',
       newValue: 'false'
     }));
-    
+
     setProfileOpen(false);
     navigate("/");
   };
@@ -535,13 +454,13 @@ const Navbar = () => {
     try {
       setLoadingCart(true);
       console.log("🔄 Navbar: Fetching cart from API...");
-    
-      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+
+      await fetch("/sanctum/csrf-cookie", {
         method: "GET",
         credentials: "include",
       });
-    
-      const res = await fetch("http://localhost:8000/api/cart", {
+
+      const res = await fetch("/api/cart", {
         method: "GET",
         credentials: "include",
         headers: {
@@ -549,28 +468,28 @@ const Navbar = () => {
           "X-Requested-With": "XMLHttpRequest",
         },
       });
-    
+
       console.log("🔥 Navbar: Cart response status:", res.status);
-    
+
       if (res.status === 401) {
         console.log("🚨 Navbar: 401 - Not authenticated for cart");
         setCartItems([]);
         setCartTotal(0);
         return;
       }
-    
+
       if (!res.ok) {
         const errorData = await res.json();
         console.error("🚨 Navbar: Cart API error:", errorData);
         throw new Error(`Cart Error: ${errorData.message || 'Unknown error'}`);
       }
-    
+
       const data = await res.json();
       console.log("✅ Navbar: CART LOADED:", data);
-      
+
       setCartItems(data.cart || []);
       setCartTotal(data.total || 0);
-    
+
     } catch (err) {
       console.error("❌ Navbar: Error fetching cart:", err.message);
       setCartItems([]);
@@ -613,7 +532,7 @@ const Navbar = () => {
   const ProfilePopup = () => (
     <div
       ref={profileRef}
-      className="absolute right-2 top-full mt-2 w-75 bg-white shadow-lg rounded-lg border border-gray-300 mr-2 p-3 z-50"
+      className="absolute right-0 top-full mt-2 w-64 bg-white shadow-lg rounded-lg border border-gray-300 mr-1 p-3 z-50"
       style={{ fontFamily: "Calibri, sans-serif" }}
     >
       <div className="flex items-center justify-center mb-2 space-x-2">
@@ -624,7 +543,7 @@ const Navbar = () => {
         <>
           <button
             className="w-full p-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition mb-2 flex items-center justify-center gap-2"
-            onClick={() => {                     
+            onClick={() => {
               const isAdmin = localStorage.getItem("isAdmin") === "true";
               if (isAdmin) {
                 navigate("/admin");
@@ -644,13 +563,13 @@ const Navbar = () => {
             Sair
           </button>
         </>
-      ) : (    
+      ) : (
         <>
           <button
             className="w-full p-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition mb-2 flex items-center justify-center gap-2"
-            onClick={() => { 
-              handleLogin(); 
-              setProfileOpen(false); 
+            onClick={() => {
+              handleLogin();
+              setProfileOpen(false);
               navigate("/login");
             }}
           >
@@ -659,7 +578,7 @@ const Navbar = () => {
 
           <button
             onClick={() => {
-              handleRegister();                               
+              handleRegister();
               setProfileOpen(false);
               navigate("/register");
             }}
@@ -673,186 +592,191 @@ const Navbar = () => {
   );
 
   const CartPopup = () => {
-  // Show only first 6 items in dropdown
-  const itemsToShow = cartItems.slice(0, 6);
-  const hasMoreItems = cartItems.length > 6;
-  const remainingCount = cartItems.length - 6;
+    // Show only first 6 items in dropdown
+    const itemsToShow = cartItems.slice(0, 6);
+    const hasMoreItems = cartItems.length > 6;
+    const remainingCount = cartItems.length - 6;
 
-  return (
-    <div
-      ref={cartRef}
-      className="absolute right-14 top-full mt-2 w-96 bg-white shadow-lg rounded-lg border border-gray-300 mr-2 p-4 z-50"
-      style={{ fontFamily: "Calibri, sans-serif" }}
-    >
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-2">
-          <FiShoppingCart className="text-xl sm:text-2xl text-gray-800" />
-          <span className="text-lg sm:text-xl font-bold text-gray-800">Carrinho</span>
-          <span className="text-sm text-gray-500">({getCartItemCount()} itens)</span>
-        </div>
-      </div>
-
-      {cartItems.length === 0 ? (
-        <div className="text-center py-8">
-          <FiShoppingCart className="text-4xl text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">Seu carrinho está vazio</p>
-        </div>
-      ) : (
-        <>
-          <div className="max-h-96 overflow-y-auto mb-4">
-            {itemsToShow.map((item) => (
-              <div key={item.id || item.product_id} className="flex items-center space-x-3 py-3 border-b border-gray-100 last:border-b-0">
-                <div className="w-23 h-23 bg-gray-100 rounded-md overflow-hidden flex-shrink-0">
-                  <img
-                    src={item.image || item.product?.image}
-                    alt={item.name || item.product?.name || 'Product'}
-                    className="w-full h-full"
-                  />
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-medium text-gray-800 truncate">
-                    {item.name || item.product?.name || 'Product'}
-                  </h4>
-                  <p className="text-sm font-bold text-gray-800">
-                    R$ {(item.price || item.product?.price || 0).toFixed(2)}
-                  </p>
-                  <p className="text-xs text-gray-500 truncate">
-                    {item.category || item.product?.category || 'Product'} • Qtd: {item.quantity}
-                  </p>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => updateQuantity(item.product_id, -1)}
-                    className="p-1 rounded-full hover:bg-gray-100"
-                    disabled={item.quantity <= 1}
-                  >
-                    <FaMinus className="text-xs text-gray-600" />
-                  </button>
-                  
-                  <span className="text-sm font-medium text-gray-800 min-w-6 text-center">
-                    {item.quantity}
-                  </span>
-                  
-                  <button
-                    onClick={() => updateQuantity(item.product_id, 1)}
-                    className="p-1 rounded-full hover:bg-gray-100"
-                  >
-                    <FaPlus className="text-xs text-gray-600" />
-                  </button>
-                  
-                  <button
-                    onClick={() => removeItem(item.product_id)}
-                    className="p-1 rounded-full hover:bg-red-50 ml-2"
-                  >
-                    <FiTrash2 className="text-sm text-red-500" />
-                  </button>
-                </div>
-              </div>
-            ))}
-            
-            {/* Show message if there are more items */}
-            {hasMoreItems && (
-              <div className="py-3 text-center">
-                <p className="text-sm text-gray-600">
-                  +{remainingCount} mais {remainingCount === 1 ? 'item' : 'itens'} no carrinho
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Veja todos no carrinho completo
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="border-t border-gray-200 pt-4">
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-lg font-bold text-gray-800">Total:</span>
-              <span className="text-xl font-bold text-red-600">
-                R$ {calculateTotal().toFixed(2)}
-              </span>
-            </div>
-            
-            <div className="space-y-2">
-                         
-              <button
-                onClick={() => {
-                  setCartOpen(false);
-                  navigate("/profile/cart");
-                }}
-                className="w-full p-2 bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200 transition flex items-center justify-center"
-              >
-                <span>Ver Carrinho Completo</span>
-                {hasMoreItems && (
-                  <span className="ml-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                    {cartItems.length}
-                  </span>
-                )}
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
-};
-
- // Componente para as abas de música - agora como seções expansíveis
-const MusicTabs = () => (
-  <div className="mt-3 ml-1 space-y-4">
-    {Object.keys(musicSubcategories).map((tab) => (
-      <div key={tab} className="space-y-2">
-        <div className="flex justify-between items-center p-1">
-          <h4 className="text-gray-800 text-2xl md:text-3xl cursor-pointer hover:text-yellow-400">
-            {tab}
-          </h4>
-          <div className="flex items-center space-x-1">
-            <span 
-              className="text-4xl md:text-3xl cursor-pointer text-gray-800"
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleTabExpanded(tab);
-              }}
-            >
-              {expandedTabs[tab] ? <CiSquareMinus /> : <CiSquarePlus />}
-            </span>
+    return (
+      <div
+        ref={cartRef}
+        className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white shadow-lg rounded-lg border border-gray-300 p-4 z-50 max-w-[calc(100vw-2rem)]"
+        style={{ fontFamily: "Calibri, sans-serif" }}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-2">
+            <FiShoppingCart className="text-xl sm:text-2xl text-gray-800" />
+            <span className="text-lg sm:text-xl font-bold text-gray-800">Carrinho</span>
+            <span className="text-sm text-gray-500">({getCartItemCount()} itens)</span>
           </div>
         </div>
-        
-        {expandedTabs[tab] && (
-          <div className="mt-2 ml-1 space-y-4">
-            {Object.entries(musicSubcategories[tab]).map(([category, subgenres], catIndex) => (
-              <div key={catIndex} className="space-y-3">
-                <h6 className="font-semibold text-gray-800 text-xl md:text-lg cursor-pointer hover:text-yellow-400 mb-1">
-                  {category}
-                </h6>
-                <ul className="space-y-1 ml-1">
-                  {subgenres.map((subgenre, subIndex) => (
-                    <li
-                      key={subIndex}
-                      className="p-1 rounded text-gray-800 text-xl md:text-lg"
-                      style={{ fontFamily: "Calibri, sans-serif" }}
+
+        {cartItems.length === 0 ? (
+          <div className="text-center py-8">
+            <FiShoppingCart className="text-4xl text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500">Seu carrinho está vazio</p>
+          </div>
+        ) : (
+          <>
+            <div className="max-h-96 overflow-y-auto mb-4">
+              {itemsToShow.map((item) => (
+                <div key={item.id || item.product_id} className="flex items-center space-x-3 py-3 border-b border-gray-100 last:border-b-0">
+                  <div className="w-23 h-23 bg-white rounded-md overflow-hidden flex-shrink-0">
+                    <img
+                      src={(item.image || item.product?.image || "").replace("http://localhost:8000", "http://localhost:8888")}
+                      alt={item.name || item.product?.name || 'Product'}
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-medium text-gray-800 truncate">
+                      {item.name || item.product?.name || 'Product'}
+                    </h4>
+                    <p className="text-sm font-bold text-gray-800">
+                      R$ {(item.price || item.product?.price || 0).toFixed(2)}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {item.category || item.product?.category || 'Product'} • Qtd: {item.quantity}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => updateQuantity(item.product_id, -1)}
+                      className="p-1 rounded-full hover:bg-gray-100"
+                      disabled={item.quantity <= 1}
                     >
-                      {subgenre}
-                    </li>
-                  ))}
-                </ul>
+                      <FaMinus className="text-xs text-gray-600" />
+                    </button>
+
+                    <span className="text-sm font-medium text-gray-800 min-w-6 text-center">
+                      {item.quantity}
+                    </span>
+
+                    <button
+                      onClick={() => updateQuantity(item.product_id, 1)}
+                      className="p-1 rounded-full hover:bg-gray-100"
+                    >
+                      <FaPlus className="text-xs text-gray-600" />
+                    </button>
+
+                    <button
+                      onClick={() => removeItem(item.product_id)}
+                      className="p-1 rounded-full hover:bg-red-50 ml-2"
+                    >
+                      <FiTrash2 className="text-sm text-red-500" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              {/* Show message if there are more items */}
+              {hasMoreItems && (
+                <div className="py-3 text-center">
+                  <p className="text-sm text-gray-600">
+                    +{remainingCount} mais {remainingCount === 1 ? 'item' : 'itens'} no carrinho
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Veja todos no carrinho completo
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-gray-200 pt-4">
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-lg font-bold text-gray-800">Total:</span>
+                <span className="text-xl font-bold text-red-600">
+                  R$ {calculateTotal().toFixed(2)}
+                </span>
               </div>
-            ))}
-          </div>
+
+              <div className="space-y-2">
+
+                <button
+                  onClick={() => {
+                    setCartOpen(false);
+                    navigate("/profile/cart");
+                  }}
+                  className="w-full p-2 bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200 transition flex items-center justify-center"
+                >
+                  <span>Ver Carrinho Completo</span>
+                  {hasMoreItems && (
+                    <span className="ml-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                      {cartItems.length}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
+          </>
         )}
       </div>
-    ))}
-  </div>
-);
+    );
+  };
+
+  // Componente para as abas de música - agora como seções expansíveis
+  const MusicTabs = () => (
+    <div className="mt-3 ml-1 space-y-4">
+      {Object.keys(musicSubcategories).map((tab) => (
+        <div key={tab} className="space-y-2">
+          <div className="flex justify-between items-center p-1">
+            <h4 className="text-gray-800 text-2xl md:text-3xl cursor-pointer hover:text-yellow-400">
+              {tab}
+            </h4>
+            <div className="flex items-center space-x-1">
+              <span
+                className="text-4xl md:text-3xl cursor-pointer text-gray-800"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleTabExpanded(tab);
+                }}
+              >
+                {expandedTabs[tab] ? <CiSquareMinus /> : <CiSquarePlus />}
+              </span>
+            </div>
+          </div>
+
+          {expandedTabs[tab] && (
+            <div className="mt-2 ml-1 space-y-4">
+              {Object.entries(musicSubcategories[tab]).map(([category, subgenres], catIndex) => (
+                <div key={catIndex} className="space-y-3">
+                  <h6 className="font-semibold text-gray-800 text-xl md:text-lg cursor-pointer hover:text-yellow-400 mb-1">
+                    {category}
+                  </h6>
+                  <ul className="space-y-1 ml-1">
+                    {subgenres.map((subgenre, subIndex) => (
+                      <li
+                        key={subIndex}
+                        className="p-1 rounded text-gray-800 text-xl md:text-lg"
+                        style={{ fontFamily: "Calibri, sans-serif" }}
+                      >
+                        {subgenre}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <>
+      {/* Audio Player - Fixed at top */}
+      <div className="fixed top-0 left-0 w-full z-50">
+        <AudioPlayer />
+      </div>
+      
       {/* Main Navbar - WHITE background with BLACK text/icons */}
-      <nav ref={navRef} className="bg-white shadow-md fixed top-0 left-0 w-full z-50 py-1 sm:py-2 md:py-2 lg:py-2 xl:py-2 2xl:py-2 border-b border-gray-200">
-        <div className="flex flex-col sm:flex-row justify-between sm:items-center">          
+      <nav ref={navRef} className="bg-white shadow-md fixed top-10 left-0 w-full z-40 py-1 sm:py-4 md:py-4 lg:py-4 xl:py-4 2xl:py-4 border-b border-gray-200">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center">
 
-       <div 
+          <div
             onClick={(e) => {
               e.preventDefault();
               if (window.location.pathname !== "/") {
@@ -867,7 +791,7 @@ const MusicTabs = () => (
             {/* Logo SVG - BLACK */}
             <svg viewBox="0 0 970 970" xmlns="http://www.w3.org/2000/svg" className="w-auto h-12 sm:h-13 md:h-14 lg:h-15 xl:h-16">
               <path d="M 406.617 913.539 C 361.002 905.487 297.406 874.062 249.066 835.687 C 167.369 770.831 113.36 680.183 96.0563 578.88 C 91.4632 551.99 90.5532 540.531 90.5859 510 c 0.04086 -38.1081 3.36073 -66.8921 11.4709 -99.4558 c 18.9388 -76.0422 57.7884 -144.109 113.07 -198.106 c 45.0029 -43.9569 93.0091 -73.9218 152.805 -95.3791 c 79.3373 -28.4695 163.724 -32.4217 246.849 -11.561 c 49.3718 12.3902 95.3767 33.1886 136.719 61.8095 c 26.0517 18.0354 39.8527 29.6522 62.2881 52.4305 c 40.8989 41.524 70.2914 88.2591 91.6724 145.762 c 12.3919 33.3276 20.6853 69.1819 24.7499 107 c 1.94095 18.0593 1.62111 64.5309 -0.56781 82.5 c -11.515 94.5279 -50.1329 175.302 -117.006 244.732 c -46.1619 47.9269 -112.163 88.8564 -172.663 107.073 c -33.3039 10.0281 -51.2658 10.3086 -70.6382 -1.10325 c -22.7917 -10.8302 -39.0726 -35.9109 -40.809 -62.8667 c -0.26721 -4.14805 -0.74081 -58.1842 -1.05245 -120.08 l -0.56662 -112.538 l 9.79641 -2.22765 c 22.0166 -5.00646 37.7526 -13.682 53.8628 -29.6955 c 20.7361 -20.6116 30.7758 -43.0846 30.8255 -69 c 0.0496 -25.8499 -9.44997 -49.1724 -27.8332 -68.3339 C 576.052 424.918 557.048 414.575 530.5 408.846 c -3.63149 -0.78365 -12.316 -1.25972 -22 -1.20601 c -13.8526 0.0768 -17.317 0.43686 -25.8132 2.68265 c -11.8751 3.13895 -23.2802 7.96351 -34.0055 14.3849 c -9.96552 5.96652 -26.647 22.1118 -32.8479 31.7921 c -19.1704 29.927 -20.832 66.7728 -4.47407 99.2115 c 10.2114 20.2498 29.5112 37.9812 51.7306 47.5265 C 472.483 607.273 487.882 612 491.635 612 h 2.41141 L 493.773 732.75 L 493.5 853.5 l -3.42019 9.8824 c -6.93452 20.0368 -19.7042 34.914 -37.7412 43.97 c -12.6176 6.33504 -30.8801 8.80603 -45.7216 6.18633 Z m 25.1091 -19.1172 c 15.7271 -3.24852 28.5407 -13.0761 35.8028 -27.4597 c 7.3471 -14.5518 6.85927 -6.30407 7.06574 -119.462 c 0.10236 -56.1 -0.034 -105.895 -0.303 -110.655 l -0.48912 -8.65538 l -7.65127 -2.71232 c -30.1108 -10.6741 -57.3188 -33.737 -71.6624 -60.7448 c -8.91207 -16.7806 -13.4943 -35.6831 -13.4813 -55.6131 c 0.009 -13.3422 0.98164 -20.3675 4.54079 -32.7868 c 10.7765 -37.6038 43.5924 -70.2854 82.9808 -82.6413 c 15.3919 -4.82835 22.9707 -5.95758 40.4709 -6.03013 c 17.889 -0.0742 28.3792 1.55683 44.6041 6.93498 c 31.5066 10.4437 60.8521 35.6217 75.0077 64.3557 c 21.3491 43.3357 14.5155 92.0273 -18.176 129.511 c -14.0383 16.0963 -37.7777 31.613 -57.6038 37.6515 l -6.66797 2.03088 l 0.43215 100.178 C 546.834 783.42 547.217 833 547.447 838.5 c 0.7534 17.9956 5.45322 30.1165 16.0212 41.3191 c 7.75357 8.2192 14.8426 12.2237 26.0554 14.7183 c 9.23693 2.05502 18.296 1.06298 36.9305 -4.04417 c 33.0918 -9.06945 69.3079 -25.8596 101.85 -47.2187 C 798.524 797.185 852.511 733.317 881.955 661.5 C 917.815 574.035 922.113 485.208 894.844 395.109 C 871.897 319.291 829.746 255.529 769.466 205.451 C 742.761 183.265 723.378 170.723 691.5 155.003 C 646.206 132.668 605.1 120.598 553 114.335 c -20.4335 -2.45606 -69.0585 -2.46831 -88 -0.0222 c -49.5577 6.39998 -91.429 18.6758 -132.818 38.9393 c -41.4536 20.2953 -72.3496 42.6811 -107.192 77.6661 c -37.7535 37.9082 -64.21 77.523 -85.2675 127.676 c -31.6724 75.434 -38.6573 164.76 -19.1112 244.406 c 20.3391 82.8768 64.8933 153.618 132.949 211.093 C 300.77 853.961 362.62 885.458 411.5 894.521 c 9.4161 1.746 11.3351 1.73652 20.2261 -0.1 Z M 422 867.467 C 359.165 852.772 299.168 819.777 251.132 773.5 C 205.241 729.289 169.706 670.599 152.136 610 C 133.207 544.713 133.186 474.848 152.077 409 C 186.203 290.045 276.066 198.006 395.5 159.685 c 65.0622 -20.8757 136.292 -22.9715 205.493 -6.04624 c 53.4793 13.0802 103.014 37.129 144.507 70.1569 c 74.2976 59.1399 120.976 140.813 135.568 237.204 c 2.94371 19.4454 3.71582 59.7349 1.57145 82 c -3.796 39.4139 -12.5362 73.8127 -27.523 108.323 C 840.584 684.786 817.94 720.9 795.128 747 C 748.21 800.678 688.936 839.554 622 860.55 c -15.4101 4.83378 -31.2144 8.45979 -36.7326 8.42762 c -5.22165 -0.0304 -11.5235 -3.12279 -14.5081 -7.11919 c -2.9781 -3.98775 -5.07391 -7.87766 -4.53479 -8.41678 c 0.21265 -0.21265 5.31161 -1.32853 11.331 -2.47974 c 41.2868 -7.89603 80.7816 -23.1222 117.756 -45.3978 c 39.8663 -24.0179 79.0866 -60.3548 105.358 -97.6121 c 18.3977 -26.0915 36.193 -60.6684 46.0373 -89.4524 c 29.8108 -87.1642 22.5634 -180.556 -20.642 -266 c -4.72793 -9.35 -11.6991 -21.95 -15.4914 -28 C 782.922 280.387 742.93 241.356 698 214.63 C 652.035 187.289 603.049 171.122 544 163.804 c -15.7378 -1.94773 -57.1941 -1.6535 -74.5 0.5285 c -68.8786 8.68452 -130.775 34.1882 -181.697 74.8657 c -19.636 15.6858 -45.6417 42.5681 -61.2358 63.2999 c -44.3416 58.9506 -68.5767 132.015 -68.5641 206.708 c 0.005 32.1511 2.75433 55.2406 9.97599 83.7932 c 25.0984 99.2324 91.518 181.641 183.596 227.793 c 30.3465 15.2104 65.0543 26.712 94.9717 31.4721 c 4.09907 0.65219 7.45285 1.5567 7.45285 2.01002 c 0 1.7337 -2.93886 6.3339 -5.66072 8.86074 c -7.14659 6.63452 -12.633 7.5367 -26.3393 4.33119 Z m 17.9451 -45.9648 C 375.888 805.63 323.006 776.783 280.453 734.5 C 244.322 698.599 220.66 661.135 202.853 611.636 c -11.1452 -30.9795 -16.8781 -65.3704 -16.8994 -101.376 c -0.0356 -60.1032 15.0436 -113.956 46.3624 -165.575 c 41.7513 -68.8138 112.578 -121.221 191.553 -141.737 c 32.1735 -8.35795 49.3021 -10.4189 86.6319 -10.4237 c 27.1968 -0.004 32.8928 0.27764 46.4281 2.29159 c 22.6845 3.37528 38.5333 7.0741 58.2193 13.5873 C 683.871 231.141 744.283 277.109 783.495 336.5 c 34.2498 51.8754 52.6579 112.001 52.6596 172 c 0.004 138.011 -92.8846 262.106 -228.642 305.455 C 597.532 817.142 570.763 824 568.302 824 C 567.316 824 567 821.483 567 813.636 v -10.3641 l 4.25 -0.59737 c 2.3375 -0.32855 10.8325 -2.40926 18.8777 -4.6238 c 57.0672 -15.7084 109.009 -46.9938 146.732 -88.3793 c 42.314 -46.422 69.4912 -104.121 77.7985 -165.171 c 2.43147 -17.8688 2.41815 -54.2607 -0.026 -71 c -8.04837 -55.1214 -29.4724 -105.541 -62.7486 -147.674 c -10.3211 -13.0681 -33.3558 -35.8489 -47.099 -46.5798 c -62.3892 -48.7144 -137.098 -71.5716 -216.864 -66.3493 c -28.2471 1.84933 -49.2012 5.67039 -72.9205 13.2973 c -41.4524 13.3289 -76.7134 33.3166 -110.156 62.4419 c -42.312 36.8495 -76.4384 92.5357 -90.3096 147.364 c -11.4196 45.1379 -12.3959 89.3279 -2.96304 134.117 c 10.8756 51.6392 38.7609 104.847 74.6908 142.518 c 25.2882 26.5136 53.5654 47.3777 86.6304 63.9196 c 22.4807 11.2467 42.6101 18.5593 67.3575 24.4696 l 13.75 3.28381 v 9.84596 c 0 11.5879 0.98252 11.0742 -14.0549 7.34824 Z M 438.5 769.514 C 386.457 754.385 347.734 731.729 310.384 694.558 C 251.057 635.514 223.915 549.762 238.041 466 c 7.8668 -46.6481 25.7003 -86.5469 54.8617 -122.742 c 9.44375 -11.7215 32.3408 -34.243 44.0976 -43.3745 c 32.4163 -25.1776 74.9292 -44.6993 115.324 -52.9565 c 58.3435 -11.9259 120.818 -5.1253 174.762 19.0236 c 15.2683 6.83508 26.2752 12.996 41.3787 23.1613 c 55.1146 37.0943 93.4042 90.9042 110.569 155.387 c 13.0038 48.851 11.0265 100.061 -5.75309 149 c -5.19245 15.1441 -17.3988 40.9066 -25.8223 54.5 c -34.9691 56.4311 -93.7569 100.461 -159.959 119.804 c -7.7 2.24977 -15.4625 4.37498 -17.25 4.72268 l -3.25 0.6322 v -9.9699 v -9.96991 l 8.25 -2.21571 c 23.1156 -6.20819 52.0248 -18.7373 72.5992 -31.4641 C 714.648 678.219 758.366 609.823 767.078 533.007 C 768.565 519.889 767.745 489.458 765.514 475 C 757.737 424.599 734.98 378.168 700.332 342.01 C 671.936 312.377 641.122 291.971 603.95 278.182 C 568.63 265.082 527.39 259.14 490.427 261.827 C 409.046 267.742 337.105 309.805 292.874 377.333 C 266.096 418.217 252.864 466.153 254.32 517 c 1.78006 62.1607 25.1883 117.294 69.1386 162.843 c 31.8671 33.0258 75.5834 58.9823 118.348 70.2693 L 454 753.33 v 10.3349 c 0 5.68419 -0.1125 10.3067 -0.25 10.2723 c -0.1375 -0.0344 -7 -2.0248 -15.25 -4.42313 Z m 0 -50.9479 C 401.789 706.391 373.614 688.839 345.442 660.593 C 327.226 642.329 317.856 629.598 306.537 607.732 C 281.374 559.124 275.758 508.843 289.43 454.567 C 302.842 401.319 339.579 352.767 389 322.975 C 425.106 301.21 466.049 290 509.435 290 c 55.4837 0 105.669 17.3674 147.512 51.0488 c 32.2805 25.984 54.8465 57.2867 68.8698 95.5334 c 8.30552 22.6522 12.037 42.0397 12.8796 66.9178 c 0.87837 25.9347 -2.02006 46.1898 -10.1622 71.0163 c -15.1524 46.2017 -46.2546 86.9838 -87.1651 114.293 c -21.8482 14.5847 -54.7021 29.8096 -70.619 32.7258 L 567 722.223 V 712.111 C 567 703.927 567.277 702 568.456 702 c 2.56581 0 23.705 -8.5603 34.4291 -13.942 c 13.4216 -6.73545 26.1525 -14.64 38.0754 -23.641 c 10.1605 -7.67046 29.6251 -26.9915 37.1913 -36.917 c 29.5543 -38.77 44.8205 -87.6502 41.0189 -131.337 c -2.24958 -25.8512 -8.54056 -48.5231 -19.7962 -71.3431 c -10.26 -20.8014 -20.411 -35.5722 -34.8598 -50.7253 C 626.508 334.237 574.832 311.88 517 310.277 c -61.0213 -1.69144 -116.527 19.8168 -157.155 60.8967 c -38.1499 38.5743 -57.7601 84.9036 -57.8264 136.616 c -0.0378 29.4511 4.50504 52.1225 15.6219 77.9628 c 19.0964 44.3883 54.7091 81.1888 99.8598 103.19 c 6.6 3.21614 17.4 7.68708 24 9.93543 l 12 4.0879 l 0.28498 10.017 c 0.21805 7.66422 -0.0168 10.0026 -1 9.95589 c -0.70674 -0.0336 -7.13498 -2.00123 -14.285 -4.37251 Z m 5 -48.9542 c -23.5799 -9.5006 -41.8315 -21.2413 -59.4957 -38.2717 c -26.2553 -25.3132 -42.8041 -54.7188 -49.9975 -88.8405 c -3.03545 -14.3985 -3.79097 -40.3732 -1.5988 -54.9665 c 7.85366 -52.282 35.898 -93.462 83.8717 -123.156 c 16.1893 -10.0206 35.6539 -17.5904 57.7203 -22.4472 c 12.2143 -2.68839 43.3046 -3.75567 57.7103 -1.9811 c 48.0843 5.92329 88.9353 28.2142 120.131 65.551 c 18.8604 22.5736 30.4281 46.9944 36.3154 76.6662 c 3.18525 16.0536 3.22299 40.708 0.0862 56.3365 C 679.469 582.217 653.367 621.31 615 648.198 C 602.573 656.907 574.23 671 569.142 671 C 567.095 671 567 670.555 567 661 c 0 -7.32567 0.33429 -10.0038 1.25 -10.0144 c 2.43387 -0.028 21.9484 -9.98892 30.5382 -15.5878 c 35.152 -22.9123 58.4701 -55.1322 68.9346 -95.2507 c 2.58465 -9.90895 2.77518 -11.999 2.74826 -30.1471 c -0.0264 -17.7999 -0.2638 -20.4344 -2.72286 -30.2174 C 663.098 461.283 656.974 447.012 647.245 432 C 623.691 395.659 588.135 371.858 543.058 362.26 c -11.4394 -2.43586 -14.5186 -2.67459 -34.5584 -2.67926 c -20.5947 -0.005 -22.7665 0.17402 -34 2.79951 c -57.0378 13.3309 -99.4967 50.6634 -116.464 102.402 c -4.75926 14.5128 -7.03811 29.4226 -7.03042 45.9979 c 0.0193 41.5985 15.4447 77.1736 46.384 106.974 c 15.0938 14.538 37.6922 28.8949 52.4337 33.3115 L 454 652.317 v 10.3417 c 0 7.65058 -0.32528 10.3203 -1.25 10.2594 c -0.6875 -0.0453 -4.85 -1.53276 -9.25 -3.30557 Z" fill="black" stroke="black" strokeWidth="5" />
-            </svg> 
+            </svg>
 
             {/* Title SVG - BLACK */}
             <svg viewBox="0 0 600 200" xmlns="http://www.w3.org/2000/svg" className="w-auto ml-2 h-8 sm:h-9 md:h-10 lg:h-11 xl:h-12">
@@ -877,16 +801,16 @@ const MusicTabs = () => (
 
           <div className="flex flex-col sm:flex-row ml-2 mt-2 sm:mt-0 w-full sm:w-auto">
             <div className="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto">
-              <img 
-                src={currentFlag} 
-                alt={language === "en" ? "English" : "Português"} 
+              <img
+                src={currentFlag}
+                alt={language === "en" ? "English" : "Português"}
                 className="h-7 w-11 sm:h-8 sm:w-10 object-contain cursor-pointer"
                 onClick={toggleLanguage}
               />
 
               {/* Search Bar - Replace with functional SearchBar */}
-              <div className="relative flex-1 min-w-[150px] max-w-[350px] sm:max-w-[500px] w-full">
-                <SearchBar 
+              <div className="relative flex-1 min-w-[120px] max-w-[280px] sm:max-w-[500px] w-full sm:w-auto">
+                <SearchBar
                   onSearch={handleSearch}
                   placeholder="Procurar produtos..."
                   className="w-full"
@@ -898,49 +822,50 @@ const MusicTabs = () => (
               </div>
 
               {/* Cart and User Icons - BLACK */}
-              <div className="flex items-center space-x-2 sm:space-x-3 relative">
-                <button 
-                  className="p-2 sm:p-3 rounded-full hover:bg-gray-100 relative"
-                  onClick={() => {
-                    setCartOpen(prev => !prev);
-                    setProfileOpen(false);
-                  }}
-                >
-                  <FiShoppingCart className="text-2xl sm:text-3xl text-gray-800" />
-                  <span className="absolute -top-1 -right-1 sm:-top-1.5 sm:-right-1.5 bg-red-600 text-white text-xs sm:text-sm font-bold rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center">
-                    {getCartItemCount()}
-                  </span>
-                </button>
+              <div className="flex items-center space-x-1 sm:space-x-2 pr-2 sm:pr-0">
+                <div className="relative">
+                  <button
+                    className="cart-toggle-btn p-2 sm:p-3 rounded-full hover:bg-gray-100 relative"
+                    onClick={() => {
+                      setCartOpen(prev => !prev);
+                      setProfileOpen(false);
+                    }}
+                  >
+                    <FiShoppingCart className="text-2xl sm:text-3xl text-gray-800" />
+                    {loggedIn && (
+                      <span className="absolute -top-1 -right-1 sm:-top-1.5 sm:-right-1.5 bg-red-600 text-white text-xs sm:text-sm font-bold rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center">
+                        {getCartItemCount()}
+                      </span>
+                    )}
+                  </button>
+                  {cartOpen && <CartPopup />}
+                </div>
 
-                <button
-                  className="p-2 sm:p-3 mr-5 rounded-full hover:bg-gray-100 relative"
-                  onClick={() => {
-                    setProfileOpen(prev => !prev);
-                    setCartOpen(false);
-                  }}
-                >
-                  {loggedIn ? (
-                    <FiUser className={`text-2xl sm:text-3xl text-gray-800`} />
-                  ) : (
+                <div className="relative">
+                  <button
+                    className="profile-toggle-btn p-2 sm:p-3 rounded-full hover:bg-gray-100 relative"
+                    onClick={() => {
+                      setProfileOpen(prev => !prev);
+                      setCartOpen(false);
+                    }}
+                  >
                     <FiUser className="text-2xl sm:text-3xl text-gray-800" />
-                  )}
-                  {loggedIn && (
-                    <span className={`absolute top-1 right-1 w-3 h-3 rounded-full border-2 border-white ${localStorage.getItem("isAdmin") === "true" ? "bg-yellow-500" : "bg-green-500"}`}></span>
-                  )}
-                </button>
-
-                {profileOpen && <ProfilePopup />}
-                {cartOpen && <CartPopup />}
+                    {loggedIn && (
+                      <span className={`absolute top-1 right-1 w-3 h-3 rounded-full border-2 border-white ${localStorage.getItem("isAdmin") === "true" ? "bg-yellow-500" : "bg-green-500"}`}></span>
+                    )}
+                  </button>
+                  {profileOpen && <ProfilePopup />}
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Bottom Nav Section - WHITE background with BLACK text */}
-        <div className="w-full flex items-center bg-white">
+        <div className="w-full flex items-center bg-white pb-2 sm:pb-0">
           <button
             className="w-11 h-11 flex flex-col justify-between items-center p-3 rounded-full group transition-all duration-300
-                       absolute top-1 right-3 sm:static sm:mr-1 ml-3"
+                       absolute top-1 right-1 sm:static sm:mr-1 ml-3 sm:ml-0 sm:mt-2"
             onClick={() => setMenuOpen(true)}
           >
             <span className="block w-6 h-1 bg-gray-800 rounded-full transition-all duration-300 group-hover:bg-yellow-400"></span>
@@ -949,7 +874,7 @@ const MusicTabs = () => (
           </button>
 
           <div className="relative w-full">
-            <div className="hidden sm:flex ml-0 sm:ml-2 flex-nowrap gap-4 overflow-x-auto overflow-y-hidden items-center whitespace-nowrap pr-16 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] tracking-widest">
+            <div className="hidden sm:flex ml-0 sm:ml-2 flex-nowrap gap-4 overflow-x-auto overflow-y-hidden items-center whitespace-nowrap pr-16 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] tracking-widest px-3 sm:px-0">
               {[
                 "",
                 "",
@@ -969,7 +894,7 @@ const MusicTabs = () => (
       </nav>
 
       {suggestionsOpen && (searchTypedQuery || '').trim().length >= 2 && suggestions.length > 0 && (
-        <div className="fixed left-0 right-0 z-40" style={{ top: navHeight }}>
+        <div className="fixed left-0 right-0 z-30" style={{ top: `${navHeight + 48}px` }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div ref={suggestionsRef} className="bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden">
               {suggestions.map((s, idx) => (
@@ -996,7 +921,7 @@ const MusicTabs = () => (
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Product Info */}
                   <div className="flex-1 min-w-0">
                     <div className="text-sm text-gray-900 font-medium truncate">
@@ -1011,7 +936,7 @@ const MusicTabs = () => (
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Arrow Icon */}
                   <div className="flex-shrink-0">
                     <FiArrowRight className="w-4 h-4 text-black" />
@@ -1029,7 +954,7 @@ const MusicTabs = () => (
           className="fixed top-0 left-0 h-full bg-white shadow-xl z-50 rounded-xl w-full sm:w-2/3 md:w-1/2 lg:w-5/12 xl:w-1/4 flex flex-col p-5"
           style={{ fontFamily: "Calibri, sans-serif", color: "black" }}
         >
-          
+
           <div
             className="flex items-center gap-3 mb-6 cursor-pointer"
             onClick={() => setProfileOpen(prev => !prev)}
@@ -1037,9 +962,8 @@ const MusicTabs = () => (
             <div className="relative">
               <FiUser className={`text-3xl text-gray-800`} />
               {loggedIn && (
-                <span className={`absolute -top-2 -right-2 w-3 h-3 rounded-full border-2 border-white ${
-                  localStorage.getItem("isAdmin") === "true" ? "bg-yellow-500" : "bg-green-500"
-                }`}></span>
+                <span className={`absolute -top-2 -right-2 w-3 h-3 rounded-full border-2 border-white ${localStorage.getItem("isAdmin") === "true" ? "bg-yellow-500" : "bg-green-500"
+                  }`}></span>
               )}
             </div>
             <span
@@ -1055,7 +979,7 @@ const MusicTabs = () => (
           )}
 
           <div className="flex-1 overflow-y-auto drawer-scroll">
-            
+
             <div className="flex justify-between items-center flex-shrink-0 mb-4">
               <h2 className="font-bold text-4xl sm:text-5xl leading-tight whitespace-nowrap text-gray-800">
                 Categorias
@@ -1066,12 +990,11 @@ const MusicTabs = () => (
               {categories.map((cat, index) => (
                 <li
                   key={index}
-                  className={`p-2 rounded text-gray-800 text-2xl md:text-3xl ${
-                    cat === "Esportes" || cat === "Cinema" || cat === "Espiritualidade" || cat === "Música" ? "" : ""
-                  }`}
+                  className={`p-2 rounded text-gray-800 text-2xl md:text-3xl ${cat === "Esportes" || cat === "Cinema" || cat === "Espiritualidade" || cat === "Música" ? "" : ""
+                    }`}
                 >
                   <div className="flex justify-between items-center">
-                  <span className="cursor-pointer">{cat}</span>
+                    <span className="cursor-pointer">{cat}</span>
                     {(cat === "Esportes" || cat === "Cinema" || cat === "Espiritualidade" || cat === "Música") && (
                       <div className="flex items-center space-x-1">
                         <button
@@ -1084,7 +1007,7 @@ const MusicTabs = () => (
                         >
                           {/*<IoOpenOutline />*/}
                         </button>
-                        <span 
+                        <span
                           className="text-4xl cursor-pointer text-gray-800"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1094,19 +1017,19 @@ const MusicTabs = () => (
                             else if (cat === "Música") toggleMusicExpanded();
                           }}
                         >
-                          {cat === "Esportes" 
+                          {cat === "Esportes"
                             ? (sportsExpanded ? <CiSquareMinus /> : <CiSquarePlus />)
                             : cat === "Cinema"
-                            ? (cinemaExpanded ? <CiSquareMinus /> : <CiSquarePlus />)
-                            : cat === "Espiritualidade"
-                            ? (spiritualityExpanded ? <CiSquareMinus /> : <CiSquarePlus />)
-                            : (musicExpanded ? <CiSquareMinus /> : <CiSquarePlus />)
+                              ? (cinemaExpanded ? <CiSquareMinus /> : <CiSquarePlus />)
+                              : cat === "Espiritualidade"
+                                ? (spiritualityExpanded ? <CiSquareMinus /> : <CiSquarePlus />)
+                                : (musicExpanded ? <CiSquareMinus /> : <CiSquarePlus />)
                           }
                         </span>
                       </div>
                     )}
                   </div>
-                  
+
                   {cat === "Esportes" && sportsExpanded && (
                     <ul className="mt-4 ml-1 space-y-2">
                       {sportsSubcategories.map((subcat, subIndex) => (
