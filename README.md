@@ -1,4 +1,4 @@
-# 🔄 Looping — Modern E-Commerce Platform
+# Looping — Modern E-Commerce Platform
 
 [![Laravel](https://img.shields.io/badge/Laravel-12.x-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)](https://laravel.com)
 [![React](https://img.shields.io/badge/React-19.x-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
@@ -28,7 +28,7 @@
 
 ---
 
-## 🌟 Overview
+##Overview
 
 Looping provides an end-to-end e-commerce experience tailored for scalability and developer ergonomics:
 - **Hybrid Storage Strategy**: High-concurrency catalog queries backed by MongoDB; orders, authentications, addresses, and relational records handled by MySQL.
@@ -37,22 +37,22 @@ Looping provides an end-to-end e-commerce experience tailored for scalability an
 
 ---
 
-## 🚀 Key Features
+## Key Features
 
-### 🛍️ Customer Experience
+### Customer Experience
 - **Dynamic Catalog & Search**: Instant full-text product search, category filtering, and real-time inventory checks.
 - **Interactive Cart & Wishlist**: Persistent cart state, promo codes, and streamlined checkout workflow.
 - **Integrated Payments**: Support for instant **Pix (QR code & Copy-Paste)**, **Boleto Bancário**, and card processing.
 - **Account & Orders**: Order history, order tracking, address book, and profile management with email verification.
 
-### 🛡️ Administration & Operations
+### Administration & Operations
 - **Stock Management**: Automated stock deduction and restoration upon order cancellation or timeout.
 - **Catalog Control**: Create, update, toggle flash sales, and manage multi-variant products.
 - **Order Dispatch**: Real-time order fulfillment, delivery statuses, and customer insights.
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```text
                ┌────────────────────────────────────────────────────────┐
@@ -78,7 +78,7 @@ Looping provides an end-to-end e-commerce experience tailored for scalability an
 
 ---
 
-## 💻 Tech Stack
+## Tech Stack
 
 | Layer | Technologies |
 | :--- | :--- |
@@ -90,7 +90,7 @@ Looping provides an end-to-end e-commerce experience tailored for scalability an
 
 ---
 
-## ⚡ Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -199,7 +199,7 @@ npm run dev
 
 ---
 
-## 🔐 Environment Variables
+## Environment Variables
 
 Make sure to set up your `.env` files. Sensitive credentials are kept out of source control.
 
@@ -228,7 +228,7 @@ MONGO_DB_PASSWORD=your_password
 
 ---
 
-## 📂 Project Structure
+##Project Structure
 
 ```text
 Looping/
@@ -248,7 +248,7 @@ Looping/
 
 ---
 
-## 🧪 Testing
+##Testing
 
 ### Backend Tests (PHPUnit)
 ```bash
@@ -264,6 +264,6 @@ npm run test
 
 ---
 
-## 📄 License
+##License
 
 This project is open-source and available under the [MIT License](LICENSE).
